@@ -59,7 +59,7 @@ fn g(children: Vec<Node>) -> Node {
     Node::Group(children)
 }
 
-fn e(name: &str, child: Node) -> Node {
+fn n(name: &str, child: Node) -> Node {
     Node::Name(name.to_string(), Box::new(child))
 }
 
@@ -76,7 +76,7 @@ fn cursor_no_links() {
     let t = g(vec![
             f(),
             k("Foo"),
-            e("Foo", f()),
+            n("Foo", f()),
     ]);
 
     let mut c = TreeCursor::new(&t, None);
@@ -118,56 +118,56 @@ fn cursor_no_links() {
 #[test]
 fn link_map_result() {
     assert!(build_link_map(&g(vec![
-            e("Foo", f()),
+            n("Foo", f()),
             f(),
     ])).is_ok());
 
     assert!(build_link_map(&g(vec![
-            e("Foo", f()),
+            n("Foo", f()),
             k("Foo"),
     ])).is_ok());
 
     assert!(build_link_map(&g(vec![
             k("Foo"),
-            e("Foo", f()),
+            n("Foo", f()),
     ])).is_ok());
 
     assert!(build_link_map(&g(vec![
-            e("Foo", g(vec![
+            n("Foo", g(vec![
                 k("Foo"),
             ]))
     ])).is_ok());
 
     assert!(build_link_map(&g(vec![
-            e("Foo", f()),
+            n("Foo", f()),
             k("Buzz"),
     ])).is_err());
 
     assert!(build_link_map(&g(vec![
             k("Buzz"),
-            e("Foo", f()),
+            n("Foo", f()),
     ])).is_err());
 
     assert!(build_link_map(&g(vec![
-            e("Foo", g(vec![
+            n("Foo", g(vec![
                 k("Buzz"),
             ]))
     ])).is_err());
 
     assert!(build_link_map(&g(vec![
-            e("Foo", g(vec![
+            n("Foo", g(vec![
                 f(),
-                e("Foo", g(vec![
+                n("Foo", g(vec![
                     f(),
                 ])),
             ])),
     ])).is_err());
 
     assert!(build_link_map(&g(vec![
-            e("Foo", g(vec![
+            n("Foo", g(vec![
                 f(),
             ])),
-            e("Foo", g(vec![
+            n("Foo", g(vec![
                 f(),
             ])),
     ])).is_err());
@@ -178,7 +178,7 @@ fn cursor_links() {
     let t = g(vec![
             f(),
             k("Foo"),
-            e("Foo", f()),
+            n("Foo", f()),
     ]);
 
     let mut c = TreeCursor::new(&t, Some(build_link_map(&t).unwrap()));
