@@ -28,6 +28,7 @@ impl <'n, N: 'n + Down + Link> TreeCursor<'n, N> {
 
     pub fn up(&mut self) -> bool {
         if self.stack.len() == 1 {
+            self.stack[0].1 = 0;
             false
         } else {
             self.stack.pop();
