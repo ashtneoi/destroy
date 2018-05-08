@@ -114,3 +114,61 @@ fn cursor_no_links() {
     assert!(!c.up());
     assert!(ptr::eq(c.get(), &t));
 }
+
+#[test]
+fn link_map_result() {
+    assert!(build_link_map(&g(vec![
+            e("Foo", f()),
+            f(),
+    ])).is_ok());
+
+    assert!(build_link_map(&g(vec![
+            e("Foo", f()),
+            k("Foo"),
+    ])).is_ok());
+
+    assert!(build_link_map(&g(vec![
+            k("Foo"),
+            e("Foo", f()),
+    ])).is_ok());
+
+    assert!(build_link_map(&g(vec![
+            e("Foo", g(vec![
+                k("Foo"),
+            ]))
+    ])).is_ok());
+
+    assert!(build_link_map(&g(vec![
+            e("Foo", f()),
+            k("Buzz"),
+    ])).is_err());
+
+    assert!(build_link_map(&g(vec![
+            k("Buzz"),
+            e("Foo", f()),
+    ])).is_err());
+
+    assert!(build_link_map(&g(vec![
+            e("Foo", g(vec![
+                k("Buzz"),
+            ]))
+    ])).is_err());
+
+    assert!(build_link_map(&g(vec![
+            e("Foo", g(vec![
+                f(),
+                e("Foo", g(vec![
+                    f(),
+                ])),
+            ])),
+    ])).is_err());
+
+    assert!(build_link_map(&g(vec![
+            e("Foo", g(vec![
+                f(),
+            ])),
+            e("Foo", g(vec![
+                f(),
+            ])),
+    ])).is_err());
+}
