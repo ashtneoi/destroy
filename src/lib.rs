@@ -1,3 +1,5 @@
+#![feature(nll)]
+
 mod collections;
 
 #[cfg(test)]
