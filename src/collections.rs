@@ -59,8 +59,13 @@ impl <'n, N: 'n + Down + Link> TreeCursor<'n, N> {
     }
 }
 
+pub enum LinkMapError {
+    BrokenLink,
+    DuplicateName,
+}
+
 pub fn build_link_map<N: Down + Link>(root: &N)
-    -> Result<LinkMap<&N>, ()>
+    -> Result<LinkMap<&N>, LinkMapError>
 {
     let mut c = TreeCursor::new(root, None);
     let mut m = LinkMap::<&N>::new();
@@ -69,7 +74,9 @@ pub fn build_link_map<N: Down + Link>(root: &N)
     'outer1: loop {
         let node = c.get();
         if let Some(name) = node.name() {
-            m.insert(name.to_string(), node);
+            if m.insert(name.to_string(), node).is_some() {
+                return Err(LinkMapError::DuplicateName)
+            }
         } else if let Some(target) = node.target() {
             targets.push(target);
         }
@@ -85,7 +92,7 @@ pub fn build_link_map<N: Down + Link>(root: &N)
 
     for target in targets {
         if !m.contains_key(target) {
-            return Err(())
+            return Err(LinkMapError::BrokenLink)
         }
     }
 
