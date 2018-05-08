@@ -59,6 +59,7 @@ impl <'n, N: 'n + Down + Link> TreeCursor<'n, N> {
     }
 }
 
+#[derive(Debug)]
 pub enum LinkMapError {
     BrokenLink,
     DuplicateName,

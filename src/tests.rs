@@ -172,3 +172,59 @@ fn link_map_result() {
             ])),
     ])).is_err());
 }
+
+#[test]
+fn cursor_links() {
+    let t = g(vec![
+            f(),
+            k("Foo"),
+            e("Foo", f()),
+    ]);
+
+    let mut c = TreeCursor::new(&t, Some(build_link_map(&t).unwrap()));
+    assert!(ptr::eq(c.get(), &t));
+
+    assert!(c.down());
+    assert!(ptr::eq(c.get(), &t[0]));
+    assert!(!c.down());
+    assert!(ptr::eq(c.get(), &t[0]));
+    assert!(c.up());
+    assert!(ptr::eq(c.get(), &t));
+
+    assert!(c.down());
+    assert!(ptr::eq(c.get(), &t[1]));
+
+    assert!(c.down());
+    assert!(ptr::eq(c.get(), &t[2]));
+
+    assert!(c.down());
+    assert!(ptr::eq(c.get(), &t[2][0]));
+    assert!(!c.down());
+    assert!(ptr::eq(c.get(), &t[2][0]));
+    assert!(c.up());
+    assert!(ptr::eq(c.get(), &t[2]));
+
+    assert!(c.up());
+    assert!(ptr::eq(c.get(), &t[1]));
+
+    assert!(c.up());
+    assert!(ptr::eq(c.get(), &t));
+
+    assert!(c.down());
+    assert!(ptr::eq(c.get(), &t[2]));
+
+    assert!(c.down());
+    assert!(ptr::eq(c.get(), &t[2][0]));
+    assert!(!c.down());
+    assert!(ptr::eq(c.get(), &t[2][0]));
+    assert!(c.up());
+    assert!(ptr::eq(c.get(), &t[2]));
+
+    assert!(!c.down());
+    assert!(ptr::eq(c.get(), &t[2]));
+    assert!(c.up());
+    assert!(ptr::eq(c.get(), &t));
+
+    assert!(!c.up());
+    assert!(ptr::eq(c.get(), &t));
+}
