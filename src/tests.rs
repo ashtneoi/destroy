@@ -71,6 +71,39 @@ fn f() -> Node {
     Node::Leaf
 }
 
+trait TreeCursorAssertions {
+    type Node;
+
+    fn assert_up(&mut self, node: &Self::Node);
+    fn assert_up_fail(&mut self, node: &Self::Node);
+    fn assert_down(&mut self, node: &Self::Node);
+    fn assert_down_fail(&mut self, node: &Self::Node);
+}
+
+impl<'n, N: 'n + Down + Link> TreeCursorAssertions for TreeCursor<'n, N> {
+    type Node = N;
+
+    fn assert_up(&mut self, node: &Self::Node) {
+        assert!(self.up());
+        assert!(ptr::eq(self.get(), node));
+    }
+
+    fn assert_up_fail(&mut self, node: &Self::Node) {
+        assert!(!self.up());
+        assert!(ptr::eq(self.get(), node));
+    }
+
+    fn assert_down(&mut self, node: &Self::Node) {
+        assert!(self.down());
+        assert!(ptr::eq(self.get(), node));
+    }
+
+    fn assert_down_fail(&mut self, node: &Self::Node) {
+        assert!(!self.down());
+        assert!(ptr::eq(self.get(), node));
+    }
+}
+
 #[test]
 fn cursor_no_links() {
     let t = g(vec![
@@ -82,37 +115,24 @@ fn cursor_no_links() {
     let mut c = TreeCursor::new(&t, None);
     assert!(ptr::eq(c.get(), &t));
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[0]));
-    assert!(!c.down());
-    assert!(ptr::eq(c.get(), &t[0]));
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t));
+    c.assert_down(&t[0]);
+    c.assert_down_fail(&t[0]);
+    c.assert_up(&t);
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[1]));
-    assert!(!c.down());
-    assert!(ptr::eq(c.get(), &t[1]));
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t));
+    c.assert_down(&t[1]);
+    c.assert_down_fail(&t[1]);
+    c.assert_up(&t);
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[2]));
+    c.assert_down(&t[2]);
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[2][0]));
-    assert!(!c.down());
-    assert!(ptr::eq(c.get(), &t[2][0]));
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t[2]));
+    c.assert_down(&t[2][0]);
+    c.assert_down_fail(&t[2][0]);
+    c.assert_up(&t[2]);
 
-    assert!(!c.down());
-    assert!(ptr::eq(c.get(), &t[2]));
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t));
+    c.assert_down_fail(&t[2]);
+    c.assert_up(&t);
 
-    assert!(!c.up());
-    assert!(ptr::eq(c.get(), &t));
+    c.assert_up_fail(&t);
 }
 
 #[test]
@@ -184,47 +204,30 @@ fn cursor_links() {
     let mut c = TreeCursor::new(&t, Some(build_link_map(&t).unwrap()));
     assert!(ptr::eq(c.get(), &t));
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[0]));
-    assert!(!c.down());
-    assert!(ptr::eq(c.get(), &t[0]));
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t));
+    c.assert_down(&t[0]);
+    c.assert_down_fail(&t[0]);
+    c.assert_up(&t);
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[1]));
+    c.assert_down(&t[1]);
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[2]));
+    c.assert_down(&t[2]);
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[2][0]));
-    assert!(!c.down());
-    assert!(ptr::eq(c.get(), &t[2][0]));
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t[2]));
+    c.assert_down(&t[2][0]);
+    c.assert_down_fail(&t[2][0]);
+    c.assert_up(&t[2]);
 
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t[1]));
+    c.assert_up(&t[1]);
 
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t));
+    c.assert_up(&t);
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[2]));
+    c.assert_down(&t[2]);
 
-    assert!(c.down());
-    assert!(ptr::eq(c.get(), &t[2][0]));
-    assert!(!c.down());
-    assert!(ptr::eq(c.get(), &t[2][0]));
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t[2]));
+    c.assert_down(&t[2][0]);
+    c.assert_down_fail(&t[2][0]);
+    c.assert_up(&t[2]);
 
-    assert!(!c.down());
-    assert!(ptr::eq(c.get(), &t[2]));
-    assert!(c.up());
-    assert!(ptr::eq(c.get(), &t));
+    c.assert_down_fail(&t[2]);
+    c.assert_up(&t);
 
-    assert!(!c.up());
-    assert!(ptr::eq(c.get(), &t));
+    c.assert_up_fail(&t);
 }
