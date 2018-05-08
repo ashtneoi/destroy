@@ -231,3 +231,61 @@ fn cursor_links() {
 
     c.assert_up_fail(&t);
 }
+
+#[test]
+fn cursor_irregular_walk() {
+    let t = g(vec![
+        f(),
+        g(vec![
+            g(vec![
+                f(),
+            ]),
+            f(),
+        ]),
+    ]);
+
+    let mut c = TreeCursor::new(&t, None);
+    assert!(ptr::eq(c.get(), &t));
+
+    c.assert_down(&t[0]);
+    c.assert_down_fail(&t[0]);
+    c.assert_down_fail(&t[0]);
+    c.assert_down_fail(&t[0]);
+    c.assert_up(&t);
+
+    c.assert_up_fail(&t);
+    c.assert_up_fail(&t);
+
+    c.assert_down(&t[0]);
+    c.assert_up(&t);
+
+    c.assert_down(&t[1]);
+    c.assert_down(&t[1][0]);
+    c.assert_up(&t[1]);
+
+    c.assert_up(&t);
+    c.assert_up_fail(&t);
+    c.assert_up_fail(&t);
+    c.assert_up_fail(&t);
+    c.assert_up_fail(&t);
+}
+
+#[test]
+fn cursor_deep_recursion() {
+    let t = n("flower", k("flower"));
+
+    let mut c = TreeCursor::new(&t, Some(build_link_map(&t).unwrap()));
+
+    let limit = 100000;
+
+    for _ in 0..limit {
+        c.assert_down(&t[0]);
+        c.assert_down(&t);
+    }
+    for _ in 0..limit {
+        c.assert_up(&t[0]);
+        c.assert_up(&t);
+    }
+
+    c.assert_up_fail(&t);
+}
