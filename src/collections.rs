@@ -18,8 +18,24 @@ pub struct TreeCursor<'n, N: 'n + Down + Link> {
 }
 
 impl <'n, N: 'n + Down + Link> TreeCursor<'n, N> {
-    pub fn new(root: &'n N, link_map: Option<LinkMap<&'n N>>) -> Self {
-        TreeCursor { stack: vec![(root, 0)], link_map }
+    pub fn new(root: &'n N, start: Option<&str>)
+            -> Result<Self, LinkMapError>
+    {
+        if let Some(name) = start {
+            let link_map = build_link_map(root)?;
+            // TODO: BrokenLink is questionable.
+            let start_node = *link_map.get(name)
+                .ok_or(LinkMapError::BrokenLink)?;
+            Ok(TreeCursor {
+                stack: vec![(start_node, 0)],
+                link_map: Some(link_map),
+            })
+        } else {
+            Ok(TreeCursor {
+                stack: vec![(root, 0)],
+                link_map: None,
+            })
+        }
     }
 
     pub fn get(&self) -> &'n N {
@@ -69,7 +85,7 @@ pub enum LinkMapError {
 pub fn build_link_map<N: Down + Link>(root: &N)
     -> Result<LinkMap<&N>, LinkMapError>
 {
-    let mut c = TreeCursor::new(root, None);
+    let mut c = TreeCursor::new(root, None)?;
     let mut m = LinkMap::<&N>::new();
     let mut targets = Vec::new();
 

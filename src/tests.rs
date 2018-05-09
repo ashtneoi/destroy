@@ -112,7 +112,7 @@ fn cursor_no_links() {
             n("Foo", f()),
     ]);
 
-    let mut c = TreeCursor::new(&t, None);
+    let mut c = TreeCursor::new(&t, None).unwrap();
     assert!(ptr::eq(c.get(), &t));
 
     c.assert_down(&t[0]);
@@ -195,38 +195,44 @@ fn link_map_result() {
 
 #[test]
 fn cursor_links() {
-    let t = g(vec![
+    let t = n("top",
+        g(vec![
             f(),
             k("Foo"),
             n("Foo", f()),
-    ]);
+        ])
+    );
 
-    let mut c = TreeCursor::new(&t, Some(build_link_map(&t).unwrap()));
+    let mut c = TreeCursor::new(&t, Some("top")).unwrap();
     assert!(ptr::eq(c.get(), &t));
 
     c.assert_down(&t[0]);
-    c.assert_down_fail(&t[0]);
-    c.assert_up(&t);
 
-    c.assert_down(&t[1]);
+    c.assert_down(&t[0][0]);
+    c.assert_down_fail(&t[0][0]);
+    c.assert_up(&t[0]);
 
-    c.assert_down(&t[2]);
+    c.assert_down(&t[0][1]);
 
-    c.assert_down(&t[2][0]);
-    c.assert_down_fail(&t[2][0]);
-    c.assert_up(&t[2]);
+    c.assert_down(&t[0][2]);
 
-    c.assert_up(&t[1]);
+    c.assert_down(&t[0][2][0]);
+    c.assert_down_fail(&t[0][2][0]);
+    c.assert_up(&t[0][2]);
 
-    c.assert_up(&t);
+    c.assert_up(&t[0][1]);
 
-    c.assert_down(&t[2]);
+    c.assert_up(&t[0]);
 
-    c.assert_down(&t[2][0]);
-    c.assert_down_fail(&t[2][0]);
-    c.assert_up(&t[2]);
+    c.assert_down(&t[0][2]);
 
-    c.assert_down_fail(&t[2]);
+    c.assert_down(&t[0][2][0]);
+    c.assert_down_fail(&t[0][2][0]);
+    c.assert_up(&t[0][2]);
+
+    c.assert_down_fail(&t[0][2]);
+    c.assert_up(&t[0]);
+
     c.assert_up(&t);
 
     c.assert_up_fail(&t);
@@ -244,7 +250,7 @@ fn cursor_irregular_walk() {
         ]),
     ]);
 
-    let mut c = TreeCursor::new(&t, None);
+    let mut c = TreeCursor::new(&t, None).unwrap();
     assert!(ptr::eq(c.get(), &t));
 
     c.assert_down(&t[0]);
@@ -274,7 +280,7 @@ fn cursor_irregular_walk() {
 fn cursor_deep_recursion() {
     let t = n("flower", k("flower"));
 
-    let mut c = TreeCursor::new(&t, Some(build_link_map(&t).unwrap()));
+    let mut c = TreeCursor::new(&t, Some("flower")).unwrap();
 
     let limit = 100000;
 
