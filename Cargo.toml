@@ -4,4 +4,6 @@ version = "0.1.0"
 authors = ["ashtneoi <ashtneoi@gmail.com>"]
 license = "MIT"
 
-[dependencies]
+[dependencies.neoilib]
+git = "https://github.com/ashtneoi/neoilib.git"
+rev = "827ecfc03814ccf557e8de5b274afbc53e19397f"

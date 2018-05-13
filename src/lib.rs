@@ -1,3 +1,5 @@
+extern crate neoilib;
+
 #[cfg(test)]
 mod tests;
 
@@ -5,6 +7,8 @@ mod prelude {
     pub use {e, c, s, p, q, z, g, n, k, t};
     pub use GrammarNode;
 }
+
+use neoilib::tree::{Down, Link, LinkTreeCursor};
 
 pub enum GrammarNode {
     Seq(Vec<GrammarNode>),
@@ -17,6 +21,48 @@ pub enum GrammarNode {
     Name(String, Box<GrammarNode>),
     Link(String),
     Text(String),
+}
+
+impl Down for GrammarNode {
+    fn down(&mut self, idx: usize) -> Option<*mut Self> {
+        use GrammarNode::*;
+        match self {
+            &mut Seq(ref mut children)
+            | &mut Choice(ref mut children) => {
+                children.get_mut(idx).map(|c| c as *mut Self)
+            },
+            &mut Star(ref mut child)
+            | &mut Plus(ref mut child)
+            | &mut Opt(ref mut child)
+            | &mut Pos(ref mut child)
+            | &mut Neg(ref mut child)
+            | &mut Name(_, ref mut child) => {
+                if idx == 0 {
+                    Some(child.as_mut())
+                } else {
+                    None
+                }
+            },
+            &mut Link(_)
+            | &mut Text(_) => None,
+        }
+    }
+}
+
+impl Link for GrammarNode {
+    fn name(&self) -> Option<&str> {
+        match self {
+            &GrammarNode::Name(ref n, _) => Some(n),
+            _ => None,
+        }
+    }
+
+    fn target(&self) -> Option<&str> {
+        match self {
+            &GrammarNode::Link(ref t) => Some(t),
+            _ => None,
+        }
+    }
 }
 
 pub fn e(children: Vec<GrammarNode>) -> GrammarNode {
