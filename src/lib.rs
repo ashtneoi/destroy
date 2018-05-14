@@ -23,7 +23,7 @@ pub struct MatchNode {
 }
 
 impl Down for MatchNode {
-    fn down(&mut self, idx: usize) -> Option<*mut Self> {
+    fn down(&mut self, _idx: usize) -> Option<*mut Self> {
         self.child = Some(Box::new(Self::new()));
         Some(self.child.as_mut().unwrap().as_mut())
     }
@@ -120,8 +120,7 @@ impl GrammarNode {
 
         while c.down() { assert!(mc.down()); }
 
-        'outer: loop {
-            println!("'outer");
+        loop {
             // Prepare for match.
 
             let here = c.get();
@@ -141,11 +140,9 @@ impl GrammarNode {
                 _ => panic!(),
             };
 
-            println!("{:?}", here_st);
-
             // Go up.
 
-            'inner: loop {
+            loop {
                 // Determine action.
 
                 let a = if success {
@@ -174,8 +171,8 @@ impl GrammarNode {
 
                     let mut down = false;
                     while c.down() {
-                        down = true;
                         assert!(mc.down());
+                        down = true;
                     }
                     if down {
                         break;
@@ -210,9 +207,7 @@ impl GrammarNode {
                         if let Some(ref mut new_st) = mc.get_mut().st {
                             if old_st.name == new_st.name { // None is okay!
                                 // Concatenate.
-                                for child in old_st.children.drain(..) {
-                                    new_st.insert_child(child);
-                                }
+                                new_st.extend(&mut old_st);
                             } else {
                                 // Insert as child.
                                 new_st.insert_child(old_st);
@@ -289,12 +284,26 @@ impl STNode {
     }
 
     fn insert_child(&mut self, child: Self) {
-        assert!(child.raw.0 == self.raw.1);
+        assert_eq!(child.raw.0, self.raw.1);
+        assert!(child.raw.1 > self.raw.1);
         self.raw.1 = child.raw.1;
         if let Some(ref child_name) = child.name {
             self.name_map.insert(child_name.to_string(), self.children.len());
         }
         self.children.push(child);
+    }
+
+    fn extend(&mut self, other: &mut Self) {
+        let mut moved = false;
+        for child in other.children.drain(..) {
+            moved = true;
+            self.insert_child(child);
+        }
+        if moved {
+            assert_eq!(self.raw.1, other.raw.1);
+        } else {
+            self.raw.1 = other.raw.1;
+        }
     }
 }
 
