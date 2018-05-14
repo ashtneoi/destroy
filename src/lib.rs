@@ -8,7 +8,32 @@ mod prelude {
     pub use GrammarNode;
 }
 
-use neoilib::tree::{Down, Link, LinkTreeCursor};
+use neoilib::tree::{
+    Down,
+    Link,
+    LinkError,
+    LinkTreeCursor,
+    TreeCursor
+};
+use std::collections::HashMap;
+
+pub struct MatchNode {
+    child: Option<Box<MatchNode>>,
+    syntax: Option<STNode>,
+}
+
+impl Down for MatchNode {
+    fn down(&mut self, idx: usize) -> Option<*mut Self> {
+        self.child = Some(Box::new(Self::new()));
+        Some(self.child.as_mut().unwrap().as_mut())
+    }
+}
+
+impl MatchNode {
+    fn new() -> Self {
+        Self { child: None, syntax: None }
+    }
+}
 
 pub enum GrammarNode {
     Seq(Vec<GrammarNode>),
@@ -21,6 +46,63 @@ pub enum GrammarNode {
     Name(String, Box<GrammarNode>),
     Link(String),
     Text(String),
+}
+
+struct Action {
+    down: bool,
+    zero: bool,
+    keep: bool,
+    success: bool,
+}
+
+fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
+    Action { down, zero, keep, success }
+}
+
+enum ParseError {
+    BadGrammar(LinkError),
+}
+
+impl GrammarNode {
+    fn action(&self) -> Action {
+        use GrammarNode::*;
+        match self {
+            &Seq(_) => act(true, false, true, true),
+            &Choice(_) => act(false, false, true, true),
+            &Star(_)
+            | &Plus(_) => act(true, true, true, true),
+            &Opt(_) => act(false, false, true, true),
+            &Pos(_) => act(false, false, false, true),
+            &Neg(_) => act(false, false, false, false),
+            &Name(_, _)
+            | &Link(_)
+            | &Text(_) => act(false, false, true, true),
+        }
+    }
+
+    fn fail_action(&self) -> Action {
+        use GrammarNode::*;
+        match self {
+            &Plus(_) => act(false, false, true, true),
+            _ => self.fail_empty_action(),
+        }
+    }
+
+    fn fail_empty_action(&self) -> Action {
+        use GrammarNode::*;
+        match self {
+            &Seq(_) => act(false, false, false, false),
+            &Choice(_) => act(true, false, false, false),
+            &Star(_) => act(false, false, true, true),
+            &Plus(_) => act(false, false, false, false),
+            &Opt(_) => act(false, false, false, true),
+            &Pos(_) => act(false, false, false, false),
+            &Neg(_) => act(false, false, false, true),
+            &Name(_, _)
+            | &Link(_)
+            | &Text(_) => act(false, false, false, false),
+        }
+    }
 }
 
 impl Down for GrammarNode {
@@ -63,6 +145,13 @@ impl Link for GrammarNode {
             _ => None,
         }
     }
+}
+
+struct STNode {
+    name: String,
+    raw: (usize, usize),
+    children: Vec<STNode>,
+    name_map: HashMap<String, STNode>,
 }
 
 pub fn e(children: Vec<GrammarNode>) -> GrammarNode {
