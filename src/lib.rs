@@ -63,7 +63,7 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
 enum ParseError {
     BadGrammar(LinkError),
     MatchFail,
-    UnmatchedInput,
+    UnmatchedInput, // TODO: should this include the syntax tree?
 }
 
 impl GrammarNode {
@@ -190,11 +190,12 @@ impl GrammarNode {
                         return Err(ParseError::MatchFail);
                     }
                 }
-                // If we're going up, we always have an STNode.
-                let mut old_st = mc.get_mut().st.take().unwrap();
+                let maybe_old_st = mc.get_mut().st.take();
                 assert!(mc.up());
 
-                if a.keep {
+                if a.keep && maybe_old_st.is_some() {
+                    let mut old_st = maybe_old_st.unwrap();
+
                     if let &mut GrammarNode::Name(ref name, _) = c.get_mut() {
                         // New parent.
                         mc.get_mut().st = Some(
