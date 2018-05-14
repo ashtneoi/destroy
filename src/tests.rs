@@ -9,5 +9,5 @@ fn minimal() {
     let st = g.parse("start", "aaa").unwrap();
     assert_eq!(st.name.as_ref().unwrap(), "start");
     assert_eq!(st.raw, (0, 3));
-    assert_eq!(st.children[0].raw, (0, 3));
+    assert!(st.children.is_empty());
 }

@@ -196,17 +196,23 @@ impl GrammarNode {
 
                 if a.keep {
                     if let &mut GrammarNode::Name(ref name, _) = c.get_mut() {
-                        // New parent; insert as child.
+                        // New parent.
                         mc.get_mut().st = Some(
                             STNode::new((old_st.raw.0, old_st.raw.0))
                         );
                         let new_st = &mut mc.get_mut().st.as_mut().unwrap();
                         new_st.name = Some(name.to_string());
-                        new_st.insert_child(old_st);
+                        if old_st.name.is_none() {
+                            // Merge.
+                            new_st.extend(&mut old_st);
+                        } else {
+                            // Insert as child.
+                            new_st.insert_child(old_st);
+                        }
                     } else {
                         if let Some(ref mut new_st) = mc.get_mut().st {
                             if old_st.name == new_st.name { // None is okay!
-                                // Concatenate.
+                                // Merge.
                                 new_st.extend(&mut old_st);
                             } else {
                                 // Insert as child.
