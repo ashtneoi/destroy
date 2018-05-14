@@ -3,7 +3,7 @@ extern crate neoilib;
 #[cfg(test)]
 mod tests;
 
-mod prelude {
+pub mod prelude {
     pub use {e, c, s, p, q, z, g, n, k, t};
     pub use GrammarNode;
 }
@@ -19,7 +19,7 @@ use std::collections::HashMap;
 
 pub struct MatchNode {
     child: Option<Box<MatchNode>>,
-    syntax: Option<STNode>,
+    st: Option<STNode>,
 }
 
 impl Down for MatchNode {
@@ -31,7 +31,7 @@ impl Down for MatchNode {
 
 impl MatchNode {
     fn new() -> Self {
-        Self { child: None, syntax: None }
+        Self { child: None, st: None }
     }
 }
 
@@ -59,8 +59,11 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
     Action { down, zero, keep, success }
 }
 
+#[derive(Debug)]
 enum ParseError {
     BadGrammar(LinkError),
+    MatchFail,
+    UnmatchedInput,
 }
 
 impl GrammarNode {
@@ -101,6 +104,126 @@ impl GrammarNode {
             &Name(_, _)
             | &Link(_)
             | &Text(_) => act(false, false, false, false),
+        }
+    }
+
+    fn parse(&mut self, start: &str, input: &str)
+        -> Result<STNode, ParseError>
+    {
+        let mut c = LinkTreeCursor::new(self, start)
+            .map_err(|le| ParseError::BadGrammar(le))?;
+
+        let mut match_tree = MatchNode::new();
+        let mut mc = TreeCursor::new(&mut match_tree);
+
+        let mut pos = 0;
+
+        while c.down() { assert!(mc.down()); }
+
+        'outer: loop {
+            println!("'outer");
+            // Prepare for match.
+
+            let here = c.get();
+            mc.get_mut().st = Some(STNode::new((pos, pos)));
+            let here_st = mc.get_mut().st.as_mut().unwrap();
+
+            // Match.
+
+            let mut success = match here {
+                &GrammarNode::Text(ref t) => {
+                    let success = input[pos..].starts_with(t);
+                    if success {
+                        here_st.raw.1 += t.len();
+                    }
+                    success
+                },
+                _ => panic!(),
+            };
+
+            println!("{:?}", here_st);
+
+            // Go up.
+
+            'inner: loop {
+                // Determine action.
+
+                let a = if success {
+                    c.get().action()
+                } else if mc.get().st.as_ref()
+                        .filter(|st| st.raw.0 < st.raw.1).is_some()
+                        // TODO: That's gross.
+                {
+                    c.get().fail_action()
+                } else {
+                    c.get().fail_empty_action()
+                };
+
+                success = a.success;
+
+                // Take action.
+
+                if a.down {
+                    if a.zero {
+                        c.zero();
+                    }
+
+                    if let Some(ref st) = mc.get().st {
+                        pos = st.raw.1;
+                    }
+
+                    let mut down = false;
+                    while c.down() {
+                        down = true;
+                        assert!(mc.down());
+                    }
+                    if down {
+                        break;
+                    }
+                }
+
+                if !c.up() {
+                    if success {
+                        let st = mc.get_mut().st.take().unwrap();
+                        if st.raw.1 < input.len() {
+                            return Err(ParseError::UnmatchedInput);
+                        }
+                        return Ok(st);
+                    } else {
+                        return Err(ParseError::MatchFail);
+                    }
+                }
+                // If we're going up, we always have an STNode.
+                let mut old_st = mc.get_mut().st.take().unwrap();
+                assert!(mc.up());
+
+                if a.keep {
+                    if let &mut GrammarNode::Name(ref name, _) = c.get_mut() {
+                        // New parent; insert as child.
+                        mc.get_mut().st = Some(
+                            STNode::new((old_st.raw.0, old_st.raw.0))
+                        );
+                        let new_st = &mut mc.get_mut().st.as_mut().unwrap();
+                        new_st.name = Some(name.to_string());
+                        new_st.insert_child(old_st);
+                    } else {
+                        if let Some(ref mut new_st) = mc.get_mut().st {
+                            if old_st.name == new_st.name { // None is okay!
+                                // Concatenate.
+                                for child in old_st.children.drain(..) {
+                                    new_st.insert_child(child);
+                                }
+                            } else {
+                                // Insert as child.
+                                new_st.insert_child(old_st);
+                            }
+                        } else {
+                            // Bubble up.
+                            mc.get_mut().st = Some(old_st);
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -147,11 +270,32 @@ impl Link for GrammarNode {
     }
 }
 
+#[derive(Debug)]
 struct STNode {
-    name: String,
     raw: (usize, usize),
+    name: Option<String>,
     children: Vec<STNode>,
-    name_map: HashMap<String, STNode>,
+    name_map: HashMap<String, usize>,
+}
+
+impl STNode {
+    fn new(raw: (usize, usize)) -> STNode {
+        STNode {
+            raw,
+            name: None,
+            children: Vec::new(),
+            name_map: HashMap::new(),
+        }
+    }
+
+    fn insert_child(&mut self, child: Self) {
+        assert!(child.raw.0 == self.raw.1);
+        self.raw.1 = child.raw.1;
+        if let Some(ref child_name) = child.name {
+            self.name_map.insert(child_name.to_string(), self.children.len());
+        }
+        self.children.push(child);
+    }
 }
 
 pub fn e(children: Vec<GrammarNode>) -> GrammarNode {
