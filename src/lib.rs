@@ -332,16 +332,10 @@ impl STNode {
     }
 
     fn extend(&mut self, other: &mut Self) {
-        let mut moved = false;
         for child in other.children.drain(..) {
-            moved = true;
             self.insert_child(child);
         }
-        if moved {
-            assert_eq!(self.raw.1, other.raw.1);
-        } else {
-            self.raw.1 = other.raw.1;
-        }
+        self.raw.1 = other.raw.1;
     }
 }
 

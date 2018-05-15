@@ -92,3 +92,29 @@ fn decimal_integer() {
     assert!(g.parse("dec_int", "1-").is_err());
     assert!(g.parse("dec_int", "01").is_err());
 }
+
+#[test]
+fn simple_expr() {
+    let mut g = e(vec![
+        n("expr", e(vec![
+            k("expr2"),
+            s(e(vec![
+                t("+"),
+                k("expr2"),
+            ])),
+        ])),
+        n("expr2", c(vec![
+            t("1"),
+            e(vec![
+                t("("),
+                k("expr"),
+                t(")"),
+            ]),
+        ])),
+    ]);
+
+    assert!(g.parse("expr", "1").is_ok());
+    assert!(g.parse("expr", "1+1").is_ok());
+    assert!(g.parse("expr", "(1+1+1)+1").is_ok());
+    assert!(g.parse("expr", "1+(1+1+1)").is_ok());
+}
