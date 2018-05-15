@@ -136,3 +136,24 @@ fn range() {
     assert!(g.parse("start", "ee").is_err());
     assert!(g.parse("start", "ea").is_err());
 }
+
+#[test]
+fn lookahead() {
+    let mut g = n("start", e(vec![
+        z(t("a")),
+        r('a', 'c'),
+        g(t("a")),
+        r('a', 'c'),
+    ]));
+
+    assert!(g.parse("start", "ab").is_ok());
+    assert!(g.parse("start", "ac").is_ok());
+
+    assert!(g.parse("start", "aa").is_err());
+    assert!(g.parse("start", "ba").is_err());
+    assert!(g.parse("start", "bc").is_err());
+    assert!(g.parse("start", ".c").is_err());
+    assert!(g.parse("start", "a").is_err());
+    assert!(g.parse("start", "b").is_err());
+    assert!(g.parse("start", "").is_err());
+}
