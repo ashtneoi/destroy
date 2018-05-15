@@ -118,3 +118,21 @@ fn simple_expr() {
     assert!(g.parse("expr", "(1+1+1)+1").is_ok());
     assert!(g.parse("expr", "1+(1+1+1)").is_ok());
 }
+
+#[test]
+fn range() {
+    let mut g = n("start", e(vec![
+        r('a', 'd'),
+        t("e"),
+    ]));
+
+    assert!(g.parse("start", "ae").is_ok());
+    assert!(g.parse("start", "be").is_ok());
+    assert!(g.parse("start", "ce").is_ok());
+    assert!(g.parse("start", "de").is_ok());
+
+    assert!(g.parse("start", "a").is_err());
+    assert!(g.parse("start", "e").is_err());
+    assert!(g.parse("start", "ee").is_err());
+    assert!(g.parse("start", "ea").is_err());
+}

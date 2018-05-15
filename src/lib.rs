@@ -4,7 +4,7 @@ extern crate neoilib;
 mod tests;
 
 pub mod prelude {
-    pub use {e, c, s, p, q, z, g, n, k, t};
+    pub use {e, c, s, p, q, z, g, n, k, r, t};
     pub use GrammarNode;
 }
 
@@ -46,6 +46,7 @@ pub enum GrammarNode {
     Neg(Box<GrammarNode>),
     Name(String, Box<GrammarNode>),
     Link(String),
+    Range(char, char),
     Text(String),
 }
 
@@ -68,6 +69,21 @@ pub enum ParseError {
 }
 
 impl GrammarNode {
+    fn try_match(&self, input: &str) -> usize {
+        use GrammarNode::*;
+        match self {
+            &Range(from, to) => {
+                if let Some(c) = input.chars().next() {
+                    if from <= c && c <= to { 1 } else { 0 }
+                } else {
+                    0
+                }
+            },
+            &Text(ref t) => if input.starts_with(t) { 1 } else { 0 },
+            _ => panic!(),
+        }
+    }
+
     fn action(&self) -> Action {
         use GrammarNode::*;
         match self {
@@ -80,6 +96,7 @@ impl GrammarNode {
             &Neg(_) => act(false, false, false, false),
             &Name(_, _)
             | &Link(_)
+            | &Range(_, _)
             | &Text(_) => act(false, false, true, true),
         }
     }
@@ -104,6 +121,7 @@ impl GrammarNode {
             &Neg(_) => act(false, false, false, true),
             &Name(_, _)
             | &Link(_)
+            | &Range(_, _)
             | &Text(_) => act(false, false, false, false),
         }
     }
@@ -130,16 +148,11 @@ impl GrammarNode {
 
             // Match.
 
-            let mut success = match here {
-                &GrammarNode::Text(ref t) => {
-                    let success = input[pos..].starts_with(t);
-                    if success {
-                        here_st.raw.1 += t.len();
-                    }
-                    success
-                },
-                _ => panic!(),
-            };
+            let count = here.try_match(&input[pos..]);
+            let mut success = count > 0;
+            if success {
+                here_st.raw.1 += count;
+            }
 
             // Go up.
 
@@ -261,6 +274,7 @@ impl Down for GrammarNode {
                 }
             },
             &mut Link(_)
+            | &mut Range(_, _)
             | &mut Text(_) => None,
         }
     }
@@ -373,6 +387,10 @@ pub fn n(name: &str, child: GrammarNode) -> GrammarNode {
 
 pub fn k(target: &str) -> GrammarNode {
     GrammarNode::Link(target.to_string())
+}
+
+pub fn r(from: char, to: char) -> GrammarNode {
+    GrammarNode::Range(from, to)
 }
 
 pub fn t(text: &str) -> GrammarNode {
