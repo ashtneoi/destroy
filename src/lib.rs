@@ -61,7 +61,7 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
 }
 
 #[derive(Debug)]
-enum ParseError {
+pub enum ParseError {
     BadGrammar(LinkError),
     MatchFail,
     UnmatchedInput, // TODO: should this include the syntax tree?
@@ -108,7 +108,7 @@ impl GrammarNode {
         }
     }
 
-    fn parse(&mut self, start: &str, input: &str)
+    pub fn parse(&mut self, start: &str, input: &str)
         -> Result<STNode, ParseError>
     {
         let mut c = LinkTreeCursor::new(self, start)
@@ -282,7 +282,7 @@ impl Link for GrammarNode {
     }
 }
 
-struct STNode {
+pub struct STNode {
     raw: (usize, usize),
     name: Option<String>,
     children: Vec<STNode>,
