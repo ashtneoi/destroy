@@ -157,3 +157,21 @@ fn lookahead() {
     assert!(g.parse("start", "b").is_err());
     assert!(g.parse("start", "").is_err());
 }
+
+#[test]
+fn ident() {
+    let mut g = get_grammar_grammar();
+
+    assert!(g.parse("ident", "a").is_ok());
+    assert!(g.parse("ident", "A").is_ok());
+    assert!(g.parse("ident", "_").is_ok());
+    assert!(g.parse("ident", "foo").is_ok());
+    assert!(g.parse("ident", "foo_bar").is_ok());
+    assert!(g.parse("ident", "_foo_bar_").is_ok());
+    assert!(g.parse("ident", "a3").is_ok());
+    assert!(g.parse("ident", "_3").is_ok());
+
+    assert!(g.parse("ident", "3").is_err());
+    assert!(g.parse("ident", "3a").is_err());
+    assert!(g.parse("ident", "3_").is_err());
+}

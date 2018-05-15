@@ -5,6 +5,7 @@ mod tests;
 
 pub mod prelude {
     pub use {e, c, s, p, q, z, g, n, k, r, t};
+    pub use get_grammar_grammar;
     pub use GrammarNode;
 }
 
@@ -395,4 +396,66 @@ pub fn r(from: char, to: char) -> GrammarNode {
 
 pub fn t(text: &str) -> GrammarNode {
     GrammarNode::Text(text.to_string())
+}
+
+pub fn get_utils() -> GrammarNode {
+    e(vec![
+        n("ws", s(
+            c(vec![
+                t(" "),
+                t("\t"),
+            ]),
+        )),
+        n("wsp", p(
+            c(vec![
+                t(" "),
+                t("\t"),
+            ]),
+        )),
+        n("wsn", s(
+            c(vec![
+                t(" "),
+                t("\t"),
+                t("\n"),
+            ]),
+        )),
+        n("wsnp", p(
+            c(vec![
+                t(" "),
+                t("\t"),
+                t("\n"),
+            ]),
+        )),
+
+        n("nzdigit", c(vec![
+            r('1', '9'),
+        ])),
+        n("digit", c(vec![
+            t("0"),
+            k("nzdigit"),
+        ])),
+        n("latin_letter", c(vec![
+            r('a', 'z'),
+            r('A', 'Z'),
+        ])),
+    ])
+}
+
+pub fn get_grammar_grammar() -> GrammarNode {
+    e(vec![
+        get_utils(),
+        n("ident", e(vec![
+            c(vec![
+                k("latin_letter"),
+                t("_"),
+                r('\u{80}', '\u{10FFFF}'), // TODO
+            ]),
+            s(c(vec![
+                k("latin_letter"),
+                k("digit"),
+                t("_"),
+                r('\u{80}', '\u{10FFFF}'), // TODO
+            ])),
+        ])),
+    ])
 }
