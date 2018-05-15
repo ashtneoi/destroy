@@ -13,6 +13,37 @@ fn minimal() {
 }
 
 #[test]
+fn optional() {
+    let mut g = e(vec![
+        n("start", e(vec![
+            q(t("-")),
+            q(t("+")),
+        ])),
+    ]);
+
+    assert!(g.parse("start", "-+").is_ok());
+    assert!(g.parse("start", "-").is_ok());
+    assert!(g.parse("start", "+").is_ok());
+    assert!(g.parse("start", "").is_ok());
+    assert!(g.parse("start", "+-").is_err());
+    assert!(g.parse("start", " ").is_err());
+    assert!(g.parse("start", "+0").is_err());
+    assert!(g.parse("start", "0+").is_err());
+}
+
+#[test]
+fn weirdness() {
+    let mut g = e(vec![
+        n("start", e(vec![
+            t("a"),
+            n("bee", t("b")),
+        ])),
+    ]);
+
+    assert!(g.parse("start", "ab").is_ok());
+}
+
+#[test]
 fn decimal_integer() {
     let mut g = e(vec![
         n("dec_nonzero_digit", c(vec![
@@ -30,19 +61,34 @@ fn decimal_integer() {
             t("0"),
             k("dec_nonzero_digit"),
         ])),
-        n("dec_int", c(vec![
-            t("0"),
-            e(vec![
-                k("dec_nonzero_digit"),
-                s(k("dec_digit")),
+        n("dec_int", e(vec![
+            q(t("-")),
+            c(vec![
+                t("0"),
+                e(vec![
+                    k("dec_nonzero_digit"),
+                    s(k("dec_digit")),
+                ]),
             ]),
         ])),
     ]);
 
-    g.parse("dec_int", "0").unwrap();
-    g.parse("dec_int", "1").unwrap();
-    g.parse("dec_int", "9").unwrap();
-    g.parse("dec_int", "10").unwrap();
-    g.parse("dec_int", "19").unwrap();
-    g.parse("dec_int", "99").unwrap();
+    assert!(g.parse("dec_int", "0").is_ok());
+    assert!(g.parse("dec_int", "1").is_ok());
+    assert!(g.parse("dec_int", "9").is_ok());
+    assert!(g.parse("dec_int", "10").is_ok());
+    assert!(g.parse("dec_int", "19").is_ok());
+    assert!(g.parse("dec_int", "99").is_ok());
+    assert!(g.parse("dec_int", "-0").is_ok());
+    assert!(g.parse("dec_int", "-1").is_ok());
+    assert!(g.parse("dec_int", "-9").is_ok());
+    assert!(g.parse("dec_int", "-10").is_ok());
+    assert!(g.parse("dec_int", "-19").is_ok());
+    assert!(g.parse("dec_int", "-99").is_ok());
+
+    assert!(g.parse("dec_int", "y").is_err());
+    assert!(g.parse("dec_int", "-").is_err());
+    assert!(g.parse("dec_int", "0-").is_err());
+    assert!(g.parse("dec_int", "1-").is_err());
+    assert!(g.parse("dec_int", "01").is_err());
 }

@@ -16,6 +16,7 @@ use neoilib::tree::{
     TreeCursor
 };
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter, self};
 
 pub struct MatchNode {
     child: Option<Box<MatchNode>>,
@@ -193,26 +194,23 @@ impl GrammarNode {
                 let maybe_old_st = mc.get_mut().st.take();
                 assert!(mc.up());
 
-                if a.keep && maybe_old_st.is_some() {
-                    let mut old_st = maybe_old_st.unwrap();
+                if let &mut GrammarNode::Name(ref name, _) = c.get_mut() {
+                    // New parent.
+                    mc.get_mut().st = Some(
+                        STNode::new((pos, pos)) // TODO
+                    );
+                    let new_st = &mut mc.get_mut().st.as_mut().unwrap();
+                    new_st.name = Some(name.to_string());
+                }
 
-                    if let &mut GrammarNode::Name(ref name, _) = c.get_mut() {
-                        // New parent.
-                        mc.get_mut().st = Some(
-                            STNode::new((old_st.raw.0, old_st.raw.0))
-                        );
-                        let new_st = &mut mc.get_mut().st.as_mut().unwrap();
-                        new_st.name = Some(name.to_string());
-                        if old_st.name.is_none() {
-                            // Merge.
-                            new_st.extend(&mut old_st);
-                        } else {
-                            // Insert as child.
-                            new_st.insert_child(old_st);
-                        }
-                    } else {
-                        if let Some(ref mut new_st) = mc.get_mut().st {
-                            if old_st.name == new_st.name { // None is okay!
+                if let Some(mut old_st) = maybe_old_st {
+                    if a.keep {
+                        if let &GrammarNode::Name(_, _) = c.get() {
+                            // New parent (already created).
+                            let new_st = &mut mc.get_mut().st
+                                .as_mut().unwrap();
+                            new_st.raw = (old_st.raw.0, old_st.raw.0);
+                            if old_st.name.is_none() {
                                 // Merge.
                                 new_st.extend(&mut old_st);
                             } else {
@@ -220,9 +218,21 @@ impl GrammarNode {
                                 new_st.insert_child(old_st);
                             }
                         } else {
-                            // Bubble up.
-                            mc.get_mut().st = Some(old_st);
+                            if let Some(ref mut new_st) = mc.get_mut().st {
+                                if old_st.name == new_st.name {
+                                    // Merge.
+                                    new_st.extend(&mut old_st);
+                                } else {
+                                    // Insert as child.
+                                    new_st.insert_child(old_st);
+                                }
+                            } else {
+                                // Bubble up.
+                                mc.get_mut().st = Some(old_st);
+                            }
                         }
+                    } else {
+                        pos = old_st.raw.0; // TODO
                     }
                 }
             }
@@ -272,12 +282,35 @@ impl Link for GrammarNode {
     }
 }
 
-#[derive(Debug)]
 struct STNode {
     raw: (usize, usize),
     name: Option<String>,
     children: Vec<STNode>,
     name_map: HashMap<String, usize>,
+}
+
+impl Debug for STNode {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        if let Some(ref n) = self.name {
+            write!(f, "{}", n)?;
+        }
+        write!(f, "({},{})", self.raw.0, self.raw.1)?;
+        if !self.children.is_empty() {
+            write!(f, ":[")?;
+            let mut first = true;
+            for child in self.children.iter() {
+                if first {
+                    first = false;
+                } else {
+                    write!(f, ", ")?;
+                }
+                write!(f, "{:?}", child)?;
+            }
+            write!(f, "]")?;
+        }
+
+        Ok(())
+    }
 }
 
 impl STNode {
@@ -291,8 +324,6 @@ impl STNode {
     }
 
     fn insert_child(&mut self, child: Self) {
-        assert_eq!(child.raw.0, self.raw.1);
-        assert!(child.raw.1 > self.raw.1);
         self.raw.1 = child.raw.1;
         if let Some(ref child_name) = child.name {
             self.name_map.insert(child_name.to_string(), self.children.len());
