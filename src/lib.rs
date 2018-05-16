@@ -227,7 +227,7 @@ impl GrammarNode {
                             // New parent (already created).
                             let new_st = &mut mc.get_mut().st
                                 .as_mut().unwrap();
-                            new_st.raw = (old_st.raw.0, old_st.raw.0);
+                            new_st.start_at(&old_st);
                             if old_st.name.is_none() {
                                 // Merge.
                                 new_st.extend(&mut old_st);
@@ -339,8 +339,16 @@ impl STNode {
         }
     }
 
+    fn start_at(&mut self, other: &Self) {
+        self.raw.0 = other.raw.0;
+    }
+
+    fn advance_to(&mut self, other: &Self) {
+        self.raw.1 = other.raw.1;
+    }
+
     fn insert_child(&mut self, child: Self) {
-        self.raw.1 = child.raw.1;
+        self.advance_to(&child);
         self.children.push(child);
     }
 
@@ -348,7 +356,7 @@ impl STNode {
         for child in other.children.drain(..) {
             self.insert_child(child);
         }
-        self.raw.1 = other.raw.1;
+        self.advance_to(other);
     }
 }
 
