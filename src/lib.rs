@@ -216,7 +216,7 @@ impl GrammarNode {
                 if let &mut GrammarNode::LocalName(ref name, _) = c.get_mut() {
                     // New parent.
                     mc.get_mut().st = Some(
-                        STNode::new((pos, pos)) // TODO
+                        STNode::new((pos, pos))
                     );
                     let new_st = &mut mc.get_mut().st.as_mut().unwrap();
                     new_st.name = Some(name.to_string());
@@ -250,8 +250,6 @@ impl GrammarNode {
                                 mc.get_mut().st = Some(old_st);
                             }
                         }
-                    } else {
-                        pos = old_st.raw.0; // TODO
                     }
                 }
             }

@@ -35,6 +35,20 @@ fn optional() {
 }
 
 #[test]
+fn raw_match() {
+    let mut g = n("start", e(vec![
+        s(t(" ")),
+        m("a", p(t("a"))),
+        m("tail", s(t(" "))),
+    ]));
+
+    assert_eq!(g.parse("start", "a").unwrap().raw, (0, 1));
+    assert_eq!(g.parse("start", "a   ").unwrap().raw, (0, 4));
+    assert_eq!(g.parse("start", "  a").unwrap().raw, (0, 3));
+    assert_eq!(g.parse("start", "  a   ").unwrap().raw, (0, 6));
+}
+
+#[test]
 fn weirdness() {
     let mut g = e(vec![
         n("start", e(vec![
