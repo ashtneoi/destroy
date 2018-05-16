@@ -1,7 +1,7 @@
-extern crate neoilib;
-
 #[cfg(test)]
 mod tests;
+
+mod tree;
 
 pub mod prelude {
     pub use {e, c, s, p, q, z, g, n, k, r, t};
@@ -9,7 +9,7 @@ pub mod prelude {
     pub use GrammarNode;
 }
 
-use neoilib::tree::{
+use tree::{
     Down,
     Link,
     LinkError,
