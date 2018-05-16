@@ -16,7 +16,6 @@ use tree::{
     LinkTreeCursor,
     TreeCursor
 };
-use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, self};
 
 pub struct MatchNode {
@@ -305,7 +304,6 @@ pub struct STNode {
     raw: (usize, usize),
     name: Option<String>,
     children: Vec<STNode>,
-    name_map: HashMap<String, usize>,
 }
 
 impl Debug for STNode {
@@ -338,15 +336,11 @@ impl STNode {
             raw,
             name: None,
             children: Vec::new(),
-            name_map: HashMap::new(),
         }
     }
 
     fn insert_child(&mut self, child: Self) {
         self.raw.1 = child.raw.1;
-        if let Some(ref child_name) = child.name {
-            self.name_map.insert(child_name.to_string(), self.children.len());
-        }
         self.children.push(child);
     }
 
