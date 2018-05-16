@@ -252,6 +252,17 @@ mod link_tree_tests {
     }
 
     #[test]
+    fn nested_names() {
+        let mut t = n("foo", n("bar", n("fuzz", f())));
+
+        LinkTreeCursor::new(&mut t, "foo").unwrap();
+        LinkTreeCursor::new(&mut t, "bar").unwrap();
+        LinkTreeCursor::new(&mut t, "fuzz").unwrap();
+
+        LinkTreeCursor::new(&mut t, "zap").unwrap_err();
+    }
+
+    #[test]
     fn full_traverse() {
         let mut t = e(vec![
             f(),
