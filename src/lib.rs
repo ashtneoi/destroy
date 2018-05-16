@@ -197,6 +197,7 @@ impl GrammarNode {
                 }
 
                 if !c.up() {
+                    // Parsing finished.
                     if success {
                         let st = mc.get_mut().st.take().unwrap_or_else(
                             || STNode::new((0, 0))
@@ -237,12 +238,20 @@ impl GrammarNode {
                             }
                         } else {
                             if let Some(ref mut new_st) = mc.get_mut().st {
-                                if old_st.name == new_st.name {
-                                    // Merge.
-                                    new_st.extend(&mut old_st);
+                                if new_st.name.is_some() {
+                                    if old_st.name == new_st.name {
+                                        // Merge.
+                                        new_st.extend(&mut old_st);
+                                    } else if old_st.name.is_some() {
+                                        // Insert as child.
+                                        new_st.insert_child(old_st);
+                                    } else {
+                                        // Drop.
+                                        new_st.advance_to(&old_st);
+                                    }
                                 } else {
-                                    // Insert as child.
-                                    new_st.insert_child(old_st);
+                                    // Drop.
+                                    new_st.advance_to(&old_st);
                                 }
                             } else {
                                 // Bubble up.
