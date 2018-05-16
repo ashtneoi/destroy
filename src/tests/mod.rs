@@ -38,8 +38,8 @@ fn optional() {
 fn raw_match() {
     let mut g = n("start", e(vec![
         s(t(" ")),
-        m("a", p(t("a"))),
-        m("tail", s(t(" "))),
+        u("a", p(t("a"))),
+        u("tail", s(t(" "))),
     ]));
 
     assert_eq!(g.parse("start", "a").unwrap().raw, (0, 1));

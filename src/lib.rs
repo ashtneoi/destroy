@@ -4,7 +4,7 @@ mod tests;
 mod tree;
 
 pub mod prelude {
-    pub use {e, c, s, p, q, z, g, n, m, k, r, t};
+    pub use {e, c, s, p, q, z, g, n, u, k, r, t};
     pub use get_grammar_grammar;
     pub use GrammarNode;
 }
@@ -45,7 +45,7 @@ pub enum GrammarNode {
     Pos(Box<GrammarNode>),
     Neg(Box<GrammarNode>),
     Name(String, Box<GrammarNode>),
-    LocalName(String, Box<GrammarNode>),
+    Group(String, Box<GrammarNode>),
     Link(String),
     Range(char, char),
     Text(String),
@@ -96,7 +96,7 @@ impl GrammarNode {
             &Pos(_) => act(false, false, false, true),
             &Neg(_) => act(false, false, false, false),
             &Name(_, _)
-            | &LocalName(_, _)
+            | &Group(_, _)
             | &Link(_)
             | &Range(_, _)
             | &Text(_) => act(false, false, true, true),
@@ -122,7 +122,7 @@ impl GrammarNode {
             &Pos(_) => act(false, false, false, false),
             &Neg(_) => act(false, false, false, true),
             &Name(_, _)
-            | &LocalName(_, _)
+            | &Group(_, _)
             | &Link(_)
             | &Range(_, _)
             | &Text(_) => act(false, false, false, false),
@@ -213,7 +213,7 @@ impl GrammarNode {
                 let maybe_old_st = mc.get_mut().st.take();
                 assert!(mc.up());
 
-                if let &mut GrammarNode::LocalName(ref name, _) = c.get_mut() {
+                if let &mut GrammarNode::Group(ref name, _) = c.get_mut() {
                     // New parent.
                     mc.get_mut().st = Some(
                         STNode::new((pos, pos))
@@ -224,7 +224,7 @@ impl GrammarNode {
 
                 if let Some(mut old_st) = maybe_old_st {
                     if a.keep {
-                        if let &GrammarNode::LocalName(_, _) = c.get() {
+                        if let &GrammarNode::Group(_, _) = c.get() {
                             // New parent (already created).
                             let new_st = &mut mc.get_mut().st
                                 .as_mut().unwrap();
@@ -279,7 +279,7 @@ impl Down for GrammarNode {
             | &mut Pos(ref mut child)
             | &mut Neg(ref mut child)
             | &mut Name(_, ref mut child)
-            | &mut LocalName(_, ref mut child) => {
+            | &mut Group(_, ref mut child) => {
                 if idx == 0 {
                     Some(child.as_mut())
                 } else {
@@ -401,8 +401,8 @@ pub fn n(name: &str, child: GrammarNode) -> GrammarNode {
     GrammarNode::Name(name.to_string(), Box::new(child))
 }
 
-pub fn m(name: &str, child: GrammarNode) -> GrammarNode {
-    GrammarNode::LocalName(name.to_string(), Box::new(child))
+pub fn u(name: &str, child: GrammarNode) -> GrammarNode {
+    GrammarNode::Group(name.to_string(), Box::new(child))
 }
 
 pub fn k(target: &str) -> GrammarNode {
