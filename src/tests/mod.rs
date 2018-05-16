@@ -23,16 +23,15 @@ fn optional() {
         ])),
     ]);
 
-    // TODO: unwrap(), not assert!(...is_ok())
-    assert!(g.parse("start", "-+").is_ok());
-    assert!(g.parse("start", "-").is_ok());
-    assert!(g.parse("start", "+").is_ok());
-    assert!(g.parse("start", "").is_ok());
-    // TODO: likewise
-    assert!(g.parse("start", "+-").is_err());
-    assert!(g.parse("start", " ").is_err());
-    assert!(g.parse("start", "+0").is_err());
-    assert!(g.parse("start", "0+").is_err());
+    g.parse("start", "-+").unwrap();
+    g.parse("start", "-").unwrap();
+    g.parse("start", "+").unwrap();
+    g.parse("start", "").unwrap();
+
+    g.parse("start", "+-").unwrap_err();
+    g.parse("start", " ").unwrap_err();
+    g.parse("start", "+0").unwrap_err();
+    g.parse("start", "0+").unwrap_err();
 }
 
 #[test]
@@ -44,7 +43,7 @@ fn weirdness() {
         ])),
     ]);
 
-    assert!(g.parse("start", "ab").is_ok());
+    g.parse("start", "ab").unwrap();
 }
 
 #[test]
@@ -77,24 +76,24 @@ fn decimal_integer() {
         ])),
     ]);
 
-    assert!(g.parse("dec_int", "0").is_ok());
-    assert!(g.parse("dec_int", "1").is_ok());
-    assert!(g.parse("dec_int", "9").is_ok());
-    assert!(g.parse("dec_int", "10").is_ok());
-    assert!(g.parse("dec_int", "19").is_ok());
-    assert!(g.parse("dec_int", "99").is_ok());
-    assert!(g.parse("dec_int", "-0").is_ok());
-    assert!(g.parse("dec_int", "-1").is_ok());
-    assert!(g.parse("dec_int", "-9").is_ok());
-    assert!(g.parse("dec_int", "-10").is_ok());
-    assert!(g.parse("dec_int", "-19").is_ok());
-    assert!(g.parse("dec_int", "-99").is_ok());
+    g.parse("dec_int", "0").unwrap();
+    g.parse("dec_int", "1").unwrap();
+    g.parse("dec_int", "9").unwrap();
+    g.parse("dec_int", "10").unwrap();
+    g.parse("dec_int", "19").unwrap();
+    g.parse("dec_int", "99").unwrap();
+    g.parse("dec_int", "-0").unwrap();
+    g.parse("dec_int", "-1").unwrap();
+    g.parse("dec_int", "-9").unwrap();
+    g.parse("dec_int", "-10").unwrap();
+    g.parse("dec_int", "-19").unwrap();
+    g.parse("dec_int", "-99").unwrap();
 
-    assert!(g.parse("dec_int", "y").is_err());
-    assert!(g.parse("dec_int", "-").is_err());
-    assert!(g.parse("dec_int", "0-").is_err());
-    assert!(g.parse("dec_int", "1-").is_err());
-    assert!(g.parse("dec_int", "01").is_err());
+    g.parse("dec_int", "y").unwrap_err();
+    g.parse("dec_int", "-").unwrap_err();
+    g.parse("dec_int", "0-").unwrap_err();
+    g.parse("dec_int", "1-").unwrap_err();
+    g.parse("dec_int", "01").unwrap_err();
 }
 
 #[test]
@@ -117,10 +116,10 @@ fn simple_expr() {
         ])),
     ]);
 
-    assert!(g.parse("expr", "1").is_ok());
-    assert!(g.parse("expr", "1+1").is_ok());
-    assert!(g.parse("expr", "(1+1+1)+1").is_ok());
-    assert!(g.parse("expr", "1+(1+1+1)").is_ok());
+    g.parse("expr", "1").unwrap();
+    g.parse("expr", "1+1").unwrap();
+    g.parse("expr", "(1+1+1)+1").unwrap();
+    g.parse("expr", "1+(1+1+1)").unwrap();
 }
 
 #[test]
@@ -130,15 +129,15 @@ fn range() {
         t("e"),
     ]));
 
-    assert!(g.parse("start", "ae").is_ok());
-    assert!(g.parse("start", "be").is_ok());
-    assert!(g.parse("start", "ce").is_ok());
-    assert!(g.parse("start", "de").is_ok());
+    g.parse("start", "ae").unwrap();
+    g.parse("start", "be").unwrap();
+    g.parse("start", "ce").unwrap();
+    g.parse("start", "de").unwrap();
 
-    assert!(g.parse("start", "a").is_err());
-    assert!(g.parse("start", "e").is_err());
-    assert!(g.parse("start", "ee").is_err());
-    assert!(g.parse("start", "ea").is_err());
+    g.parse("start", "a").unwrap_err();
+    g.parse("start", "e").unwrap_err();
+    g.parse("start", "ee").unwrap_err();
+    g.parse("start", "ea").unwrap_err();
 }
 
 #[test]
@@ -150,32 +149,32 @@ fn lookahead() {
         r('a', 'c'),
     ]));
 
-    assert!(g.parse("start", "ab").is_ok());
-    assert!(g.parse("start", "ac").is_ok());
+    g.parse("start", "ab").unwrap();
+    g.parse("start", "ac").unwrap();
 
-    assert!(g.parse("start", "aa").is_err());
-    assert!(g.parse("start", "ba").is_err());
-    assert!(g.parse("start", "bc").is_err());
-    assert!(g.parse("start", ".c").is_err());
-    assert!(g.parse("start", "a").is_err());
-    assert!(g.parse("start", "b").is_err());
-    assert!(g.parse("start", "").is_err());
+    g.parse("start", "aa").unwrap_err();
+    g.parse("start", "ba").unwrap_err();
+    g.parse("start", "bc").unwrap_err();
+    g.parse("start", ".c").unwrap_err();
+    g.parse("start", "a").unwrap_err();
+    g.parse("start", "b").unwrap_err();
+    g.parse("start", "").unwrap_err();
 }
 
 #[test]
 fn ident() {
     let mut g = get_grammar_grammar();
 
-    assert!(g.parse("ident", "a").is_ok());
-    assert!(g.parse("ident", "A").is_ok());
-    assert!(g.parse("ident", "_").is_ok());
-    assert!(g.parse("ident", "foo").is_ok());
-    assert!(g.parse("ident", "foo_bar").is_ok());
-    assert!(g.parse("ident", "_foo_bar_").is_ok());
-    assert!(g.parse("ident", "a3").is_ok());
-    assert!(g.parse("ident", "_3").is_ok());
+    g.parse("ident", "a").unwrap();
+    g.parse("ident", "A").unwrap();
+    g.parse("ident", "_").unwrap();
+    g.parse("ident", "foo").unwrap();
+    g.parse("ident", "foo_bar").unwrap();
+    g.parse("ident", "_foo_bar_").unwrap();
+    g.parse("ident", "a3").unwrap();
+    g.parse("ident", "_3").unwrap();
 
-    assert!(g.parse("ident", "3").is_err());
-    assert!(g.parse("ident", "3a").is_err());
-    assert!(g.parse("ident", "3_").is_err());
+    g.parse("ident", "3").unwrap_err();
+    g.parse("ident", "3a").unwrap_err();
+    g.parse("ident", "3_").unwrap_err();
 }
