@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::ptr;
 
 pub trait Down {
     fn down(&mut self, idx: usize) -> Option<*mut Self>;
@@ -65,6 +66,7 @@ type LinkMap<X> = HashMap<String, X>;
 pub enum LinkError {
     DuplicateName,
     BrokenLink,
+    NameWithoutChild,
 }
 
 #[derive(Debug)]
@@ -80,21 +82,28 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
 
         let mut targets = Vec::new();
 
+        let mut child: *mut N = ptr::null_mut();
+
         loop {
-            while c.down() { }
+            while c.down() { child = ptr::null_mut(); }
 
             let here = c.get_mut();
             if let Some(name) = match here.name() {
                     Some(n) => Some(n.to_string()),
                     None => None,
             } {
-                if link_map.insert(name, here).is_some() {
+                if child.is_null() {
+                    return Err(LinkError::NameWithoutChild);
+                }
+                if link_map.insert(name, child).is_some() {
                     return Err(LinkError::DuplicateName);
                 }
             }
             if let Some(target) = here.target() {
                 targets.push(target.to_string());
             }
+
+            child = here as *mut N;
 
             if !c.up() {
                 break;

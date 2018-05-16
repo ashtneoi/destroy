@@ -286,7 +286,6 @@ mod link_tree_tests {
 
             assert!(c.down());
             assert!(c.down());
-            assert!(c.down());
 
             {
                 let here = c.get() as *const Node;
@@ -317,17 +316,10 @@ mod link_tree_tests {
             assert!(c.down());
             assert!(c.down());
             assert!(c.down());
-            assert!(c.down());
             assert!(!c.down());
             assert!(c.up());
 
             assert!(c.down());
-            assert!(!c.down());
-            assert!(c.up());
-
-            assert!(!c.down());
-            assert!(c.up());
-
             assert!(!c.down());
             assert!(c.up());
 
@@ -349,24 +341,26 @@ mod link_tree_tests {
 
     #[test]
     fn deep_recursion() {
-        let mut t = n("foo", k("foo"));
+        let mut t = n("foo", e(vec![
+            k("foo")
+        ]));
 
         let mut c = LinkTreeCursor::new(&mut t, "foo").unwrap();
 
-        let nn = c.get() as *const Node;
+        let ee = c.get() as *const Node;
         assert!(c.down());
         let kk = c.get() as *const Node;
         assert!(c.down());
 
         for _ in 0..1000 {
-            assert!(ptr::eq(c.get(), nn));
+            assert!(ptr::eq(c.get(), ee));
             assert!(c.down());
             assert!(ptr::eq(c.get(), kk));
             assert!(c.down());
         }
 
         for _ in 0..1001 {
-            assert!(ptr::eq(c.get(), nn));
+            assert!(ptr::eq(c.get(), ee));
             assert!(c.up());
             assert!(!c.down());
             assert!(ptr::eq(c.get(), kk));
@@ -387,8 +381,6 @@ mod link_tree_tests {
         let mut c = LinkTreeCursor::new(&mut t, "foo").unwrap();
 
         assert!(c.down());
-
-        assert!(c.down());
         assert!(!c.down());
         assert!(c.up());
 
@@ -419,8 +411,6 @@ mod link_tree_tests {
         assert!(c.up());
 
         assert!(!c.down());
-
-        assert!(c.up());
         assert!(!c.up());
     }
 

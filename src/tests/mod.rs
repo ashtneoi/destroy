@@ -9,7 +9,7 @@ fn minimal() {
     ]);
 
     let st = g.parse("start", "aaa").unwrap();
-    assert_eq!(st.name.as_ref().unwrap(), "start");
+    assert_eq!(st.name, None);
     assert_eq!(st.raw, (0, 3));
     assert!(st.children.is_empty());
 }
@@ -23,10 +23,12 @@ fn optional() {
         ])),
     ]);
 
+    // TODO: unwrap(), not assert!(...is_ok())
     assert!(g.parse("start", "-+").is_ok());
     assert!(g.parse("start", "-").is_ok());
     assert!(g.parse("start", "+").is_ok());
     assert!(g.parse("start", "").is_ok());
+    // TODO: likewise
     assert!(g.parse("start", "+-").is_err());
     assert!(g.parse("start", " ").is_err());
     assert!(g.parse("start", "+0").is_err());

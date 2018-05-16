@@ -196,7 +196,9 @@ impl GrammarNode {
 
                 if !c.up() {
                     if success {
-                        let st = mc.get_mut().st.take().unwrap();
+                        let st = mc.get_mut().st.take().unwrap_or_else(
+                            || STNode::new((0, 0))
+                        );
                         if st.raw.1 < input.len() {
                             return Err(ParseError::UnmatchedInput(st));
                         }
