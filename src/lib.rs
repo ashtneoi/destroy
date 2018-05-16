@@ -65,8 +65,8 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
 #[derive(Debug)]
 pub enum ParseError {
     BadGrammar(LinkError),
-    MatchFail,
-    UnmatchedInput, // TODO: should this include the syntax tree?
+    MatchFail(usize),
+    UnmatchedInput(STNode),
 }
 
 impl GrammarNode {
@@ -198,11 +198,11 @@ impl GrammarNode {
                     if success {
                         let st = mc.get_mut().st.take().unwrap();
                         if st.raw.1 < input.len() {
-                            return Err(ParseError::UnmatchedInput);
+                            return Err(ParseError::UnmatchedInput(st));
                         }
                         return Ok(st);
                     } else {
-                        return Err(ParseError::MatchFail);
+                        return Err(ParseError::MatchFail(pos));
                     }
                 }
                 let maybe_old_st = mc.get_mut().st.take();
