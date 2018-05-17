@@ -11,6 +11,17 @@ pub trait Link {
     fn target(&self) -> Option<&str>;
 }
 
+pub trait VerticalCursor<'n, N: 'n> {
+    fn get(&self) -> &'n N;
+    fn zero(&mut self);
+    fn down(&mut self) -> bool;
+    fn up(&mut self) -> bool;
+}
+
+pub trait MutVerticalCursor<'n, N: 'n>: VerticalCursor<'n, N> {
+    fn get_mut(&mut self) -> &'n mut N;
+}
+
 #[derive(Debug)]
 pub struct TreeCursor<'n, N: 'n + Down> {
     root: PhantomData<&'n mut N>,
@@ -22,22 +33,19 @@ impl<'n, N: 'n + Down> TreeCursor<'n, N> {
         let root_ptr: *mut N = root;
         TreeCursor { root: PhantomData, stack: vec![(root_ptr, 0)] }
     }
+}
 
-    pub fn get(&self) -> &'n N {
+impl<'n, N: 'n + Down> VerticalCursor<'n, N> for TreeCursor<'n, N> {
+    fn get(&self) -> &'n N {
         let here: *const N = self.stack.last().unwrap().0;
         (unsafe { here.as_ref() }).unwrap()
     }
 
-    pub fn get_mut(&mut self) -> &'n mut N {
-        let here = self.stack.last().unwrap().0;
-        (unsafe { here.as_mut() }).unwrap()
-    }
-
-    pub fn zero(&mut self) {
+    fn zero(&mut self) {
         self.stack.last_mut().unwrap().1 = 0;
     }
 
-    pub fn down(&mut self) -> bool {
+    fn down(&mut self) -> bool {
         let idx = self.stack.last().unwrap().1;
         let new_ptr = match self.get_mut().down(idx) {
             Some(x) => x,
@@ -49,7 +57,7 @@ impl<'n, N: 'n + Down> TreeCursor<'n, N> {
         true
     }
 
-    pub fn up(&mut self) -> bool {
+    fn up(&mut self) -> bool {
         if self.stack.len() == 1 {
             self.stack[0].1 = 0;
             false
@@ -57,6 +65,13 @@ impl<'n, N: 'n + Down> TreeCursor<'n, N> {
             self.stack.pop().unwrap();
             true
         }
+    }
+}
+
+impl<'n, N: 'n + Down> MutVerticalCursor<'n, N> for TreeCursor<'n, N> {
+    fn get_mut(&mut self) -> &'n mut N {
+        let here = self.stack.last().unwrap().0;
+        (unsafe { here.as_mut() }).unwrap()
     }
 }
 
@@ -123,20 +138,18 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
 
         Ok(Self { tree_cursor: TreeCursor::new(start_node), link_map })
     }
+}
 
-    pub fn get(&self) -> &'n N {
+impl<'n, N: 'n + Down + Link> VerticalCursor<'n, N> for LinkTreeCursor<'n, N> {
+    fn get(&self) -> &'n N {
         self.tree_cursor.get()
     }
 
-    pub fn get_mut(&mut self) -> &'n mut N {
-        self.tree_cursor.get_mut()
-    }
-
-    pub fn zero(&mut self) {
+    fn zero(&mut self) {
         self.tree_cursor.zero();
     }
 
-    pub fn down(&mut self) -> bool {
+    fn down(&mut self) -> bool {
         match self.tree_cursor.get().target()
                 .filter(|_| self.tree_cursor.stack.last().unwrap().1 == 0)
                 .map(|target| self.link_map[target])
@@ -150,7 +163,15 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
         }
     }
 
-    pub fn up(&mut self) -> bool {
+    fn up(&mut self) -> bool {
         self.tree_cursor.up()
+    }
+}
+
+impl<'n, N: 'n + Down + Link> MutVerticalCursor<'n, N>
+    for LinkTreeCursor<'n, N>
+{
+    fn get_mut(&mut self) -> &'n mut N {
+        self.tree_cursor.get_mut()
     }
 }

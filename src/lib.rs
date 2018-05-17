@@ -14,7 +14,9 @@ use tree::{
     Link,
     LinkError,
     LinkTreeCursor,
-    TreeCursor
+    MutVerticalCursor,
+    TreeCursor,
+    VerticalCursor,
 };
 use std::fmt::{Debug, Formatter, self};
 

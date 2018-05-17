@@ -1,6 +1,6 @@
 mod tree_tests {
     use std::ptr;
-    use tree::{Down, TreeCursor};
+    use tree::{Down, MutVerticalCursor, TreeCursor, VerticalCursor};
 
     struct Node {
         children: Vec<Node>,
@@ -193,7 +193,14 @@ mod tree_tests {
 
 mod link_tree_tests {
     use std::ptr;
-    use tree::{Down, Link, LinkError, LinkTreeCursor};
+    use tree::{
+        Down,
+        Link,
+        LinkError,
+        LinkTreeCursor,
+        MutVerticalCursor,
+        VerticalCursor,
+    };
 
     #[derive(Debug)]
     enum Node {
