@@ -212,56 +212,71 @@ impl GrammarNode {
                         return Err(ParseError::MatchFail(pos));
                     }
                 }
-                let maybe_old_st = mc.get_mut().st.take();
+                let old_st = mc.get_mut().st.take();
                 assert!(mc.up());
 
-                if let &mut GrammarNode::Group(ref name, _) = c.get_mut() {
+                let group_name = match c.get() {
+                    &GrammarNode::Group(ref name, _) => Some(name),
+                    _ => None,
+                };
+
+                if let Some(name) = group_name.as_ref() {
                     // New parent.
-                    mc.get_mut().st = Some(
-                        STNode::new((pos, pos))
-                    );
-                    let new_st = &mut mc.get_mut().st.as_mut().unwrap();
-                    new_st.name = Some(name.to_string());
+                    mc.get_mut().st = Some(STNode {
+                        name: Some(name.to_string()),
+                        ..STNode::new((pos, pos))
+                    });
                 }
 
-                if let Some(mut old_st) = maybe_old_st {
-                    if a.keep {
-                        if let &GrammarNode::Group(_, _) = c.get() {
-                            // New parent (already created).
-                            let new_st = &mut mc.get_mut().st
-                                .as_mut().unwrap();
-                            new_st.start_at(&old_st);
-                            if old_st.name.is_none() {
-                                // Merge.
-                                new_st.extend(&mut old_st);
-                            } else {
-                                // Insert as child.
-                                new_st.insert_child(old_st);
-                            }
-                        } else {
-                            if let Some(ref mut new_st) = mc.get_mut().st {
-                                if new_st.name.is_some() {
-                                    if old_st.name == new_st.name {
-                                        // Merge.
-                                        new_st.extend(&mut old_st);
-                                    } else if old_st.name.is_some() {
-                                        // Insert as child.
-                                        new_st.insert_child(old_st);
-                                    } else {
-                                        // Drop.
-                                        new_st.advance_to(&old_st);
-                                    }
-                                } else {
-                                    // Drop.
-                                    new_st.advance_to(&old_st);
-                                }
-                            } else {
-                                // Bubble up.
-                                mc.get_mut().st = Some(old_st);
-                            }
-                        }
-                    }
+                if let Some(old_st) = old_st {
+                    combine_st(
+                        group_name.is_some(),
+                        &mut mc.get_mut().st,
+                        Some(old_st).filter(|_| a.keep),
+                    );
                 }
+            }
+        }
+    }
+}
+
+fn combine_st(
+    is_group: bool,
+    new_st: &mut Option<STNode>,
+    old_st: Option<STNode>,
+) {
+    if let Some(mut old_st) = old_st {
+        if is_group {
+            // New parent (already created).
+            let new_st = new_st.as_mut().unwrap();
+            new_st.start_at(&old_st);
+            if old_st.name.is_none() {
+                // Merge.
+                new_st.extend(&mut old_st);
+            } else {
+                // Insert as child.
+                new_st.insert_child(old_st);
+            }
+        } else {
+            if let &mut Some(ref mut new_st) = new_st {
+                if new_st.name.is_some() {
+                    if old_st.name == new_st.name {
+                        // Merge.
+                        new_st.extend(&mut old_st);
+                    } else if old_st.name.is_some() {
+                        // Insert as child.
+                        new_st.insert_child(old_st);
+                    } else {
+                        // Drop.
+                        new_st.advance_to(&old_st);
+                    }
+                } else {
+                    // Drop.
+                    new_st.advance_to(&old_st);
+                }
+            } else {
+                // Bubble up.
+                *new_st = Some(old_st);
             }
         }
     }
