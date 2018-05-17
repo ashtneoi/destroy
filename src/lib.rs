@@ -326,6 +326,7 @@ impl Link for GrammarNode {
     }
 }
 
+#[derive(PartialEq, Eq)]
 pub struct STNode {
     raw: (usize, usize),
     name: Option<String>,
