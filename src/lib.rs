@@ -58,6 +58,7 @@ pub enum GrammarNode {
     Text(String),
 }
 
+#[derive(Copy, Clone)]
 struct Action {
     down: bool,
     zero: bool,
@@ -137,111 +138,154 @@ impl GrammarNode {
     }
 
     pub fn parse(&mut self, start: &str, input: &str)
-        -> Result<STNode, ParseError>
+            -> Result<STNode, ParseError>
     {
-        let mut c = LinkTreeCursor::new(self, start)
-            .map_err(|le| ParseError::BadGrammar(le))?;
+        let mut _m = MatchNode::new();
+        let mut p = Parser::new(self, start, input, &mut _m).map_err(
+            |e| ParseError::BadGrammar(e)
+        )?;
 
-        let mut match_tree = MatchNode::new();
-        let mut mc = TreeCursor::new(&mut match_tree);
+        loop {
+            let mut success = p.try_match();
 
-        let mut pos = 0;
+            loop {
+                // Outcomes:
+                // - break
+                // - return
+                // - fall off end
+
+                let a = match p.do_action(success) {
+                    Some(a) => a,
+                    None => break,
+                };
+
+                if let Some(r) = p.go_up(a) {
+                    return r;
+                }
+
+                success = a.success;
+            }
+        }
+    }
+}
+
+struct Parser<'g, 'm, 's> {
+    c: LinkTreeCursor<'g, GrammarNode>,
+    mc: TreeCursor<'m, MatchNode>,
+    pos: usize,
+    input: &'s str,
+}
+
+impl<'g, 'm, 's> Parser<'g, 'm, 's> {
+    fn new(
+            root: &'g mut GrammarNode,
+            start: &str,
+            input: &'s str,
+            mroot: &'m mut MatchNode,
+    ) -> Result<Parser<'g, 'm, 's>, LinkError> {
+        let mut c = LinkTreeCursor::new(root, start)?;
+        let mut mc = TreeCursor::new(mroot);
 
         while c.down() { assert!(mc.down()); }
 
-        loop {
-            // Prepare for match.
+        Ok(Parser { c, mc, pos: 0, input })
+    }
 
-            let here = c.get();
-            mc.get_mut().st = Some(STNode::new((pos, pos)));
-            let here_st = mc.get_mut().st.as_mut().unwrap();
+    fn try_match(&mut self) -> bool {
+        // Prepare for match.
 
-            // Match.
+        let here = self.c.get();
+        self.mc.get_mut().st = Some(STNode::new((self.pos, self.pos)));
+        let here_st = self.mc.get_mut().st.as_mut().unwrap();
 
-            let count = here.try_match(&input[pos..]);
-            let mut success = count > 0;
-            if success {
-                here_st.raw.1 += count;
+        // Match.
+
+        let count = here.try_match(&self.input[self.pos..]);
+        let success = count > 0;
+        if success {
+            here_st.raw.1 += count;
+        }
+        success
+    }
+
+    fn do_action(&mut self, success: bool) -> Option<Action> {
+        // Determine action.
+
+        let a = if success {
+            self.c.get().action()
+        } else if self.mc.get().st.as_ref()
+                .filter(|st| st.raw.0 < st.raw.1).is_some()
+                // TODO: That's gross.
+        {
+            self.c.get().fail_action()
+        } else {
+            self.c.get().fail_empty_action()
+        };
+
+        // Take action.
+
+        if a.down {
+            if a.zero {
+                self.c.zero();
             }
 
-            // Go up.
+            if let Some(ref st) = self.mc.get().st {
+                self.pos = st.raw.1;
+            }
 
-            loop {
-                // Determine action.
-
-                let a = if success {
-                    c.get().action()
-                } else if mc.get().st.as_ref()
-                        .filter(|st| st.raw.0 < st.raw.1).is_some()
-                        // TODO: That's gross.
-                {
-                    c.get().fail_action()
-                } else {
-                    c.get().fail_empty_action()
-                };
-
-                success = a.success;
-
-                // Take action.
-
-                if a.down {
-                    if a.zero {
-                        c.zero();
-                    }
-
-                    if let Some(ref st) = mc.get().st {
-                        pos = st.raw.1;
-                    }
-
-                    let mut down = false;
-                    while c.down() {
-                        assert!(mc.down());
-                        down = true;
-                    }
-                    if down {
-                        break;
-                    }
-                }
-
-                if !c.up() {
-                    // Parsing finished.
-                    if success {
-                        let st = mc.get_mut().st.take().unwrap_or_else(
-                            || STNode::new((0, 0))
-                        );
-                        if st.raw.1 < input.len() {
-                            return Err(ParseError::UnmatchedInput(st));
-                        }
-                        return Ok(st);
-                    } else {
-                        return Err(ParseError::MatchFail(pos));
-                    }
-                }
-                let old_st = mc.get_mut().st.take();
-                assert!(mc.up());
-
-                let group_name = match c.get() {
-                    &GrammarNode::Group(ref name, _) => Some(name),
-                    _ => None,
-                };
-
-                if let Some(name) = group_name.as_ref() {
-                    // New parent.
-                    mc.get_mut().st = Some(STNode {
-                        name: Some(name.to_string()),
-                        ..STNode::new((pos, pos))
-                    });
-                }
-
-                if let Some(old_st) = old_st {
-                    combine_st(
-                        group_name.is_some(),
-                        &mut mc.get_mut().st,
-                        Some(old_st).filter(|_| a.keep),
-                    );
-                }
+            let mut down = false;
+            while self.c.down() {
+                assert!(self.mc.down());
+                down = true;
+            }
+            if down {
+                return None;
             }
         }
+
+        Some(a)
+    }
+
+    fn go_up(&mut self, a: Action) -> Option<Result<STNode, ParseError>> {
+        if !self.c.up() {
+            // Parsing finished.
+            if a.success {
+                let st = self.mc.get_mut().st.take().unwrap_or_else(
+                    || STNode::new((0, 0))
+                );
+                if st.raw.1 < self.input.len() {
+                    return Some(Err(ParseError::UnmatchedInput(st)));
+                }
+                return Some(Ok(st));
+            } else {
+                return Some(Err(ParseError::MatchFail(self.pos)));
+            }
+        }
+        let old_st = self.mc.get_mut().st.take();
+        assert!(self.mc.up());
+
+        let group_name = match self.c.get() {
+            &GrammarNode::Group(ref name, _) => Some(name),
+            _ => None,
+        };
+
+        if let Some(name) = group_name.as_ref() {
+            // New parent.
+            self.mc.get_mut().st = Some(STNode {
+                name: Some(name.to_string()),
+                ..STNode::new((self.pos, self.pos))
+            });
+        }
+
+        if let Some(old_st) = old_st {
+            combine_st(
+                group_name.is_some(),
+                &mut self.mc.get_mut().st,
+                Some(old_st).filter(|_| a.keep),
+            );
+        }
+
+        None
     }
 }
 
