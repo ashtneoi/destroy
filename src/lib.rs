@@ -149,11 +149,6 @@ impl GrammarNode {
             let mut success = p.try_match();
 
             loop {
-                // Outcomes:
-                // - break
-                // - return
-                // - fall off end
-
                 let a = match p.do_action(success) {
                     Some(a) => a,
                     None => break,
@@ -215,7 +210,6 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
             self.c.get().action()
         } else if self.mc.get().st.as_ref()
                 .filter(|st| st.raw.0 < st.raw.1).is_some()
-                // TODO: That's gross.
         {
             self.c.get().fail_action()
         } else {
