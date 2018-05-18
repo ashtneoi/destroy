@@ -2,6 +2,7 @@ mod tree;
 
 mod standard {
     use prelude::*;
+    use test::Bencher;
     use STNode;
 
     #[test]
@@ -267,6 +268,13 @@ mod standard {
                 }
             );
         }
+    }
+
+    #[bench]
+    fn bench_ident(b: &mut Bencher) {
+        let mut g = get_grammar_grammar();
+
+        b.iter(|| g.parse("ident", "_foo_bar99"));
     }
 
     #[test]

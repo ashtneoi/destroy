@@ -1,3 +1,8 @@
+#![feature(test)]
+
+#[cfg(test)]
+extern crate test;
+
 #[cfg(test)]
 mod tests;
 
