@@ -244,9 +244,8 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
         if !self.c.up() {
             // Parsing finished.
             if a.success {
-                let st = self.mc.get_mut().st.take().unwrap_or_else(
-                    || STNode::new((0, 0))
-                );
+                let st = self.mc.get_mut()
+                    .st.take().unwrap_or_else(|| STNode::new((0, 0)));
                 if st.raw.1 < self.input.len() {
                     return Some(Err(ParseError::UnmatchedInput(st)));
                 }
@@ -263,7 +262,7 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
             _ => None,
         };
 
-        if let Some(name) = group_name.as_ref() {
+        if let Some(ref name) = group_name {
             // New parent.
             self.mc.get_mut().st = Some(STNode {
                 name: Some(name.to_string()),
