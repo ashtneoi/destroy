@@ -261,12 +261,7 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
         let old_st = self.mc.get_mut().st.take();
         assert!(self.mc.up());
 
-        let group_name = match self.c.get() {
-            &GrammarNode::Group(ref name, _) => Some(name),
-            _ => None,
-        };
-
-        if let Some(ref name) = group_name {
+        if let &GrammarNode::Group(ref name, _) = self.c.get() {
             // New parent.
             self.mc.get_mut().st = Some(STNode::new(
                 (self.pos, self.pos),
@@ -276,24 +271,18 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
         }
 
         if let Some(old_st) = old_st {
-            combine_st(
-                group_name.is_some(),
-                &mut self.mc.get_mut().st,
-                Some(old_st).filter(|_| a.keep),
-            );
+            if a.keep {
+                self.combine_st(old_st);
+            }
         }
 
         None
     }
-}
 
-fn combine_st(
-    is_group: bool,
-    new_st: &mut Option<STNode>,
-    old_st: Option<STNode>,
-) {
-    if let Some(mut old_st) = old_st {
-        if is_group {
+    fn combine_st(&mut self, mut old_st: STNode) {
+        let new_st = &mut self.mc.get_mut().st;
+
+        if let &GrammarNode::Group(_, _) = self.c.get() {
             // New parent (already created).
             let new_st = new_st.as_mut().unwrap();
             new_st.start_at(&old_st);
