@@ -190,7 +190,9 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
         // Prepare for match.
 
         let here = self.c.get();
-        self.mc.get_mut().st = Some(STNode::new((self.pos, self.pos)));
+        self.mc.get_mut().st = Some(
+            STNode::new((self.pos, self.pos), None, vec![])
+        );
         let here_st = self.mc.get_mut().st.as_mut().unwrap();
 
         // Match.
@@ -245,7 +247,9 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
             // Parsing finished.
             if a.success {
                 let st = self.mc.get_mut()
-                    .st.take().unwrap_or_else(|| STNode::new((0, 0)));
+                    .st.take().unwrap_or_else(
+                        || STNode::new((0, 0), None, vec![])
+                    );
                 if st.raw.1 < self.input.len() {
                     return Some(Err(ParseError::UnmatchedInput(st)));
                 }
@@ -264,10 +268,11 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
 
         if let Some(ref name) = group_name {
             // New parent.
-            self.mc.get_mut().st = Some(STNode {
-                name: Some(name.to_string()),
-                ..STNode::new((self.pos, self.pos))
-            });
+            self.mc.get_mut().st = Some(STNode::new(
+                (self.pos, self.pos),
+                Some(name),
+                vec![],
+            ));
         }
 
         if let Some(old_st) = old_st {
@@ -400,11 +405,13 @@ impl Debug for STNode {
 }
 
 impl STNode {
-    fn new(raw: (usize, usize)) -> STNode {
+    fn new(raw: (usize, usize), name: Option<&str>, children: Vec<Self>)
+            -> STNode
+    {
         STNode {
             raw,
-            name: None,
-            children: Vec::new(),
+            name: name.map(|s| s.to_string()),
+            children,
         }
     }
 

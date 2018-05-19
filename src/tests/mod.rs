@@ -162,110 +162,220 @@ mod standard {
         use STNode;
 
         #[test]
-        fn e_group() {
-            let mut g = n("start", e(vec![
-                u("first", t("a")),
-                u("second", p(t("b"))),
+        fn e_group_two_names() {
+            let mut g = n("x", e(vec![
+                u("A", q(t("a"))),
+                u("B", q(t("b"))),
             ]));
 
             assert_eq!(
-                g.parse("start", "ab").unwrap(),
-                STNode { raw: (0, 2), name: None, children: vec![
-                        STNode {
-                            raw: (0, 1),
-                            name: Some("first".to_string()),
-                            children: vec![],
-                        },
-                        STNode {
-                            raw: (1, 2),
-                            name: Some("second".to_string()),
-                            children: vec![],
-                        },
-                    ],
-                }
+                g.parse("x", "ab").unwrap(),
+                STNode::new((0, 2), None, vec![
+                    STNode::new((0, 1), Some("A"), vec![]),
+                    STNode::new((1, 2), Some("B"), vec![]),
+                ])
+            );
+        }
+
+        #[test]
+        fn e_group_one_name() {
+            let mut g1 = n("x", e(vec![
+                q(t("a")),
+                u("B", t("b")),
+            ]));
+
+            assert_eq!(
+                g1.parse("x", "b").unwrap(),
+                STNode::new((0, 1), None, vec![
+                    STNode::new((0, 0), None, vec![]),
+                    STNode::new((0, 1), Some("B"), vec![]),
+                ])
+            );
+            assert_eq!(
+                g1.parse("x", "ab").unwrap(),
+                STNode::new((0, 2), None, vec![
+                    STNode::new((0, 1), None, vec![]),
+                    STNode::new((1, 2), Some("B"), vec![]),
+                ])
+            );
+
+            let mut g2 = n("x", e(vec![
+                u("A", t("a")),
+                q(t("b")),
+            ]));
+
+            assert_eq!(
+                g2.parse("x", "a").unwrap(),
+                STNode::new((0, 1), None, vec![
+                    STNode::new((0, 1), Some("A"), vec![]),
+                    STNode::new((1, 1), None, vec![]),
+                ])
+            );
+            assert_eq!(
+                g2.parse("x", "ab").unwrap(),
+                STNode::new((0, 2), None, vec![
+                    STNode::new((0, 1), Some("A"), vec![]),
+                    STNode::new((1, 2), None, vec![]),
+                ])
+            );
+        }
+
+        #[test]
+        fn e_group_same_name() {
+            let mut g = n("x", e(vec![
+                u("A", q(t("a"))),
+                u("A", q(t("b"))),
+            ]));
+
+            assert_eq!(
+                g.parse("x", "ab").unwrap(),
+                STNode::new((0, 2), Some("A"), vec![
+                    STNode::new((0, 1), None, vec![]),
+                    STNode::new((1, 2), None, vec![]),
+                ])
+            );
+        }
+
+        #[test]
+        fn e_group_no_names() {
+            let mut g = n("x", e(vec![
+                q(t("a")),
+                q(t("b")),
+            ]));
+
+            assert_eq!(
+                g.parse("x", "").unwrap(),
+                STNode::new((0, 0), None, vec![])
+            );
+            assert_eq!(
+                g.parse("x", "a").unwrap(),
+                STNode::new((0, 1), None, vec![])
+            );
+            assert_eq!(
+                g.parse("x", "b").unwrap(),
+                STNode::new((0, 1), None, vec![])
+            );
+            assert_eq!(
+                g.parse("x", "ab").unwrap(),
+                STNode::new((0, 2), None, vec![])
             );
         }
 
         #[test]
         fn c_group() {
-            let mut g = n("start", c(vec![
-                u("first", t("a")),
-                u("second", p(t("b"))),
+            let mut g = n("x", c(vec![
+                u("A", t("a")),
+                u("B", t("b")),
             ]));
 
             assert_eq!(
-                g.parse("start", "a").unwrap(),
-                STNode {
-                    raw: (0, 1),
-                    name: Some("first".to_string()),
-                    children: vec![],
-                }
+                g.parse("x", "a").unwrap(),
+                STNode::new((0, 1), Some("A"), vec![])
             );
             assert_eq!(
-                g.parse("start", "bbb").unwrap(),
-                STNode {
-                    raw: (0, 3),
-                    name: Some("second".to_string()),
-                    children: vec![],
-                }
-            );
-        }
-
-        #[test]
-        fn n_group() {
-            let mut g = n("start",
-                n("foo", u("bar", t("a"))),
-            );
-
-            assert_eq!(
-                g.parse("start", "a").unwrap(),
-                STNode {
-                    raw: (0, 1),
-                    name: Some("bar".to_string()),
-                    children: vec![],
-                }
+                g.parse("x", "b").unwrap(),
+                STNode::new((0, 1), Some("B"), vec![])
             );
         }
 
         #[test]
         fn q_group() {
-            let mut g = n("start", q(
-                u("foo", t("a"))
+            let mut g = n("x", q(
+                u("A", t("a"))
             ));
 
             assert_eq!(
-                g.parse("start", "").unwrap(),
-                STNode {
-                    raw: (0, 0),
-                    name: None,
-                    children: vec![],
-                }
+                g.parse("x", "").unwrap(),
+                STNode::new((0, 0), None, vec![])
             );
             assert_eq!(
-                g.parse("start", "a").unwrap(),
-                STNode {
-                    raw: (0, 1),
-                    name: Some("foo".to_string()),
-                    children: vec![],
-                }
+                g.parse("x", "a").unwrap(),
+                STNode::new((0, 1), Some("A"), vec![])
             );
         }
 
         #[test]
-        fn z_g_group() {
-            let mut g = n("start", e(vec![
-                z(u("first", t("a"))),
-                g(u("second", t("b"))),
-                t("a"),
+        fn s_group() {
+            let mut g = n("x", s(
+                u("A", u("E", t("a"))),
+            ));
+
+            assert_eq!(
+                g.parse("x", "").unwrap(),
+                STNode::new((0, 0), None, vec![])
+            );
+            assert_eq!(
+                g.parse("x", "aa").unwrap(),
+                STNode::new((0, 2), Some("A"), vec![
+                    STNode::new((0, 2), Some("E"), vec![]),
+                ])
+            );
+        }
+
+        #[test]
+        fn p_group() {
+            let mut g = n("x", p(
+                u("A", u("E", t("a"))),
+            ));
+
+            assert_eq!(
+                g.parse("x", "aa").unwrap(),
+                STNode::new((0, 2), Some("A"), vec![
+                    STNode::new((0, 2), Some("E"), vec![]),
+                ])
+            );
+        }
+
+        #[test]
+        fn z_group() {
+            let mut g = n("x", e(vec![
+                z(u("E", t("a"))),
+                u("A", t("a")),
             ]));
 
             assert_eq!(
-                g.parse("start", "a").unwrap(),
-                STNode {
-                    raw: (0, 1),
-                    name: None,
-                    children: vec![],
-                }
+                g.parse("x", "a").unwrap(),
+                STNode::new((0, 1), None, vec![
+                    STNode::new((0, 1), Some("A"), vec![]),
+                ])
+            );
+        }
+
+        #[test]
+        fn g_group() {
+            let mut g = n("x", e(vec![
+                g(u("A", t("a"))),
+                u("B", t("b")),
+            ]));
+
+            assert_eq!(
+                g.parse("x", "b").unwrap(),
+                STNode::new((0, 1), Some("B"), vec![])
+            );
+        }
+
+        #[test]
+        fn n_group() {
+            let mut g = n("x",
+                n("E", u("A", t("a"))),
+            );
+
+            assert_eq!(
+                g.parse("x", "a").unwrap(),
+                STNode::new((0, 1), Some("A"), vec![])
+            );
+        }
+
+        #[test]
+        fn k_group() {
+            let mut g = e(vec![
+                n("x", k("w")),
+                n("w", u("A", t("a"))),
+            ]);
+
+            assert_eq!(
+                g.parse("x", "a").unwrap(),
+                STNode::new((0, 1), Some("A"), vec![])
             );
         }
     }
@@ -274,7 +384,7 @@ mod standard {
     fn bench_ident(b: &mut Bencher) {
         let mut g = get_grammar_grammar();
 
-        b.iter(|| g.parse("ident", "_foo_bar99"));
+        b.iter(|| g.parse("ident", "_foo_bar90"));
     }
 
     #[test]
