@@ -187,7 +187,6 @@ mod standard {
             assert_eq!(
                 g1.parse("x", "b").unwrap(),
                 STNode::new((0, 1), None, vec![
-                    STNode::new((0, 0), None, vec![]),
                     STNode::new((0, 1), Some("B"), vec![]),
                 ])
             );
@@ -208,7 +207,6 @@ mod standard {
                 g2.parse("x", "a").unwrap(),
                 STNode::new((0, 1), None, vec![
                     STNode::new((0, 1), Some("A"), vec![]),
-                    STNode::new((1, 1), None, vec![]),
                 ])
             );
             assert_eq!(
