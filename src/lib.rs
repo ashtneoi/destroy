@@ -14,6 +14,7 @@ pub mod prelude {
     pub use GrammarNode;
 }
 
+use std::fmt::{Debug, Formatter, self};
 use tree::{
     Down,
     Link,
@@ -23,11 +24,10 @@ use tree::{
     TreeCursor,
     VerticalCursor,
 };
-use std::fmt::{Debug, Formatter, self};
 
 pub struct MatchNode {
     child: Option<Box<MatchNode>>,
-    st: Option<STNode>,
+    st: Option<Match>,
 }
 
 impl Down for MatchNode {
@@ -74,7 +74,7 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
 pub enum ParseError {
     BadGrammar(LinkError),
     MatchFail(usize),
-    UnmatchedInput(STNode),
+    UnmatchedInput(Match),
 }
 
 impl GrammarNode {
@@ -138,7 +138,7 @@ impl GrammarNode {
     }
 
     pub fn parse(&mut self, start: &str, input: &str)
-            -> Result<STNode, ParseError>
+            -> Result<Match, ParseError>
     {
         let mut _m = MatchNode::new();
         let mut p = Parser::new(self, start, input, &mut _m).map_err(
@@ -191,7 +191,7 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
 
         let here = self.c.get();
         self.mc.get_mut().st = Some(
-            STNode::new((self.pos, self.pos), None, vec![])
+            Match::new((self.pos, self.pos), None, vec![])
         );
         let here_st = self.mc.get_mut().st.as_mut().unwrap();
 
@@ -242,13 +242,13 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
         Some(a)
     }
 
-    fn go_up(&mut self, a: Action) -> Option<Result<STNode, ParseError>> {
+    fn go_up(&mut self, a: Action) -> Option<Result<Match, ParseError>> {
         if !self.c.up() {
             // Parsing finished.
             if a.success {
                 let st = self.mc.get_mut()
                     .st.take().unwrap_or_else(
-                        || STNode::new((0, 0), None, vec![])
+                        || Match::new((0, 0), None, vec![])
                     );
                 if st.raw.1 < self.input.len() {
                     return Some(Err(ParseError::UnmatchedInput(st)));
@@ -263,7 +263,7 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
 
         if let &GrammarNode::Group(ref name, _) = self.c.get() {
             // New parent.
-            self.mc.get_mut().st = Some(STNode::new(
+            self.mc.get_mut().st = Some(Match::new(
                 (self.pos, self.pos),
                 Some(name),
                 vec![],
@@ -279,7 +279,7 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
         None
     }
 
-    fn combine_st(&mut self, mut old_st: STNode) {
+    fn combine_st(&mut self, mut old_st: Match) {
         use GrammarNode::*;
 
         let new_st = &mut self.mc.get_mut().st;
@@ -368,13 +368,13 @@ impl Link for GrammarNode {
 }
 
 #[derive(PartialEq, Eq)]
-pub struct STNode {
+pub struct Match {
     raw: (usize, usize),
     name: Option<String>,
-    children: Vec<STNode>,
+    children: Vec<Match>,
 }
 
-impl Debug for STNode {
+impl Debug for Match {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         if let Some(ref n) = self.name {
             write!(f, "{}", n)?;
@@ -398,11 +398,11 @@ impl Debug for STNode {
     }
 }
 
-impl STNode {
+impl Match {
     fn new(raw: (usize, usize), name: Option<&str>, children: Vec<Self>)
-            -> STNode
+            -> Match
     {
-        STNode {
+        Match {
             raw,
             name: name.map(|s| s.to_string()),
             children,

@@ -3,7 +3,7 @@ mod tree;
 mod standard {
     use prelude::*;
     use test::Bencher;
-    use STNode;
+    use Match;
 
     #[test]
     fn minimal() {
@@ -14,7 +14,7 @@ mod standard {
         let st = g.parse("start", "aaa").unwrap();
         assert_eq!(
             st,
-            STNode {
+            Match {
                 raw: (0, 3),
                 name: None,
                 children: vec![],
@@ -159,7 +159,7 @@ mod standard {
 
     mod group_tests {
         use prelude::*;
-        use STNode;
+        use Match;
 
         #[test]
         fn e_group_two_names() {
@@ -170,9 +170,9 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "ab").unwrap(),
-                STNode::new((0, 2), None, vec![
-                    STNode::new((0, 1), Some("A"), vec![]),
-                    STNode::new((1, 2), Some("B"), vec![]),
+                Match::new((0, 2), None, vec![
+                    Match::new((0, 1), Some("A"), vec![]),
+                    Match::new((1, 2), Some("B"), vec![]),
                 ])
             );
         }
@@ -186,15 +186,15 @@ mod standard {
 
             assert_eq!(
                 g1.parse("x", "b").unwrap(),
-                STNode::new((0, 1), None, vec![
-                    STNode::new((0, 1), Some("B"), vec![]),
+                Match::new((0, 1), None, vec![
+                    Match::new((0, 1), Some("B"), vec![]),
                 ])
             );
             assert_eq!(
                 g1.parse("x", "ab").unwrap(),
-                STNode::new((0, 2), None, vec![
-                    STNode::new((0, 1), None, vec![]),
-                    STNode::new((1, 2), Some("B"), vec![]),
+                Match::new((0, 2), None, vec![
+                    Match::new((0, 1), None, vec![]),
+                    Match::new((1, 2), Some("B"), vec![]),
                 ])
             );
 
@@ -205,15 +205,15 @@ mod standard {
 
             assert_eq!(
                 g2.parse("x", "a").unwrap(),
-                STNode::new((0, 1), None, vec![
-                    STNode::new((0, 1), Some("A"), vec![]),
+                Match::new((0, 1), None, vec![
+                    Match::new((0, 1), Some("A"), vec![]),
                 ])
             );
             assert_eq!(
                 g2.parse("x", "ab").unwrap(),
-                STNode::new((0, 2), None, vec![
-                    STNode::new((0, 1), Some("A"), vec![]),
-                    STNode::new((1, 2), None, vec![]),
+                Match::new((0, 2), None, vec![
+                    Match::new((0, 1), Some("A"), vec![]),
+                    Match::new((1, 2), None, vec![]),
                 ])
             );
         }
@@ -227,9 +227,9 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "ab").unwrap(),
-                STNode::new((0, 2), Some("A"), vec![
-                    STNode::new((0, 1), None, vec![]),
-                    STNode::new((1, 2), None, vec![]),
+                Match::new((0, 2), Some("A"), vec![
+                    Match::new((0, 1), None, vec![]),
+                    Match::new((1, 2), None, vec![]),
                 ])
             );
         }
@@ -243,19 +243,19 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "").unwrap(),
-                STNode::new((0, 0), None, vec![])
+                Match::new((0, 0), None, vec![])
             );
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                STNode::new((0, 1), None, vec![])
+                Match::new((0, 1), None, vec![])
             );
             assert_eq!(
                 g.parse("x", "b").unwrap(),
-                STNode::new((0, 1), None, vec![])
+                Match::new((0, 1), None, vec![])
             );
             assert_eq!(
                 g.parse("x", "ab").unwrap(),
-                STNode::new((0, 2), None, vec![])
+                Match::new((0, 2), None, vec![])
             );
         }
 
@@ -268,11 +268,11 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                STNode::new((0, 1), Some("A"), vec![])
+                Match::new((0, 1), Some("A"), vec![])
             );
             assert_eq!(
                 g.parse("x", "b").unwrap(),
-                STNode::new((0, 1), Some("B"), vec![])
+                Match::new((0, 1), Some("B"), vec![])
             );
         }
 
@@ -284,11 +284,11 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "").unwrap(),
-                STNode::new((0, 0), None, vec![])
+                Match::new((0, 0), None, vec![])
             );
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                STNode::new((0, 1), Some("A"), vec![])
+                Match::new((0, 1), Some("A"), vec![])
             );
         }
 
@@ -300,12 +300,12 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "").unwrap(),
-                STNode::new((0, 0), None, vec![])
+                Match::new((0, 0), None, vec![])
             );
             assert_eq!(
                 g.parse("x", "aa").unwrap(),
-                STNode::new((0, 2), Some("A"), vec![
-                    STNode::new((0, 2), Some("E"), vec![]),
+                Match::new((0, 2), Some("A"), vec![
+                    Match::new((0, 2), Some("E"), vec![]),
                 ])
             );
         }
@@ -318,8 +318,8 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "aa").unwrap(),
-                STNode::new((0, 2), Some("A"), vec![
-                    STNode::new((0, 2), Some("E"), vec![]),
+                Match::new((0, 2), Some("A"), vec![
+                    Match::new((0, 2), Some("E"), vec![]),
                 ])
             );
         }
@@ -333,8 +333,8 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                STNode::new((0, 1), None, vec![
-                    STNode::new((0, 1), Some("A"), vec![]),
+                Match::new((0, 1), None, vec![
+                    Match::new((0, 1), Some("A"), vec![]),
                 ])
             );
         }
@@ -348,7 +348,7 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "b").unwrap(),
-                STNode::new((0, 1), Some("B"), vec![])
+                Match::new((0, 1), Some("B"), vec![])
             );
         }
 
@@ -360,7 +360,7 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                STNode::new((0, 1), Some("A"), vec![])
+                Match::new((0, 1), Some("A"), vec![])
             );
         }
 
@@ -373,7 +373,7 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                STNode::new((0, 1), Some("A"), vec![])
+                Match::new((0, 1), Some("A"), vec![])
             );
         }
     }
