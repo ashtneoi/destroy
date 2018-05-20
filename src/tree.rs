@@ -2,6 +2,19 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ptr;
 
+pub mod prelude {
+    pub use super::{
+        Down,
+        Link,
+        LinkError,
+        LinkTreeCursor,
+        MutVerticalCursor,
+        OpaqueVerticalCursor,
+        TreeCursor,
+        VerticalCursor,
+    };
+}
+
 pub trait Down {
     fn down(&mut self, idx: usize) -> Option<*mut Self>;
 }
@@ -11,15 +24,20 @@ pub trait Link {
     fn target(&self) -> Option<&str>;
 }
 
-pub trait VerticalCursor<'n, N: 'n> {
-    fn get(&self) -> &'n N;
+pub trait OpaqueVerticalCursor<'n> {
     fn zero(&mut self);
     fn down(&mut self) -> bool;
     fn up(&mut self) -> bool;
 }
 
-pub trait MutVerticalCursor<'n, N: 'n>: VerticalCursor<'n, N> {
-    fn get_mut(&mut self) -> &'n mut N;
+pub trait VerticalCursor<'n>: OpaqueVerticalCursor<'n> {
+    type Item;
+
+    fn get(&self) -> &'n Self::Item;
+}
+
+pub trait MutVerticalCursor<'n>: VerticalCursor<'n> {
+    fn get_mut(&mut self) -> &'n mut Self::Item;
 }
 
 #[derive(Debug)]
@@ -35,12 +53,7 @@ impl<'n, N: 'n + Down> TreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down> VerticalCursor<'n, N> for TreeCursor<'n, N> {
-    fn get(&self) -> &'n N {
-        let here: *const N = self.stack.last().unwrap().0;
-        (unsafe { here.as_ref() }).unwrap()
-    }
-
+impl<'n, N: 'n + Down> OpaqueVerticalCursor<'n> for TreeCursor<'n, N> {
     fn zero(&mut self) {
         self.stack.last_mut().unwrap().1 = 0;
     }
@@ -68,7 +81,17 @@ impl<'n, N: 'n + Down> VerticalCursor<'n, N> for TreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down> MutVerticalCursor<'n, N> for TreeCursor<'n, N> {
+impl<'n, N: 'n + Down> VerticalCursor<'n> for TreeCursor<'n, N> {
+    type Item = N;
+
+    fn get(&self) -> &'n N {
+        let here: *const N = self.stack.last().unwrap().0;
+        (unsafe { here.as_ref() }).unwrap()
+    }
+
+}
+
+impl<'n, N: 'n + Down> MutVerticalCursor<'n> for TreeCursor<'n, N> {
     fn get_mut(&mut self) -> &'n mut N {
         let here = self.stack.last().unwrap().0;
         (unsafe { here.as_mut() }).unwrap()
@@ -140,11 +163,9 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down + Link> VerticalCursor<'n, N> for LinkTreeCursor<'n, N> {
-    fn get(&self) -> &'n N {
-        self.tree_cursor.get()
-    }
-
+impl<'n, N: 'n + Down + Link> OpaqueVerticalCursor<'n>
+        for LinkTreeCursor<'n, N>
+{
     fn zero(&mut self) {
         self.tree_cursor.zero();
     }
@@ -168,7 +189,15 @@ impl<'n, N: 'n + Down + Link> VerticalCursor<'n, N> for LinkTreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down + Link> MutVerticalCursor<'n, N>
+impl<'n, N: 'n + Down + Link> VerticalCursor<'n> for LinkTreeCursor<'n, N> {
+    type Item = N;
+
+    fn get(&self) -> &'n N {
+        self.tree_cursor.get()
+    }
+}
+
+impl<'n, N: 'n + Down + Link> MutVerticalCursor<'n>
     for LinkTreeCursor<'n, N>
 {
     fn get_mut(&mut self) -> &'n mut N {

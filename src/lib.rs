@@ -15,15 +15,7 @@ pub mod prelude {
 }
 
 use std::fmt::{Debug, Formatter, self};
-use tree::{
-    Down,
-    Link,
-    LinkError,
-    LinkTreeCursor,
-    MutVerticalCursor,
-    TreeCursor,
-    VerticalCursor,
-};
+use tree::prelude::*;
 
 pub struct MatchNode {
     child: Option<Box<MatchNode>>,
