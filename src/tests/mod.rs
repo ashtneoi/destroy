@@ -161,6 +161,7 @@ mod standard {
         use prelude::*;
         use Match;
 
+        #[ignore]
         #[test]
         fn e_group_two_names() {
             let mut g = n("x", e(vec![
@@ -177,6 +178,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn e_group_one_name() {
             let mut g1 = n("x", e(vec![
@@ -218,6 +220,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn e_group_same_name() {
             let mut g = n("x", e(vec![
@@ -234,6 +237,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn e_group_no_names() {
             let mut g = n("x", e(vec![
@@ -259,6 +263,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn c_group() {
             let mut g = n("x", c(vec![
@@ -276,6 +281,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn q_group() {
             let mut g = n("x", q(
@@ -292,6 +298,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn s_group() {
             let mut g = n("x", s(
@@ -310,6 +317,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn p_group() {
             let mut g = n("x", p(
@@ -324,6 +332,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn z_group() {
             let mut g = n("x", e(vec![
@@ -339,6 +348,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn g_group() {
             let mut g = n("x", e(vec![
@@ -352,6 +362,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn n_group() {
             let mut g = n("x",
@@ -364,6 +375,7 @@ mod standard {
             );
         }
 
+        #[ignore]
         #[test]
         fn k_group() {
             let mut g = e(vec![
