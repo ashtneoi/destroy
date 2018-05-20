@@ -15,7 +15,19 @@ pub mod prelude {
 }
 
 use std::fmt::{Debug, Formatter, self};
+use tree::MutVerticalCursorGroup;
 use tree::prelude::*;
+
+pub struct MatchCursor<'x> {
+    g: LinkTreeCursor<'x, GrammarNode>,
+    m: TreeCursor<'x, MatchNode>,
+}
+
+impl<'x> MutVerticalCursorGroup for MatchCursor<'x> {
+    fn list(&mut self) -> Vec<&mut OpaqueVerticalCursor> {
+        vec![&mut self.g, &mut self.m]
+    }
+}
 
 pub struct MatchNode {
     child: Option<Box<MatchNode>>,

@@ -24,13 +24,13 @@ pub trait Link {
     fn target(&self) -> Option<&str>;
 }
 
-pub trait OpaqueVerticalCursor<'n> {
+pub trait OpaqueVerticalCursor {
     fn zero(&mut self);
     fn down(&mut self) -> bool;
     fn up(&mut self) -> bool;
 }
 
-pub trait VerticalCursor<'n>: OpaqueVerticalCursor<'n> {
+pub trait VerticalCursor<'n>: OpaqueVerticalCursor {
     type Item;
 
     fn get(&self) -> &'n Self::Item;
@@ -53,7 +53,7 @@ impl<'n, N: 'n + Down> TreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down> OpaqueVerticalCursor<'n> for TreeCursor<'n, N> {
+impl<'n, N: 'n + Down> OpaqueVerticalCursor for TreeCursor<'n, N> {
     fn zero(&mut self) {
         self.stack.last_mut().unwrap().1 = 0;
     }
@@ -163,9 +163,7 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down + Link> OpaqueVerticalCursor<'n>
-        for LinkTreeCursor<'n, N>
-{
+impl<'n, N: 'n + Down + Link> OpaqueVerticalCursor for LinkTreeCursor<'n, N> {
     fn zero(&mut self) {
         self.tree_cursor.zero();
     }
@@ -202,5 +200,33 @@ impl<'n, N: 'n + Down + Link> MutVerticalCursor<'n>
 {
     fn get_mut(&mut self) -> &'n mut N {
         self.tree_cursor.get_mut()
+    }
+}
+
+pub trait MutVerticalCursorGroup {
+    fn list(&mut self) -> Vec<&mut OpaqueVerticalCursor>;
+
+    fn zero(&mut self) {
+        for c in self.list().iter_mut() {
+            c.zero();
+        }
+    }
+
+    fn down(&mut self) -> bool {
+        for c in self.list().iter_mut() {
+            if !c.down() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn up(&mut self) -> bool {
+        for c in self.list().iter_mut() {
+            if !c.up() {
+                return false;
+            }
+        }
+        true
     }
 }
