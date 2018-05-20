@@ -280,40 +280,45 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
     }
 
     fn combine_st(&mut self, mut old_st: STNode) {
+        use GrammarNode::*;
+
         let new_st = &mut self.mc.get_mut().st;
 
-        if let &GrammarNode::Group(_, _) = self.c.get() {
-            // New parent (already created).
-            let new_st = new_st.as_mut().unwrap();
-            new_st.start_at(&old_st);
-            if old_st.name.is_none() {
-                // Merge.
-                new_st.extend(&mut old_st);
-            } else {
-                // Insert as child.
-                new_st.insert_child(old_st);
-            }
-        } else {
-            if let &mut Some(ref mut new_st) = new_st {
-                if new_st.name.is_some() {
-                    if old_st.name == new_st.name {
-                        // Merge.
-                        new_st.extend(&mut old_st);
-                    } else if old_st.name.is_some() {
-                        // Insert as child.
-                        new_st.insert_child(old_st);
+        match self.c.get() {
+            &Group(_, _) => {
+                // New parent (already created).
+                let new_st = new_st.as_mut().unwrap();
+                new_st.start_at(&old_st);
+                if old_st.name.is_none() {
+                    // Merge.
+                    new_st.extend(&mut old_st);
+                } else {
+                    // Insert as child.
+                    new_st.insert_child(old_st);
+                }
+            },
+            _ => {
+                if let &mut Some(ref mut new_st) = new_st {
+                    if new_st.name.is_some() {
+                        if old_st.name == new_st.name {
+                            // Merge.
+                            new_st.extend(&mut old_st);
+                        } else if old_st.name.is_some() {
+                            // Insert as child.
+                            new_st.insert_child(old_st);
+                        } else {
+                            // Drop.
+                            new_st.advance_to(&old_st);
+                        }
                     } else {
                         // Drop.
                         new_st.advance_to(&old_st);
                     }
                 } else {
-                    // Drop.
-                    new_st.advance_to(&old_st);
+                    // Bubble up.
+                    *new_st = Some(old_st);
                 }
-            } else {
-                // Bubble up.
-                *new_st = Some(old_st);
-            }
+            },
         }
     }
 }
