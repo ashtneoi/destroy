@@ -23,9 +23,17 @@ pub struct MatchCursor<'x> {
     m: TreeCursor<'x, MatchNode>,
 }
 
+impl<'x> MatchCursor<'x> {
+    fn new(g: LinkTreeCursor<'x, GrammarNode>, m: TreeCursor<'x, MatchNode>)
+            -> Self
+    {
+        MatchCursor { g, m }
+    }
+}
+
 impl<'x> MutVerticalCursorGroup for MatchCursor<'x> {
     fn list(&mut self) -> Vec<&mut OpaqueVerticalCursor> {
-        vec![&mut self.g, &mut self.m]
+        vec![&mut self.g, &mut self.m] // TODO: don't allocate every time
     }
 }
 
@@ -168,36 +176,37 @@ impl GrammarNode {
     }
 }
 
-struct Parser<'g, 'm, 's> {
-    c: LinkTreeCursor<'g, GrammarNode>,
-    mc: TreeCursor<'m, MatchNode>,
+struct Parser<'x, 's> {
+    c: MatchCursor<'x>,
     pos: usize,
     input: &'s str,
 }
 
-impl<'g, 'm, 's> Parser<'g, 'm, 's> {
+impl<'x, 's> Parser<'x, 's> {
     fn new(
-            root: &'g mut GrammarNode,
+            root: &'x mut GrammarNode,
             start: &str,
             input: &'s str,
-            mroot: &'m mut MatchNode,
-    ) -> Result<Parser<'g, 'm, 's>, LinkError> {
-        let mut c = LinkTreeCursor::new(root, start)?;
-        let mut mc = TreeCursor::new(mroot);
+            mroot: &'x mut MatchNode,
+    ) -> Result<Self, LinkError> {
+        let mut c = MatchCursor::new(
+            LinkTreeCursor::new(root, start)?,
+            TreeCursor::new(mroot),
+        );
 
-        while c.down() { assert!(mc.down()); }
+        while c.down() { }
 
-        Ok(Parser { c, mc, pos: 0, input })
+        Ok(Parser { c, pos: 0, input })
     }
 
     fn try_match(&mut self) -> bool {
         // Prepare for match.
 
-        let here = self.c.get();
-        self.mc.get_mut().st = Some(
+        let here = self.c.g.get();
+        self.c.m.get_mut().st = Some(
             Match::new((self.pos, self.pos), None, vec![])
         );
-        let here_st = self.mc.get_mut().st.as_mut().unwrap();
+        let here_st = self.c.m.get_mut().st.as_mut().unwrap();
 
         // Match.
 
@@ -213,13 +222,13 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
         // Determine action.
 
         let a = if success {
-            self.c.get().action()
-        } else if self.mc.get().st.as_ref()
+            self.c.g.get().action()
+        } else if self.c.m.get().st.as_ref()
                 .filter(|st| st.raw.0 < st.raw.1).is_some()
         {
-            self.c.get().fail_action()
+            self.c.g.get().fail_action()
         } else {
-            self.c.get().fail_empty_action()
+            self.c.g.get().fail_empty_action()
         };
 
         // Take action.
@@ -229,13 +238,12 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
                 self.c.zero();
             }
 
-            if let Some(ref st) = self.mc.get().st {
+            if let Some(ref st) = self.c.m.get().st {
                 self.pos = st.raw.1;
             }
 
             let mut down = false;
             while self.c.down() {
-                assert!(self.mc.down());
                 down = true;
             }
             if down {
@@ -247,13 +255,14 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
     }
 
     fn go_up(&mut self, a: Action) -> Option<Result<Match, ParseError>> {
+        let old_st = self.c.m.get_mut().st.take();
+
         if !self.c.up() {
             // Parsing finished.
             if a.success {
-                let st = self.mc.get_mut()
-                    .st.take().unwrap_or_else(
-                        || Match::new((0, 0), None, vec![])
-                    );
+                let st = old_st.unwrap_or_else(
+                    || Match::new((0, 0), None, vec![])
+                );
                 if st.raw.1 < self.input.len() {
                     return Some(Err(ParseError::UnmatchedInput(st)));
                 }
@@ -262,12 +271,10 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
                 return Some(Err(ParseError::MatchFail(self.pos)));
             }
         }
-        let old_st = self.mc.get_mut().st.take();
-        assert!(self.mc.up());
 
-        if let &GrammarNode::Group(ref name, _) = self.c.get() {
+        if let &GrammarNode::Group(ref name, _) = self.c.g.get() {
             // New parent.
-            self.mc.get_mut().st = Some(Match::new(
+            self.c.m.get_mut().st = Some(Match::new(
                 (self.pos, self.pos),
                 Some(name),
                 vec![],
@@ -286,9 +293,9 @@ impl<'g, 'm, 's> Parser<'g, 'm, 's> {
     fn combine_st(&mut self, mut old_st: Match) {
         use GrammarNode::*;
 
-        let new_st = &mut self.mc.get_mut().st;
+        let new_st = &mut self.c.m.get_mut().st;
 
-        match self.c.get() {
+        match self.c.g.get() {
             &Group(_, _) => {
                 // New parent (already created).
                 let new_st = new_st.as_mut().unwrap();
