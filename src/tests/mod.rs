@@ -384,6 +384,18 @@ mod standard {
         }
 
         #[test]
+        fn x_group() {
+            let mut g = n("x",
+                x(u("A", t("a"))),
+            );
+
+            assert_eq!(
+                g.parse("x", "a").unwrap(),
+                Match::new((0, 1), vec![])
+            );
+        }
+
+        #[test]
         fn k_group() {
             let mut g = e(vec![
                 n("x", k("w")),

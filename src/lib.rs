@@ -9,7 +9,7 @@ mod tests;
 mod tree;
 
 pub mod prelude {
-    pub use {e, c, s, p, q, z, g, n, u, k, r, t};
+    pub use {e, c, s, p, q, z, g, n, u, x, k, r, t};
     pub use get_grammar_grammar;
     pub use GrammarNode;
 }
@@ -65,6 +65,7 @@ pub enum GrammarNode {
     Neg(Box<GrammarNode>),
     Name(String, Box<GrammarNode>),
     Group(String, Box<GrammarNode>),
+    Erase(Box<GrammarNode>),
     Link(String),
     Range(char, char),
     Text(String),
@@ -117,6 +118,7 @@ impl GrammarNode {
             &Neg(_) => act(false, false, false, false),
             &Name(_, _)
             | &Group(_, _)
+            | &Erase(_)
             | &Link(_)
             | &Range(_, _)
             | &Text(_) => act(false, false, true, true),
@@ -143,6 +145,7 @@ impl GrammarNode {
             &Neg(_) => act(false, false, false, true),
             &Name(_, _)
             | &Group(_, _)
+            | &Erase(_)
             | &Link(_)
             | &Range(_, _)
             | &Text(_) => act(false, false, false, false),
@@ -309,6 +312,10 @@ impl<'x, 's> Parser<'x, 's> {
                 new_st.start_at(&old_st);
                 new_st.insert_child(name, old_st);
             },
+            &Erase(_) => {
+                old_st.named = vec![];
+                *new_st = Some(old_st);
+            },
             _ => {
                 // Bubble up.
                 *new_st = Some(old_st);
@@ -331,7 +338,8 @@ impl Down for GrammarNode {
             | &mut Pos(ref mut child)
             | &mut Neg(ref mut child)
             | &mut Name(_, ref mut child)
-            | &mut Group(_, ref mut child) => {
+            | &mut Group(_, ref mut child)
+            | &mut Erase(ref mut child) => {
                 if idx == 0 {
                     Some(child.as_mut())
                 } else {
@@ -465,6 +473,10 @@ pub fn n(name: &str, child: GrammarNode) -> GrammarNode {
 
 pub fn u(name: &str, child: GrammarNode) -> GrammarNode {
     GrammarNode::Group(name.to_string(), Box::new(child))
+}
+
+pub fn x(child: GrammarNode) -> GrammarNode {
+    GrammarNode::Erase(Box::new(child))
 }
 
 pub fn k(target: &str) -> GrammarNode {
