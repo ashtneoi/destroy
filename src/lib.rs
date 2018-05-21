@@ -9,7 +9,7 @@ mod tests;
 mod tree;
 
 pub mod prelude {
-    pub use {e, c, s, p, q, z, g, n, u, x, k, r, t};
+    pub use {e, c, s, p, q, z, g, n, u, x, k, r, t, a};
     pub use get_grammar_grammar;
     pub use GrammarNode;
 }
@@ -69,6 +69,7 @@ pub enum GrammarNode {
     Link(String),
     Range(char, char),
     Text(String),
+    Anything,
 }
 
 #[derive(Copy, Clone)]
@@ -102,6 +103,7 @@ impl GrammarNode {
                 }
             },
             &Text(ref t) => if input.starts_with(t) { 1 } else { 0 },
+            &Anything => if input.chars().next().is_some() { 1 } else { 0 },
             _ => panic!(),
         }
     }
@@ -121,7 +123,8 @@ impl GrammarNode {
             | &Erase(_)
             | &Link(_)
             | &Range(_, _)
-            | &Text(_) => act(false, false, true, true),
+            | &Text(_)
+            | &Anything => act(false, false, true, true),
         }
     }
 
@@ -148,7 +151,8 @@ impl GrammarNode {
             | &Erase(_)
             | &Link(_)
             | &Range(_, _)
-            | &Text(_) => act(false, false, false, false),
+            | &Text(_)
+            | &Anything => act(false, false, false, false),
         }
     }
 
@@ -348,7 +352,8 @@ impl Down for GrammarNode {
             },
             &mut Link(_)
             | &mut Range(_, _)
-            | &mut Text(_) => None,
+            | &mut Text(_)
+            | &mut Anything => None,
         }
     }
 }
@@ -489,6 +494,10 @@ pub fn r(from: char, to: char) -> GrammarNode {
 
 pub fn t(text: &str) -> GrammarNode {
     GrammarNode::Text(text.to_string())
+}
+
+pub fn a() -> GrammarNode {
+    GrammarNode::Anything
 }
 
 pub fn get_utils() -> GrammarNode {

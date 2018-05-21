@@ -412,6 +412,27 @@ mod standard {
     }
 
     #[test]
+    fn anything() {
+        let mut g = n("x", e(vec![
+            a(),
+            a(),
+        ]));
+
+        assert_eq!(
+            g.parse("x", "ab").unwrap(),
+            Match::new((0, 2), vec![])
+        );
+        assert_eq!(
+            g.parse("x", " \n").unwrap(),
+            Match::new((0, 2), vec![])
+        );
+
+        g.parse("x", "").unwrap_err();
+        g.parse("x", "a").unwrap_err();
+        g.parse("x", "abc").unwrap_err();
+    }
+
+    #[test]
     fn ident() {
         let mut g = get_grammar_grammar();
 
