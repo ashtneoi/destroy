@@ -276,24 +276,6 @@ mod standard {
         }
 
         #[test]
-        fn q_group() {
-            let mut g = n("x", q(
-                u("A", t("a"))
-            ));
-
-            assert_eq!(
-                g.parse("x", "").unwrap(),
-                Match::new((0, 0), vec![])
-            );
-            assert_eq!(
-                g.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
-                ])
-            );
-        }
-
-        #[test]
         fn s_group() {
             let mut g = n("x", s(
                 u("A", u("E", t("a"))),
@@ -335,6 +317,24 @@ mod standard {
                             ("E", vec![Match::new((1, 2), vec![])]),
                         ]),
                     ]),
+                ])
+            );
+        }
+
+        #[test]
+        fn q_group() {
+            let mut g = n("x", q(
+                u("A", t("a"))
+            ));
+
+            assert_eq!(
+                g.parse("x", "").unwrap(),
+                Match::new((0, 0), vec![])
+            );
+            assert_eq!(
+                g.parse("x", "a").unwrap(),
+                Match::new((0, 1), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
                 ])
             );
         }
@@ -411,13 +411,6 @@ mod standard {
         }
     }
 
-    #[bench]
-    fn bench_ident(b: &mut Bencher) {
-        let mut g = get_grammar_grammar();
-
-        b.iter(|| g.parse("ident", "_foo_bar90"));
-    }
-
     #[test]
     fn ident() {
         let mut g = get_grammar_grammar();
@@ -434,6 +427,13 @@ mod standard {
         g.parse("ident", "3").unwrap_err();
         g.parse("ident", "3a").unwrap_err();
         g.parse("ident", "3_").unwrap_err();
+    }
+
+    #[bench]
+    fn bench_ident(b: &mut Bencher) {
+        let mut g = get_grammar_grammar();
+
+        b.iter(|| g.parse("ident", "_foo_bar90"));
     }
 }
 
