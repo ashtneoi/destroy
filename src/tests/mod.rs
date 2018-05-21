@@ -11,14 +11,9 @@ mod standard {
             n("start", s(t("a"))),
         ]);
 
-        let st = g.parse("start", "aaa").unwrap();
         assert_eq!(
-            st,
-            Match {
-                raw: (0, 3),
-                name: None,
-                children: vec![],
-            }
+            g.parse("start", "aaa").unwrap(),
+            Match::new((0, 3), vec![])
         );
     }
 
@@ -161,7 +156,6 @@ mod standard {
         use prelude::*;
         use Match;
 
-        #[ignore]
         #[test]
         fn e_group_two_names() {
             let mut g = n("x", e(vec![
@@ -171,14 +165,13 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "ab").unwrap(),
-                Match::new((0, 2), None, vec![
-                    Match::new((0, 1), Some("A"), vec![]),
-                    Match::new((1, 2), Some("B"), vec![]),
+                Match::new((0, 2), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
+                    ("B", vec![Match::new((1, 2), vec![])]),
                 ])
             );
         }
 
-        #[ignore]
         #[test]
         fn e_group_one_name() {
             let mut g1 = n("x", e(vec![
@@ -188,15 +181,14 @@ mod standard {
 
             assert_eq!(
                 g1.parse("x", "b").unwrap(),
-                Match::new((0, 1), None, vec![
-                    Match::new((0, 1), Some("B"), vec![]),
+                Match::new((0, 1), vec![
+                    ("B", vec![Match::new((0, 1), vec![])]),
                 ])
             );
             assert_eq!(
                 g1.parse("x", "ab").unwrap(),
-                Match::new((0, 2), None, vec![
-                    Match::new((0, 1), None, vec![]),
-                    Match::new((1, 2), Some("B"), vec![]),
+                Match::new((0, 2), vec![
+                    ("B", vec![Match::new((1, 2), vec![])]),
                 ])
             );
 
@@ -207,37 +199,36 @@ mod standard {
 
             assert_eq!(
                 g2.parse("x", "a").unwrap(),
-                Match::new((0, 1), None, vec![
-                    Match::new((0, 1), Some("A"), vec![]),
+                Match::new((0, 1), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
                 ])
             );
             assert_eq!(
                 g2.parse("x", "ab").unwrap(),
-                Match::new((0, 2), None, vec![
-                    Match::new((0, 1), Some("A"), vec![]),
-                    Match::new((1, 2), None, vec![]),
+                Match::new((0, 2), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
                 ])
             );
         }
 
-        #[ignore]
         #[test]
         fn e_group_same_name() {
             let mut g = n("x", e(vec![
-                u("A", q(t("a"))),
-                u("A", q(t("b"))),
+                u("A", t("a")),
+                u("A", t("b")),
             ]));
 
             assert_eq!(
                 g.parse("x", "ab").unwrap(),
-                Match::new((0, 2), Some("A"), vec![
-                    Match::new((0, 1), None, vec![]),
-                    Match::new((1, 2), None, vec![]),
+                Match::new((0, 2), vec![
+                    ("A", vec![
+                        Match::new((0, 1), vec![]),
+                        Match::new((1, 2), vec![]),
+                    ]),
                 ])
             );
         }
 
-        #[ignore]
         #[test]
         fn e_group_no_names() {
             let mut g = n("x", e(vec![
@@ -247,23 +238,22 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "").unwrap(),
-                Match::new((0, 0), None, vec![])
+                Match::new((0, 0), vec![])
             );
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), None, vec![])
+                Match::new((0, 1), vec![])
             );
             assert_eq!(
                 g.parse("x", "b").unwrap(),
-                Match::new((0, 1), None, vec![])
+                Match::new((0, 1), vec![])
             );
             assert_eq!(
                 g.parse("x", "ab").unwrap(),
-                Match::new((0, 2), None, vec![])
+                Match::new((0, 2), vec![])
             );
         }
 
-        #[ignore]
         #[test]
         fn c_group() {
             let mut g = n("x", c(vec![
@@ -273,15 +263,18 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), Some("A"), vec![])
+                Match::new((0, 1), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
+                ])
             );
             assert_eq!(
                 g.parse("x", "b").unwrap(),
-                Match::new((0, 1), Some("B"), vec![])
+                Match::new((0, 1), vec![
+                    ("B", vec![Match::new((0, 1), vec![])]),
+                ])
             );
         }
 
-        #[ignore]
         #[test]
         fn q_group() {
             let mut g = n("x", q(
@@ -290,15 +283,16 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "").unwrap(),
-                Match::new((0, 0), None, vec![])
+                Match::new((0, 0), vec![])
             );
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), Some("A"), vec![])
+                Match::new((0, 1), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
+                ])
             );
         }
 
-        #[ignore]
         #[test]
         fn s_group() {
             let mut g = n("x", s(
@@ -307,17 +301,23 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "").unwrap(),
-                Match::new((0, 0), None, vec![])
+                Match::new((0, 0), vec![])
             );
             assert_eq!(
                 g.parse("x", "aa").unwrap(),
-                Match::new((0, 2), Some("A"), vec![
-                    Match::new((0, 2), Some("E"), vec![]),
+                Match::new((0, 2), vec![
+                    ("A", vec![
+                        Match::new((0, 1), vec![
+                            ("E", vec![Match::new((0, 1), vec![])]),
+                        ]),
+                        Match::new((1, 2), vec![
+                            ("E", vec![Match::new((1, 2), vec![])]),
+                        ]),
+                    ]),
                 ])
             );
         }
 
-        #[ignore]
         #[test]
         fn p_group() {
             let mut g = n("x", p(
@@ -326,13 +326,19 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "aa").unwrap(),
-                Match::new((0, 2), Some("A"), vec![
-                    Match::new((0, 2), Some("E"), vec![]),
+                Match::new((0, 2), vec![
+                    ("A", vec![
+                        Match::new((0, 1), vec![
+                            ("E", vec![Match::new((0, 1), vec![])]),
+                        ]),
+                        Match::new((1, 2), vec![
+                            ("E", vec![Match::new((1, 2), vec![])]),
+                        ]),
+                    ]),
                 ])
             );
         }
 
-        #[ignore]
         #[test]
         fn z_group() {
             let mut g = n("x", e(vec![
@@ -342,27 +348,27 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), None, vec![
-                    Match::new((0, 1), Some("A"), vec![]),
+                Match::new((0, 1), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
                 ])
             );
         }
 
-        #[ignore]
         #[test]
         fn g_group() {
             let mut g = n("x", e(vec![
-                g(u("A", t("a"))),
-                u("B", t("b")),
+                g(u("E", t("e"))),
+                u("A", t("a")),
             ]));
 
             assert_eq!(
-                g.parse("x", "b").unwrap(),
-                Match::new((0, 1), Some("B"), vec![])
+                g.parse("x", "a").unwrap(),
+                Match::new((0, 1), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
+                ])
             );
         }
 
-        #[ignore]
         #[test]
         fn n_group() {
             let mut g = n("x",
@@ -371,11 +377,12 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), Some("A"), vec![])
+                Match::new((0, 1), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
+                ])
             );
         }
 
-        #[ignore]
         #[test]
         fn k_group() {
             let mut g = e(vec![
@@ -385,7 +392,9 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), Some("A"), vec![])
+                Match::new((0, 1), vec![
+                    ("A", vec![Match::new((0, 1), vec![])]),
+                ])
             );
         }
     }

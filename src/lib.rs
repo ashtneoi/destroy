@@ -1,4 +1,4 @@
-#![feature(test)]
+#![feature(nll, test)]
 
 #[cfg(test)]
 extern crate test;
@@ -204,7 +204,7 @@ impl<'x, 's> Parser<'x, 's> {
 
         let here = self.c.g.get();
         self.c.m.get_mut().st = Some(
-            Match::new((self.pos, self.pos), None, vec![])
+            Match::new((self.pos, self.pos), vec![])
         );
         let here_st = self.c.m.get_mut().st.as_mut().unwrap();
 
@@ -261,7 +261,7 @@ impl<'x, 's> Parser<'x, 's> {
             // Parsing finished.
             if a.success {
                 let st = old_st.unwrap_or_else(
-                    || Match::new((0, 0), None, vec![])
+                    || Match::new((0, 0), vec![])
                 );
                 if st.raw.1 < self.input.len() {
                     return Some(Err(ParseError::UnmatchedInput(st)));
@@ -273,11 +273,9 @@ impl<'x, 's> Parser<'x, 's> {
         }
 
         if let &GrammarNode::Group(ref name, _) = self.c.g.get() {
-            // New parent.
+            // Special case: create Match even if old_st is None.
             self.c.m.get_mut().st = Some(Match::new(
-                (self.pos, self.pos),
-                Some(name),
-                vec![],
+                (self.pos, self.pos), vec![(name, vec![])]
             ));
         }
 
@@ -296,39 +294,24 @@ impl<'x, 's> Parser<'x, 's> {
         let new_st = &mut self.c.m.get_mut().st;
 
         match self.c.g.get() {
-            &Group(_, _) => {
+            &Seq(_)
+            | &Star(_)
+            | &Plus(_) => {
+                if let Some(ref mut new_st) = new_st {
+                    new_st.extend(&mut old_st);
+                } else {
+                    *new_st = Some(old_st);
+                }
+            },
+            &Group(ref name, _) => {
                 // New parent (already created).
                 let new_st = new_st.as_mut().unwrap();
                 new_st.start_at(&old_st);
-                if old_st.name.is_none() {
-                    // Merge.
-                    new_st.extend(&mut old_st);
-                } else {
-                    // Insert as child.
-                    new_st.insert_child(old_st);
-                }
+                new_st.insert_child(name, old_st);
             },
             _ => {
-                if let &mut Some(ref mut new_st) = new_st {
-                    if new_st.name.is_some() {
-                        if old_st.name == new_st.name {
-                            // Merge.
-                            new_st.extend(&mut old_st);
-                        } else if old_st.name.is_some() {
-                            // Insert as child.
-                            new_st.insert_child(old_st);
-                        } else {
-                            // Drop.
-                            new_st.advance_to(&old_st);
-                        }
-                    } else {
-                        // Drop.
-                        new_st.advance_to(&old_st);
-                    }
-                } else {
-                    // Bubble up.
-                    *new_st = Some(old_st);
-                }
+                // Bubble up.
+                *new_st = Some(old_st);
             },
         }
     }
@@ -381,28 +364,24 @@ impl Link for GrammarNode {
 #[derive(PartialEq, Eq)]
 pub struct Match {
     raw: (usize, usize),
-    name: Option<String>,
-    children: Vec<Match>,
+    named: Vec<(String, Vec<Match>)>,
 }
 
 impl Debug for Match {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        if let Some(ref n) = self.name {
-            write!(f, "{}", n)?;
-        }
-        write!(f, "({},{})", self.raw.0, self.raw.1)?;
-        if !self.children.is_empty() {
-            write!(f, ":[")?;
+        write!(f, "({}..{})", self.raw.0, self.raw.1)?;
+        if !self.named.is_empty() {
+            write!(f, "{{")?;
             let mut first = true;
-            for child in self.children.iter() {
+            for &(ref name, ref children) in self.named.iter() {
                 if first {
                     first = false;
                 } else {
                     write!(f, ", ")?;
                 }
-                write!(f, "{:?}", child)?;
+                write!(f, "{}: {:?}", name, children)?;
             }
-            write!(f, "]")?;
+            write!(f, "}}")?;
         }
 
         Ok(())
@@ -410,13 +389,13 @@ impl Debug for Match {
 }
 
 impl Match {
-    fn new(raw: (usize, usize), name: Option<&str>, children: Vec<Self>)
-            -> Match
+    fn new(raw: (usize, usize), named: Vec<(&str, Vec<Match>)>) -> Self
     {
         Match {
             raw,
-            name: name.map(|s| s.to_string()),
-            children,
+            named: named.into_iter().map(
+                |(s, children)| (s.to_string(), children)
+            ).collect(),
         }
     }
 
@@ -428,14 +407,25 @@ impl Match {
         self.raw.1 = other.raw.1;
     }
 
-    fn insert_child(&mut self, child: Self) {
+    fn get_mut(&mut self, name: &str) -> Option<&mut Vec<Self>> {
+        self.named.iter_mut().find(|&&mut (ref n, _)| n == name)
+            .map(|&mut (_, ref mut cc)| cc)
+    }
+
+    fn insert_child(&mut self, name: &str, child: Self) {
         self.advance_to(&child);
-        self.children.push(child);
+        match self.get_mut(name) {
+            Some(children) => children.push(child),
+            None => self.named.push((name.to_string(), vec![child])),
+        }
     }
 
     fn extend(&mut self, other: &mut Self) {
-        for child in other.children.drain(..) {
-            self.insert_child(child);
+        for (name, children) in other.named.drain(..) {
+            match self.get_mut(&name) {
+                Some(children2) => children2.extend(children),
+                None => self.named.push((name, children)),
+            }
         }
         self.advance_to(other);
     }
