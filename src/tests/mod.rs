@@ -456,6 +456,35 @@ mod standard {
 
         b.iter(|| g.parse("ident", "_foo_bar90"));
     }
+
+    static GRAMMAR_GRAMMAR_STR: &str = r##"
+        hex_digit = digit / 'a'..'f' / 'A'..'F'
+        hex_uint = "0x" hex_digit+
+        comment = "#" (-"\n" %)*
+        wsc = ws comment?
+        wscn = (ws comment? "\n")* ws
+        str = "\"" ("\\" ("n" / "\\" / "\"") / -"\"" -"\n" %)* "\""
+        cp = hex_uint / "'" ("\\" ("n" / "\\" / "'") / -"'" -"\n" %) "'"
+        cp_range = cp ".." cp
+        ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
+        ident = ident_initial (ident_initial / digit)* # TODO
+
+        expr = expr_prefix[opd] (wscn "/"[op] wscn expr_prefix[opd])*
+        expr_prefix = ("^" / "-")[op]* expr_suffix[opd]
+        expr_suffix =
+            expr_atom[opd] ("*" / "+" / "?" / "[" ws ident[name] ws "]")[op]*
+        expr_atom =
+            ("%" / str / cp_range / ident / "(" wsn expr+ wsn ")")[atom]
+        rule = ident[name] ws "=" wscn expr+[val]
+        grammar = (wscn rule wsc "\n"+)*
+    "##;
+
+    #[test]
+    fn meta_grammar_parse() {
+        let mut g = get_grammar_grammar();
+
+        g.parse("grammar", GRAMMAR_GRAMMAR_STR).unwrap();
+    }
 }
 
 mod regression {

@@ -546,18 +546,148 @@ pub fn get_utils() -> GrammarNode {
 pub fn get_grammar_grammar() -> GrammarNode {
     e(vec![
         get_utils(),
-        n("ident", e(vec![
-            c(vec![
-                k("latin_letter"),
-                t("_"),
-                r('\u{80}', '\u{10FFFF}'), // TODO
-            ]),
-            s(c(vec![
-                k("latin_letter"),
-                k("digit"),
-                t("_"),
-                r('\u{80}', '\u{10FFFF}'), // TODO
+        n("hex_digit", c(vec![
+            k("digit"),
+            r('a', 'f'),
+            r('A', 'F'),
+        ])),
+        n("hex_uint", e(vec![
+            t("0x"),
+            p(k("hex_digit")),
+        ])),
+        n("comment", e(vec![
+            t("#"),
+            s(e(vec![
+                g(t("\n")),
+                a(),
             ])),
         ])),
+        n("wsc", e(vec![
+            k("ws"),
+            q(k("comment")),
+        ])),
+        n("wscn", e(vec![
+            s(e(vec![
+                k("ws"),
+                q(k("comment")),
+                t("\n"),
+            ])),
+            k("ws"),
+        ])),
+        n("str", e(vec![
+            t("\""),
+            c(vec![
+                e(vec![
+                    t("\\"),
+                    c(vec![
+                        t("n"),
+                        t("\\"),
+                        t("\""),
+                    ]),
+                ]),
+                e(vec![
+                    g(t("\"")),
+                    g(t("\n")),
+                    a(),
+                ]),
+            ]),
+            t("\""),
+        ])),
+        n("cp", c(vec![
+            k("hex_uint"),
+            e(vec![
+                t("'"),
+                c(vec![
+                    e(vec![
+                        t("\\"),
+                        c(vec![
+                            t("n"),
+                            t("\\"),
+                            t("'"),
+                        ]),
+                    ]),
+                    e(vec![
+                        g(t("\"")),
+                        g(t("\n")),
+                        a(),
+                    ]),
+                ]),
+                t("'"),
+            ]),
+        ])),
+        n("cp_range", e(vec![
+            k("cp"),
+            t(".."),
+            k("cp"),
+        ])),
+        n("ident_initial", c(vec![
+            k("latin_letter"),
+            t("_"),
+            r('\u{80}', '\u{10FFFF}'), // TODO
+        ])),
+        n("ident", e(vec![
+            k("ident_initial"),
+            s(c(vec![
+                k("ident_initial"),
+                k("digit"), // TODO
+            ])),
+        ])),
+        n("expr", e(vec![
+            u("opd", k("expr_prefix")),
+            s(e(vec![
+                k("wscn"),
+                u("op", t("/")),
+                k("wscn"),
+                u("opd", k("expr_prefix")),
+            ])),
+        ])),
+        n("expr_prefix", e(vec![
+            s(u("op", c(vec![
+                t("^"),
+                t("-"),
+            ]))),
+            u("opd", k("expr_suffix")),
+        ])),
+        n("expr_suffix", e(vec![
+            u("opd", k("expr_atom")),
+            s(u("op", c(vec![
+                t("*"),
+                t("+"),
+                t("?"),
+                e(vec![
+                    t("["),
+                    k("ws"),
+                    u("name", k("ident")),
+                    k("ws"),
+                    t("]"),
+                ]),
+            ]))),
+        ])),
+        n("expr_atom", u("atom", c(vec![
+            t("%"),
+            k("str"),
+            k("cp_range"),
+            k("ident"),
+            e(vec![
+                t("("),
+                k("wsn"),
+                p(k("expr")),
+                k("wsn"),
+                t(")"),
+            ]),
+        ]))),
+        n("rule", e(vec![
+            u("name", k("ident")),
+            k("ws"),
+            t("="),
+            k("wscn"),
+            u("val", p(k("expr"))),
+        ])),
+        n("grammar", s(e(vec![
+            k("wscn"),
+            k("rule"),
+            k("wsc"),
+            p(t("\n")),
+        ]))),
     ])
 }
