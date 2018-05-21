@@ -478,6 +478,8 @@ mod regression {
 
     #[test]
     fn multichar_text() {
+        // Fixed by 47c39cbade923608565a5542e408e91af7cea4be.
+
         let mut g = n("x", t("aaa"));
 
         assert_eq!(
