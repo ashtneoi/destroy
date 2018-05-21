@@ -102,7 +102,7 @@ impl GrammarNode {
                     0
                 }
             },
-            &Text(ref t) => if input.starts_with(t) { 1 } else { 0 },
+            &Text(ref t) => if input.starts_with(t) { t.len() } else { 0 },
             &Anything => if input.chars().next().is_some() { 1 } else { 0 },
             _ => panic!(),
         }

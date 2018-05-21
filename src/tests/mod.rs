@@ -460,6 +460,7 @@ mod standard {
 
 mod regression {
     use prelude::*;
+    use Match;
 
     #[test]
     fn raw_match() {
@@ -473,5 +474,15 @@ mod regression {
         assert_eq!(g.parse("start", "a   ").unwrap().raw, (0, 4));
         assert_eq!(g.parse("start", "  a").unwrap().raw, (0, 3));
         assert_eq!(g.parse("start", "  a   ").unwrap().raw, (0, 6));
+    }
+
+    #[test]
+    fn multichar_text() {
+        let mut g = n("x", t("aaa"));
+
+        assert_eq!(
+            g.parse("x", "aaa").unwrap(),
+            Match::new((0, 3), vec![])
+        );
     }
 }
