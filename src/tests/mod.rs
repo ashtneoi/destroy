@@ -2,7 +2,6 @@ mod tree;
 
 mod standard {
     use prelude::*;
-    use test::Bencher;
     use Match;
 
     #[test]
@@ -432,29 +431,94 @@ mod standard {
         g.parse("x", "abc").unwrap_err();
     }
 
-    #[test]
-    fn ident() {
-        let mut g = get_grammar_grammar();
+    mod grammar_grammar_tests {
+        use prelude::*;
+        use test::Bencher;
+        use Match;
 
-        g.parse("ident", "a").unwrap();
-        g.parse("ident", "A").unwrap();
-        g.parse("ident", "_").unwrap();
-        g.parse("ident", "foo").unwrap();
-        g.parse("ident", "foo_bar").unwrap();
-        g.parse("ident", "_foo_bar_").unwrap();
-        g.parse("ident", "a3").unwrap();
-        g.parse("ident", "_3").unwrap();
+        #[test]
+        fn ident() {
+            let mut g = get_grammar_grammar();
 
-        g.parse("ident", "3").unwrap_err();
-        g.parse("ident", "3a").unwrap_err();
-        g.parse("ident", "3_").unwrap_err();
-    }
+            g.parse("ident", "a").unwrap();
+            g.parse("ident", "A").unwrap();
+            g.parse("ident", "_").unwrap();
+            g.parse("ident", "foo").unwrap();
+            g.parse("ident", "foo_bar").unwrap();
+            g.parse("ident", "_foo_bar_").unwrap();
+            g.parse("ident", "a3").unwrap();
+            g.parse("ident", "_3").unwrap();
 
-    #[bench]
-    fn bench_ident(b: &mut Bencher) {
-        let mut g = get_grammar_grammar();
+            g.parse("ident", "3").unwrap_err();
+            g.parse("ident", "3a").unwrap_err();
+            g.parse("ident", "3_").unwrap_err();
+        }
 
-        b.iter(|| g.parse("ident", "_foo_bar90"));
+        #[bench]
+        fn bench_ident(b: &mut Bencher) {
+            let mut g = get_grammar_grammar();
+
+            b.iter(|| g.parse("ident", "_foo_bar90"));
+        }
+
+        #[test]
+        fn expr() {
+            let mut g = get_grammar_grammar();
+
+            g.parse("expr", "\"a\"").unwrap();
+            g.parse("expr", "0x80..0x10FFFF").unwrap();
+        }
+
+        #[test]
+        fn wsc() {
+            let mut g = get_grammar_grammar();
+
+            g.parse("wsc", "").unwrap();
+            g.parse("wsc", " ").unwrap();
+            g.parse("wsc", "\t\t  ").unwrap();
+            g.parse("wsc", "# foo").unwrap();
+            g.parse("wsc", " # foo").unwrap();
+            g.parse("wsc", "\t\t  # foo").unwrap();
+            g.parse("wsc", "#\t\t\t\t\t").unwrap();
+
+            g.parse("wsc", "\n").unwrap_err();
+            g.parse("wsc", "  \n").unwrap_err();
+            g.parse("wsc", "\t\t\n").unwrap_err();
+            g.parse("wsc", "# foo\n").unwrap_err();
+            g.parse("wsc", "\n# foo").unwrap_err();
+        }
+
+        #[test]
+        fn wscn() {
+            let mut g = get_grammar_grammar();
+
+            g.parse("wscn", "").unwrap();
+            g.parse("wscn", " ").unwrap();
+            g.parse("wscn", "\t\t  ").unwrap();
+            g.parse("wscn", "# foo\n").unwrap();
+            g.parse("wscn", " # foo\n").unwrap();
+            g.parse("wscn", "\t\t  # foo\n").unwrap();
+            g.parse("wscn", "#\t\t\t\t\t\n").unwrap();
+            g.parse("wscn", "\n").unwrap();
+            g.parse("wscn", "  \n").unwrap();
+            g.parse("wscn", "\t\t\n").unwrap();
+            g.parse("wscn", "# foo\n").unwrap();
+            g.parse("wscn", "\n# foo\n").unwrap();
+        }
+
+        #[test]
+        fn expr_atom() {
+            let mut g = get_grammar_grammar();
+
+            g.parse("expr_atom", "\"a\"").unwrap();
+        }
+
+        #[test]
+        fn rule() {
+            let mut g = get_grammar_grammar();
+
+            g.parse("rule", "A = \"a\"").unwrap();
+        }
     }
 
     static GRAMMAR_GRAMMAR_STR: &str = r##"
