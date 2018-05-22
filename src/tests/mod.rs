@@ -516,4 +516,17 @@ mod regression {
             Match::new((0, 3), vec![])
         );
     }
+
+    #[test]
+    fn pos_confusion() {
+        let mut g = n("x", e(vec![
+            s(e(vec![
+                s(t("a")),
+                t("b"),
+            ])),
+            t("a"),
+        ]));
+
+        g.parse("x", "a").unwrap();
+    }
 }

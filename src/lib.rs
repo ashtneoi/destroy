@@ -292,6 +292,12 @@ impl<'x, 's> Parser<'x, 's> {
             }
         }
 
+        if !a.keep {
+            if let Some(ref st) = self.c.m.get().st {
+                self.pos = st.raw.0;
+            }
+        }
+
         None
     }
 
