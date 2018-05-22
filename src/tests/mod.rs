@@ -519,6 +519,8 @@ mod regression {
 
     #[test]
     fn pos_confusion() {
+        // Fixed by 5fddc3165725a178817f967eb687d4f173e9b166.
+
         let mut g = n("x", e(vec![
             s(e(vec![
                 s(t("a")),
