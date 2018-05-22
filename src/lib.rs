@@ -14,7 +14,7 @@ pub mod prelude {
     pub use GrammarNode;
 }
 
-use std::fmt::{Debug, Formatter, self};
+use std::fmt::{Debug, Display, Formatter, self};
 use tree::MutVerticalCursorGroup;
 use tree::prelude::*;
 
@@ -87,23 +87,56 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
 #[derive(Debug)]
 pub enum ParseError {
     BadGrammar(LinkError),
-    MatchFail(usize),
+    MatchFail(Pos),
     UnmatchedInput(Match),
 }
 
 impl GrammarNode {
-    fn try_match(&self, input: &str) -> usize {
+    fn try_match(&self, input: &str) -> Option<PosDelta> {
         use GrammarNode::*;
         match self {
             &Range(from, to) => {
                 if let Some(c) = input.chars().next() {
-                    if from <= c && c <= to { 1 } else { 0 }
+                    if from <= c && c <= to {
+                        if c == '\n' {
+                            Some(PosDelta { lin: 1, row: 1, col: 0 })
+                        } else {
+                            Some(PosDelta { lin: 1, row: 0, col: 1 })
+                        }
+                    } else {
+                        None
+                    }
                 } else {
-                    0
+                    None
                 }
             },
-            &Text(ref t) => if input.starts_with(t) { t.len() } else { 0 },
-            &Anything => if input.chars().next().is_some() { 1 } else { 0 },
+            &Text(ref t) => {
+                if input.starts_with(t) {
+                    let mut cp_count = 0;
+                    let nls: Vec<_> = t.chars()
+                        .enumerate()
+                        .filter_map(
+                            |(i, c)| {
+                                cp_count += 1;
+                                Some(i).filter(|_| c == '\n')
+                            }
+                        ).collect();
+                    let row = nls.len();
+                    let col = cp_count - (*nls.last().unwrap_or(&0));
+                    Some(PosDelta { lin: cp_count, row, col })
+                } else {
+                    None
+                }
+            },
+            &Anything => {
+                match input.chars().next() {
+                    Some('\n') =>
+                        Some(PosDelta { lin: 1, row: 1, col: 0 }),
+                    Some(_) =>
+                        Some(PosDelta { lin: 1, row: 0, col: 1 }),
+                    None => None,
+                }
+            },
             _ => panic!(),
         }
     }
@@ -183,9 +216,52 @@ impl GrammarNode {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Pos {
+    lin: usize,
+    row: usize,
+    col: usize,
+}
+
+impl Pos {
+    fn empty() -> Self {
+        Pos { lin: 0, row: 1, col: 1 }
+    }
+}
+
+impl Display for Pos {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}/{},{}", self.lin, self.row, self.col)
+    }
+}
+
+impl Debug for Pos {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        (self as &Display).fmt(f)
+    }
+}
+
+struct PosDelta {
+    lin: usize,
+    row: usize,
+    col: usize,
+}
+
+impl Display for PosDelta {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}/{},{}", self.lin, self.row, self.col)
+    }
+}
+
+impl Debug for PosDelta {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        (self as &Display).fmt(f)
+    }
+}
+
 struct Parser<'x, 's> {
     c: MatchCursor<'x>,
-    pos: usize,
+    pos: Pos,
     input: &'s str,
 }
 
@@ -203,7 +279,7 @@ impl<'x, 's> Parser<'x, 's> {
 
         while c.down() { }
 
-        Ok(Parser { c, pos: 0, input })
+        Ok(Parser { c, pos: Pos { lin: 0, row: 1, col: 1 }, input })
     }
 
     fn try_match(&mut self) -> bool {
@@ -217,12 +293,25 @@ impl<'x, 's> Parser<'x, 's> {
 
         // Match.
 
-        let count = here.try_match(&self.input[self.pos..]);
-        let success = count > 0;
-        if success {
-            here_st.raw.1 += count;
+        let maybe_delta = here.try_match(&self.input[self.pos.lin..]);
+        match maybe_delta {
+            Some(delta) => {
+                let prev_raw = here_st.raw.1;
+                here_st.raw.1 = Pos {
+                    lin: prev_raw.lin + delta.lin,
+                    row: prev_raw.row + delta.row,
+                    col: {
+                        delta.col + if delta.row > 0 {
+                            1
+                        } else {
+                            prev_raw.col
+                        }
+                    }
+                };
+                true
+            },
+            None => false,
         }
-        success
     }
 
     fn do_action(&mut self, success: bool) -> Option<Action> {
@@ -231,7 +320,7 @@ impl<'x, 's> Parser<'x, 's> {
         let a = if success {
             self.c.g.get().action()
         } else if self.c.m.get().st.as_ref()
-                .filter(|st| st.raw.0 < st.raw.1).is_some()
+                .filter(|st| !st.is_empty()).is_some()
         {
             self.c.g.get().fail_action()
         } else {
@@ -258,6 +347,12 @@ impl<'x, 's> Parser<'x, 's> {
             }
         }
 
+        if !a.down && success {
+            if let Some(name) = self.c.g.get().target() {
+                println!("{}", name);
+            }
+        }
+
         Some(a)
     }
 
@@ -268,9 +363,12 @@ impl<'x, 's> Parser<'x, 's> {
             // Parsing finished.
             if a.success {
                 let st = old_st.unwrap_or_else(
-                    || Match::new((0, 0), vec![])
+                    || Match::new(
+                        (Pos::empty(), Pos::empty()),
+                        vec![],
+                    )
                 );
-                if st.raw.1 < self.input.len() {
+                if st.raw.1.lin < self.input.len() {
                     return Some(Err(ParseError::UnmatchedInput(st)));
                 }
                 return Some(Ok(st));
@@ -382,8 +480,30 @@ impl Link for GrammarNode {
 
 #[derive(PartialEq, Eq)]
 pub struct Match {
-    raw: (usize, usize),
+    raw: (Pos, Pos),
     named: Vec<(String, Vec<Match>)>,
+}
+
+fn mat(
+        (lin0, row0, col0, lin1, row1, col1):
+            (usize, usize, usize, usize, usize, usize),
+        named: Vec<(&str, Vec<Match>)>,
+) -> Match {
+    Match::new(
+        (
+            Pos {
+                lin: lin0,
+                row: row0,
+                col: col0,
+            },
+            Pos {
+                lin: lin1,
+                row: row1,
+                col: col1,
+            },
+        ),
+        named,
+    )
 }
 
 impl Debug for Match {
@@ -408,7 +528,7 @@ impl Debug for Match {
 }
 
 impl Match {
-    fn new(raw: (usize, usize), named: Vec<(&str, Vec<Match>)>) -> Self
+    fn new(raw: (Pos, Pos), named: Vec<(&str, Vec<Match>)>) -> Self
     {
         Match {
             raw,
@@ -447,6 +567,10 @@ impl Match {
             }
         }
         self.advance_to(other);
+    }
+
+    fn is_empty(&self) -> bool {
+        self.raw.0.lin == self.raw.1.lin
     }
 }
 

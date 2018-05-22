@@ -2,6 +2,7 @@ mod tree;
 
 mod standard {
     use prelude::*;
+    use mat;
     use Match;
 
     #[test]
@@ -12,7 +13,7 @@ mod standard {
 
         assert_eq!(
             g.parse("start", "aaa").unwrap(),
-            Match::new((0, 3), vec![])
+            mat((0, 1, 1, 3, 1, 4), vec![])
         );
     }
 
@@ -153,6 +154,7 @@ mod standard {
 
     mod group_tests {
         use prelude::*;
+        use mat;
         use Match;
 
         #[test]
@@ -164,9 +166,9 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "ab").unwrap(),
-                Match::new((0, 2), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
-                    ("B", vec![Match::new((1, 2), vec![])]),
+                mat((0, 1, 1, 2, 1, 3), vec![
+                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
+                    ("B", vec![mat((1, 1, 2, 2, 1, 3), vec![])]),
                 ])
             );
         }
@@ -180,14 +182,14 @@ mod standard {
 
             assert_eq!(
                 g1.parse("x", "b").unwrap(),
-                Match::new((0, 1), vec![
-                    ("B", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 1, 1, 2), vec![
+                    ("B", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
             assert_eq!(
                 g1.parse("x", "ab").unwrap(),
-                Match::new((0, 2), vec![
-                    ("B", vec![Match::new((1, 2), vec![])]),
+                mat((0, 1, 1, 2, 1, 3), vec![
+                    ("B", vec![mat((1, 1, 2, 2, 1, 3), vec![])]),
                 ])
             );
 
@@ -198,14 +200,14 @@ mod standard {
 
             assert_eq!(
                 g2.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 1, 1, 2), vec![
+                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
             assert_eq!(
                 g2.parse("x", "ab").unwrap(),
-                Match::new((0, 2), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 2, 1, 3), vec![
+                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
         }
@@ -219,10 +221,10 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "ab").unwrap(),
-                Match::new((0, 2), vec![
+                mat((0, 1, 1, 2, 1, 3), vec![
                     ("A", vec![
-                        Match::new((0, 1), vec![]),
-                        Match::new((1, 2), vec![]),
+                        mat((0, 1, 1, 1, 1, 2), vec![]),
+                        mat((1, 1, 2, 2, 1, 3), vec![]),
                     ]),
                 ])
             );
@@ -237,19 +239,19 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "").unwrap(),
-                Match::new((0, 0), vec![])
+                mat((0, 1, 1, 0, 1, 1), vec![])
             );
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![])
+                mat((0, 1, 1, 1, 1, 2), vec![])
             );
             assert_eq!(
                 g.parse("x", "b").unwrap(),
-                Match::new((0, 1), vec![])
+                mat((0, 1, 1, 1, 1, 2), vec![])
             );
             assert_eq!(
                 g.parse("x", "ab").unwrap(),
-                Match::new((0, 2), vec![])
+                mat((0, 1, 1, 2, 1, 3), vec![])
             );
         }
 
@@ -262,14 +264,14 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 1, 1, 2), vec![
+                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
             assert_eq!(
                 g.parse("x", "b").unwrap(),
-                Match::new((0, 1), vec![
-                    ("B", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 1, 1, 2), vec![
+                    ("B", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
         }
@@ -282,17 +284,17 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "").unwrap(),
-                Match::new((0, 0), vec![])
+                mat((0, 1, 1, 0, 1, 1), vec![])
             );
             assert_eq!(
                 g.parse("x", "aa").unwrap(),
-                Match::new((0, 2), vec![
+                mat((0, 1, 1, 2, 1, 3), vec![
                     ("A", vec![
-                        Match::new((0, 1), vec![
-                            ("E", vec![Match::new((0, 1), vec![])]),
+                        mat((0, 1, 1, 1, 1, 2), vec![
+                            ("E", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                         ]),
-                        Match::new((1, 2), vec![
-                            ("E", vec![Match::new((1, 2), vec![])]),
+                        mat((1, 1, 2, 2, 1, 3), vec![
+                            ("E", vec![mat((1, 1, 2, 2, 1, 3), vec![])]),
                         ]),
                     ]),
                 ])
@@ -307,13 +309,13 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "aa").unwrap(),
-                Match::new((0, 2), vec![
+                mat((0, 1, 1, 2, 1, 3), vec![
                     ("A", vec![
-                        Match::new((0, 1), vec![
-                            ("E", vec![Match::new((0, 1), vec![])]),
+                        mat((0, 1, 1, 1, 1, 2), vec![
+                            ("E", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                         ]),
-                        Match::new((1, 2), vec![
-                            ("E", vec![Match::new((1, 2), vec![])]),
+                        mat((1, 1, 2, 2, 1, 3), vec![
+                            ("E", vec![mat((1, 1, 2, 2, 1, 3), vec![])]),
                         ]),
                     ]),
                 ])
@@ -328,12 +330,12 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "").unwrap(),
-                Match::new((0, 0), vec![])
+                mat((0, 1, 1, 0, 1, 1), vec![])
             );
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 1, 1, 2), vec![
+                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
         }
@@ -347,8 +349,8 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 1, 1, 2), vec![
+                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
         }
@@ -362,8 +364,8 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 1, 1, 2), vec![
+                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
         }
@@ -376,8 +378,8 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 1, 1, 2), vec![
+                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
         }
@@ -390,7 +392,7 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![])
+                mat((0, 1, 1, 1, 1, 2), vec![])
             );
         }
 
@@ -403,8 +405,8 @@ mod standard {
 
             assert_eq!(
                 g.parse("x", "a").unwrap(),
-                Match::new((0, 1), vec![
-                    ("A", vec![Match::new((0, 1), vec![])]),
+                mat((0, 1, 1, 1, 1, 2), vec![
+                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
         }
@@ -419,11 +421,11 @@ mod standard {
 
         assert_eq!(
             g.parse("x", "ab").unwrap(),
-            Match::new((0, 2), vec![])
+            mat((0, 1, 1, 2, 1, 3), vec![])
         );
         assert_eq!(
             g.parse("x", " \n").unwrap(),
-            Match::new((0, 2), vec![])
+            mat((0, 1, 1, 2, 2, 1), vec![])
         );
 
         g.parse("x", "").unwrap_err();
@@ -433,8 +435,9 @@ mod standard {
 
     mod grammar_grammar_tests {
         use prelude::*;
-        use test::Bencher;
+        use mat;
         use Match;
+        use test::Bencher;
 
         #[test]
         fn ident() {
@@ -553,7 +556,9 @@ mod standard {
 
 mod regression {
     use prelude::*;
+    use mat;
     use Match;
+    use Pos;
 
     #[test]
     fn raw_match() {
@@ -563,10 +568,22 @@ mod regression {
             u("tail", s(t(" "))),
         ]));
 
-        assert_eq!(g.parse("start", "a").unwrap().raw, (0, 1));
-        assert_eq!(g.parse("start", "a   ").unwrap().raw, (0, 4));
-        assert_eq!(g.parse("start", "  a").unwrap().raw, (0, 3));
-        assert_eq!(g.parse("start", "  a   ").unwrap().raw, (0, 6));
+        assert_eq!(
+            g.parse("start", "a").unwrap().raw,
+            (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 1, row: 1, col: 2 })
+        );
+        assert_eq!(
+            g.parse("start", "a   ").unwrap().raw,
+            (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 4, row: 1, col: 5 })
+        );
+        assert_eq!(
+            g.parse("start", "  a").unwrap().raw,
+            (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 3, row: 1, col: 4 })
+        );
+        assert_eq!(
+            g.parse("start", "  a   ").unwrap().raw,
+            (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 6, row: 1, col: 7 })
+        );
     }
 
     #[test]
@@ -577,7 +594,7 @@ mod regression {
 
         assert_eq!(
             g.parse("x", "aaa").unwrap(),
-            Match::new((0, 3), vec![])
+            mat((0, 1, 1, 3, 1, 4), vec![])
         );
     }
 
