@@ -615,6 +615,8 @@ mod regression {
 
     #[test]
     fn wrong_pos_after_nl() {
+        // Fixed by dfc4bd5d6b9d14bef7d4873b0a0a07c0d1fafe95.
+
         let mut g = n("x", e(vec![
             t("a\nb"),
         ]));
