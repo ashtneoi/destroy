@@ -33,7 +33,7 @@ mod tree_tests {
         ]);
         let root = &t as *const Node;
 
-        let mut c = TreeCursor::new(&mut t);
+        let mut c = MutTreeCursor::new(&mut t);
 
         for _ in 0..100 {
             assert!(ptr::eq(c.get(), root));
@@ -92,7 +92,7 @@ mod tree_tests {
         ]);
         let root = &t as *const Node;
 
-        let mut c = TreeCursor::new(&mut t);
+        let mut c = MutTreeCursor::new(&mut t);
 
         for _ in 0..100 {
             assert!(ptr::eq(c.get(), root));
@@ -130,7 +130,7 @@ mod tree_tests {
     fn add_children() {
         let mut t = e(vec![]);
 
-        let mut c = TreeCursor::new(&mut t);
+        let mut c = MutTreeCursor::new(&mut t);
 
         for _ in 0..10 {
             assert!(!c.down());
@@ -165,7 +165,7 @@ mod tree_tests {
             ]),
         ]);
 
-        let mut c = TreeCursor::new(&mut t);
+        let mut c = MutTreeCursor::new(&mut t);
 
         for _ in 0..6 {
             assert!(c.down());

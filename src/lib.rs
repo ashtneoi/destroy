@@ -20,11 +20,11 @@ use tree::prelude::*;
 
 pub struct MatchCursor<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
-    m: TreeCursor<'x, MatchNode>,
+    m: MutTreeCursor<'x, MatchNode>,
 }
 
 impl<'x> MatchCursor<'x> {
-    fn new(g: LinkTreeCursor<'x, GrammarNode>, m: TreeCursor<'x, MatchNode>)
+    fn new(g: LinkTreeCursor<'x, GrammarNode>, m: MutTreeCursor<'x, MatchNode>)
             -> Self
     {
         MatchCursor { g, m }
@@ -268,7 +268,7 @@ impl<'x, 's> Parser<'x, 's> {
     ) -> Result<Self, LinkError> {
         let mut c = MatchCursor::new(
             LinkTreeCursor::new(root, start)?,
-            TreeCursor::new(mroot),
+            MutTreeCursor::new(mroot),
         );
 
         while c.down() { }

@@ -10,7 +10,7 @@ pub mod prelude {
         LinkTreeCursor,
         MutVerticalCursor,
         OpaqueVerticalCursor,
-        TreeCursor,
+        MutTreeCursor,
         VerticalCursor,
     };
 }
@@ -41,19 +41,19 @@ pub trait MutVerticalCursor<'n>: VerticalCursor<'n> {
 }
 
 #[derive(Debug)]
-pub struct TreeCursor<'n, N: 'n + Down> {
+pub struct MutTreeCursor<'n, N: 'n + Down> {
     root: PhantomData<&'n mut N>,
     stack: Vec<(*mut N, usize)>,
 }
 
-impl<'n, N: 'n + Down> TreeCursor<'n, N> {
+impl<'n, N: 'n + Down> MutTreeCursor<'n, N> {
     pub fn new(root: &'n mut N) -> Self {
         let root_ptr: *mut N = root;
-        TreeCursor { root: PhantomData, stack: vec![(root_ptr, 0)] }
+        MutTreeCursor { root: PhantomData, stack: vec![(root_ptr, 0)] }
     }
 }
 
-impl<'n, N: 'n + Down> OpaqueVerticalCursor for TreeCursor<'n, N> {
+impl<'n, N: 'n + Down> OpaqueVerticalCursor for MutTreeCursor<'n, N> {
     fn zero(&mut self) {
         self.stack.last_mut().unwrap().1 = 0;
     }
@@ -81,7 +81,7 @@ impl<'n, N: 'n + Down> OpaqueVerticalCursor for TreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down> VerticalCursor<'n> for TreeCursor<'n, N> {
+impl<'n, N: 'n + Down> VerticalCursor<'n> for MutTreeCursor<'n, N> {
     type Item = N;
 
     fn get(&self) -> &'n N {
@@ -91,7 +91,7 @@ impl<'n, N: 'n + Down> VerticalCursor<'n> for TreeCursor<'n, N> {
 
 }
 
-impl<'n, N: 'n + Down> MutVerticalCursor<'n> for TreeCursor<'n, N> {
+impl<'n, N: 'n + Down> MutVerticalCursor<'n> for MutTreeCursor<'n, N> {
     fn get_mut(&mut self) -> &'n mut N {
         let here = self.stack.last().unwrap().0;
         (unsafe { here.as_mut() }).unwrap()
@@ -109,13 +109,13 @@ pub enum LinkError {
 
 #[derive(Debug)]
 pub struct LinkTreeCursor<'n, N: 'n + Down + Link> {
-    tree_cursor: TreeCursor<'n, N>,
+    tree_cursor: MutTreeCursor<'n, N>,
     link_map: LinkMap<*mut N>,
 }
 
 impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
     pub fn new(root: &'n mut N, start: &str) -> Result<Self, LinkError> {
-        let mut c = TreeCursor::new(root);
+        let mut c = MutTreeCursor::new(root);
         let mut link_map = LinkMap::<*mut N>::new();
 
         let mut targets = Vec::new();
@@ -159,7 +159,7 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
             None => return Err(LinkError::BrokenLink),
         };
 
-        Ok(Self { tree_cursor: TreeCursor::new(start_node), link_map })
+        Ok(Self { tree_cursor: MutTreeCursor::new(start_node), link_map })
     }
 }
 
