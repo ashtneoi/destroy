@@ -712,7 +712,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
         ])),
         n("str", e(vec![
             t("\""),
-            c(vec![
+            s(c(vec![
                 e(vec![
                     t("\\"),
                     c(vec![
@@ -726,7 +726,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
                     g(t("\n")),
                     a(),
                 ]),
-            ]),
+            ])),
             t("\""),
         ])),
         n("cp", c(vec![
