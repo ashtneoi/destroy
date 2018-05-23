@@ -472,7 +472,7 @@ pub struct Match {
     named: Vec<(String, Vec<Match>)>,
 }
 
-fn mat(
+pub fn mat(
         (lin0, row0, col0, lin1, row1, col1):
             (usize, usize, usize, usize, usize, usize),
         named: Vec<(&str, Vec<Match>)>,

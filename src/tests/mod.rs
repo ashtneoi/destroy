@@ -3,7 +3,6 @@ mod tree;
 mod standard {
     use prelude::*;
     use mat;
-    use Match;
 
     #[test]
     fn minimal() {
@@ -155,7 +154,6 @@ mod standard {
     mod group_tests {
         use prelude::*;
         use mat;
-        use Match;
 
         #[test]
         fn e_group_two_names() {
@@ -435,8 +433,6 @@ mod standard {
 
     mod grammar_grammar_tests {
         use prelude::*;
-        use mat;
-        use Match;
         use test::Bencher;
 
         #[test]
@@ -572,7 +568,6 @@ mod standard {
 mod regression {
     use prelude::*;
     use mat;
-    use Match;
     use Pos;
 
     #[test]
