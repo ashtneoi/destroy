@@ -14,7 +14,7 @@ pub mod prelude {
     pub use GrammarNode;
 }
 
-use std::fmt::{Debug, Display, Formatter, self};
+use std::fmt::{Debug, Formatter, self};
 use tree::MutVerticalCursorGroup;
 use tree::prelude::*;
 
@@ -235,15 +235,9 @@ impl Pos {
     }
 }
 
-impl Display for Pos {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}/{},{}", self.lin, self.row, self.col)
-    }
-}
-
 impl Debug for Pos {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        (self as &Display).fmt(f)
+        write!(f, "{}/{},{}", self.lin, self.row, self.col)
     }
 }
 
@@ -253,15 +247,9 @@ struct PosDelta {
     col: usize,
 }
 
-impl Display for PosDelta {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}/{},{}", self.lin, self.row, self.col)
-    }
-}
-
 impl Debug for PosDelta {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        (self as &Display).fmt(f)
+        write!(f, "{}/{},{}", self.lin, self.row, self.col)
     }
 }
 
@@ -514,7 +502,7 @@ fn mat(
 
 impl Debug for Match {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "({}..{})", self.raw.0, self.raw.1)?;
+        write!(f, "({:?}..{:?})", self.raw.0, self.raw.1)?;
         if !self.named.is_empty() {
             write!(f, "{{")?;
             let mut first = true;
