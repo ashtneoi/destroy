@@ -612,4 +612,16 @@ mod regression {
 
         g.parse("x", "a").unwrap();
     }
+
+    #[test]
+    fn wrong_pos_after_nl() {
+        let mut g = n("x", e(vec![
+            t("a\nb"),
+        ]));
+
+        assert_eq!(
+            g.parse("x", "a\nb").unwrap().raw,
+            (Pos { lin: 0, row: 1, col: 1}, Pos { lin: 3, row: 2, col: 2 })
+        );
+    }
 }

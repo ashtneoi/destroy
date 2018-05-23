@@ -112,18 +112,24 @@ impl GrammarNode {
             },
             &Text(ref t) => {
                 if input.starts_with(t) {
-                    let mut cp_count = 0;
-                    let nls: Vec<_> = t.chars()
+                    let mut cp_count: isize = 0;
+                    let nls: Vec<isize> = t.chars()
                         .enumerate()
                         .filter_map(
                             |(i, c)| {
                                 cp_count += 1;
-                                Some(i).filter(|_| c == '\n')
+                                Some(i as isize).filter(|_| c == '\n')
                             }
                         ).collect();
-                    let row = nls.len();
-                    let col = cp_count - (*nls.last().unwrap_or(&0));
-                    Some(PosDelta { lin: cp_count, row, col })
+                    let row: isize = nls.len() as isize;
+                    let col =
+                        cp_count
+                        - (*nls.last().unwrap_or(&-1) + 1);
+                    Some(PosDelta {
+                        lin: cp_count as usize,
+                        row: row as usize,
+                        col: col as usize,
+                    })
                 } else {
                     None
                 }
