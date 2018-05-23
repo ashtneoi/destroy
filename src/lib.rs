@@ -300,13 +300,13 @@ impl<'x, 's> Parser<'x, 's> {
                 here_st.raw.1 = Pos {
                     lin: prev_raw.lin + delta.lin,
                     row: prev_raw.row + delta.row,
-                    col: {
-                        delta.col + if delta.row > 0 {
+                    col: (
+                        if delta.row > 0 {
                             1
                         } else {
                             prev_raw.col
                         }
-                    }
+                    ) + delta.col,
                 };
                 true
             },
