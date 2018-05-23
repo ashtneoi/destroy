@@ -473,40 +473,46 @@ mod standard {
         }
 
         #[test]
-        fn wsc() {
+        fn wso() {
             let mut g = get_grammar_grammar();
 
-            g.parse("wsc", "").unwrap();
-            g.parse("wsc", " ").unwrap();
-            g.parse("wsc", "\t\t  ").unwrap();
-            g.parse("wsc", "# foo").unwrap();
-            g.parse("wsc", " # foo").unwrap();
-            g.parse("wsc", "\t\t  # foo").unwrap();
-            g.parse("wsc", "#\t\t\t\t\t").unwrap();
+            g.parse("wso", "").unwrap();
+            g.parse("wso", " ").unwrap();
+            g.parse("wso", "\t\t  ").unwrap();
+            g.parse("wso", "\t\t\t\t\t").unwrap();
 
-            g.parse("wsc", "\n").unwrap_err();
-            g.parse("wsc", "  \n").unwrap_err();
-            g.parse("wsc", "\t\t\n").unwrap_err();
-            g.parse("wsc", "# foo\n").unwrap_err();
-            g.parse("wsc", "\n# foo").unwrap_err();
+            g.parse("wso", "\n").unwrap_err();
+            g.parse("wso", "  \n").unwrap_err();
+            g.parse("wso", "\t\t\n").unwrap_err();
+            g.parse("wso", "# foo\n").unwrap_err();
+            g.parse("wso", "\n# foo").unwrap_err();
         }
 
         #[test]
-        fn wscn() {
+        fn ws() {
             let mut g = get_grammar_grammar();
 
-            g.parse("wscn", "").unwrap();
-            g.parse("wscn", " ").unwrap();
-            g.parse("wscn", "\t\t  ").unwrap();
-            g.parse("wscn", "# foo\n").unwrap();
-            g.parse("wscn", " # foo\n").unwrap();
-            g.parse("wscn", "\t\t  # foo\n").unwrap();
-            g.parse("wscn", "#\t\t\t\t\t\n").unwrap();
-            g.parse("wscn", "\n").unwrap();
-            g.parse("wscn", "  \n").unwrap();
-            g.parse("wscn", "\t\t\n").unwrap();
-            g.parse("wscn", "# foo\n").unwrap();
-            g.parse("wscn", "\n# foo\n").unwrap();
+            g.parse("ws", "").unwrap();
+            g.parse("ws", " ").unwrap();
+            g.parse("ws", "\t\t  ").unwrap();
+            g.parse("ws", "# foo\n").unwrap();
+            g.parse("ws", " # foo\n").unwrap();
+            g.parse("ws", "\t\t  # foo\n").unwrap();
+            g.parse("ws", "#\t\t\t\t\t\n").unwrap();
+            g.parse("ws", "\n").unwrap();
+            g.parse("ws", "\n\n\n\n").unwrap();
+            g.parse("ws", "  \n").unwrap();
+            g.parse("ws", "\t\t\n").unwrap();
+            g.parse("ws", "# foo\n").unwrap();
+            g.parse("ws", "\n# foo\n").unwrap();
+        }
+
+        #[test]
+        fn expr_plus() {
+            let mut g = get_grammar_grammar();
+
+            g.parse("expr", "c+").unwrap();
+            g.parse("rule", "a = b c+").unwrap();
         }
 
         #[test]
@@ -525,25 +531,34 @@ mod standard {
     }
 
     static GRAMMAR_GRAMMAR_STR: &str = r##"
+        comment = "#" (-"\n" %)*
+
+        wso_part = " " / "\t"
+        ws_part = wso_part / comment? "\n"
+        wso = wso_part*
+        ws = ws_part*
+        pwso = wso_part+
+        pws = ws_part+
+
         hex_digit = digit / 'a'..'f' / 'A'..'F'
         hex_uint = "0x" hex_digit+
-        comment = "#" (-"\n" %)*
-        wsc = ws comment?
-        wscn = (ws comment? "\n")* ws
+
         str = "\"" ("\\" ("n" / "\\" / "\"") / -"\"" -"\n" %)* "\""
         cp = hex_uint / "'" ("\\" ("n" / "\\" / "'") / -"'" -"\n" %) "'"
         cp_range = cp ".." cp
         ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
         ident = ident_initial (ident_initial / digit)* # TODO
 
-        expr = expr_prefix[opd] (wscn "/"[op] wscn expr_prefix[opd])*
+        expr = expr_choice (pws expr_choice -(wso "="))*
+        expr_choice = expr_prefix[opd] (ws "/"[op] ws expr_prefix[opd])*
         expr_prefix = ("^" / "-")[op]* expr_suffix[opd]
         expr_suffix =
-            expr_atom[opd] ("*" / "+" / "?" / "[" ws ident[name] ws "]")[op]*
+            expr_atom[opd] ("*" / "+" / "?" / "[" ident[name] "]")[op]*
         expr_atom =
-            ("%" / str / cp_range / ident / "(" wsn expr+ wsn ")")[atom]
-        rule = ident[name] ws "=" wscn expr+[val]
-        grammar = (wscn rule wsc "\n"+)*
+            ("%" / str / cp_range / ident / "(" ws expr ws ")")[atom]
+
+        rule = ident[name] wso "=" ws expr[val]
+        grammar = ws (rule wso comment? "\n" ws)*
     "##;
 
     #[test]

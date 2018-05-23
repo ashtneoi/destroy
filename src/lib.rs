@@ -341,12 +341,6 @@ impl<'x, 's> Parser<'x, 's> {
             }
         }
 
-        if !a.down && success {
-            if let Some(name) = self.c.g.get().target() {
-                println!("{}", name);
-            }
-        }
-
         Some(a)
     }
 
@@ -626,33 +620,6 @@ pub fn a() -> GrammarNode {
 
 pub fn get_utils() -> GrammarNode {
     e(vec![
-        n("ws", s(
-            c(vec![
-                t(" "),
-                t("\t"),
-            ]),
-        )),
-        n("wsp", p(
-            c(vec![
-                t(" "),
-                t("\t"),
-            ]),
-        )),
-        n("wsn", s(
-            c(vec![
-                t(" "),
-                t("\t"),
-                t("\n"),
-            ]),
-        )),
-        n("wsnp", p(
-            c(vec![
-                t(" "),
-                t("\t"),
-                t("\n"),
-            ]),
-        )),
-
         n("nzdigit", c(vec![
             r('1', '9'),
         ])),
@@ -670,6 +637,31 @@ pub fn get_utils() -> GrammarNode {
 pub fn get_grammar_grammar() -> GrammarNode {
     e(vec![
         get_utils(),
+
+        n("comment", e(vec![
+            t("#"),
+            s(e(vec![
+                g(t("\n")),
+                a(),
+            ])),
+        ])),
+
+        n("wso_part", c(vec![
+            t(" "),
+            t("\t"),
+        ])),
+        n("ws_part", c(vec![
+            k("wso_part"),
+            e(vec![
+                q(k("comment")),
+                t("\n"),
+            ]),
+        ])),
+        n("wso", s(k("wso_part"))),
+        n("ws", s(k("ws_part"))),
+        n("pwso", p(k("wso_part"))),
+        n("pws", p(k("ws_part"))),
+
         n("hex_digit", c(vec![
             k("digit"),
             r('a', 'f'),
@@ -679,25 +671,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
             t("0x"),
             p(k("hex_digit")),
         ])),
-        n("comment", e(vec![
-            t("#"),
-            s(e(vec![
-                g(t("\n")),
-                a(),
-            ])),
-        ])),
-        n("wsc", e(vec![
-            k("ws"),
-            q(k("comment")),
-        ])),
-        n("wscn", e(vec![
-            s(e(vec![
-                k("ws"),
-                q(k("comment")),
-                t("\n"),
-            ])),
-            k("ws"),
-        ])),
+
         n("str", e(vec![
             t("\""),
             s(c(vec![
@@ -756,12 +730,24 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 k("digit"), // TODO
             ])),
         ])),
+
         n("expr", e(vec![
+            k("expr_choice"),
+            s(e(vec![
+                k("pws"),
+                k("expr_choice"),
+                g(e(vec![
+                    k("wso"),
+                    t("="),
+                ])),
+            ])),
+        ])),
+        n("expr_choice", e(vec![
             u("opd", k("expr_prefix")),
             s(e(vec![
-                k("wscn"),
+                k("ws"),
                 u("op", t("/")),
-                k("wscn"),
+                k("ws"),
                 u("opd", k("expr_prefix")),
             ])),
         ])),
@@ -780,9 +766,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 t("?"),
                 e(vec![
                     t("["),
-                    k("ws"),
                     u("name", k("ident")),
-                    k("ws"),
                     t("]"),
                 ]),
             ]))),
@@ -794,24 +778,29 @@ pub fn get_grammar_grammar() -> GrammarNode {
             k("ident"),
             e(vec![
                 t("("),
-                k("wsn"),
-                p(k("expr")),
-                k("wsn"),
+                k("ws"),
+                k("expr"),
+                k("ws"),
                 t(")"),
             ]),
         ]))),
+
         n("rule", e(vec![
             u("name", k("ident")),
-            k("ws"),
+            k("wso"),
             t("="),
-            k("wscn"),
-            u("val", p(k("expr"))),
+            k("ws"),
+            u("val", k("expr")),
         ])),
-        n("grammar", s(e(vec![
-            k("wscn"),
-            k("rule"),
-            k("wsc"),
-            p(t("\n")),
-        ]))),
+        n("grammar", e(vec![
+            k("ws"),
+            s(e(vec![
+                k("rule"),
+                k("wso"),
+                q(k("comment")),
+                t("\n"),
+                k("ws"),
+            ])),
+        ])),
     ])
 }
