@@ -15,7 +15,7 @@ pub mod prelude {
 }
 
 use std::fmt::{Debug, Formatter, self};
-use tree::MutVerticalCursorGroup;
+use tree::OpaqueVerticalCursorGroup;
 use tree::prelude::*;
 
 pub struct MatchCursor<'x> {
@@ -31,7 +31,7 @@ impl<'x> MatchCursor<'x> {
     }
 }
 
-impl<'x> MutVerticalCursorGroup for MatchCursor<'x> {
+impl<'x> OpaqueVerticalCursorGroup for MatchCursor<'x> {
     fn list(&mut self) -> Vec<&mut OpaqueVerticalCursor> {
         vec![&mut self.g, &mut self.m] // TODO: don't allocate every time
     }

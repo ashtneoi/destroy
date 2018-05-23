@@ -205,7 +205,7 @@ impl<'n, N: 'n + DownMut + Link> MutVerticalCursor<'n>
     }
 }
 
-pub trait MutVerticalCursorGroup {
+pub trait OpaqueVerticalCursorGroup {
     fn list(&mut self) -> Vec<&mut OpaqueVerticalCursor>;
 
     fn zero(&mut self) {
