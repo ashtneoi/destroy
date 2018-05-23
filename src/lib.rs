@@ -42,8 +42,8 @@ pub struct MatchNode {
     st: Option<Match>,
 }
 
-impl Down for MatchNode {
-    fn down(&mut self, _idx: usize) -> Option<*mut Self> {
+impl DownMut for MatchNode {
+    fn down_mut(&mut self, _idx: usize) -> Option<*mut Self> {
         self.child = Some(Box::new(Self::new()));
         Some(self.child.as_mut().unwrap().as_mut())
     }
@@ -420,8 +420,8 @@ impl<'x, 's> Parser<'x, 's> {
     }
 }
 
-impl Down for GrammarNode {
-    fn down(&mut self, idx: usize) -> Option<*mut Self> {
+impl DownMut for GrammarNode {
+    fn down_mut(&mut self, idx: usize) -> Option<*mut Self> {
         use GrammarNode::*;
         match self {
             &mut Seq(ref mut children)

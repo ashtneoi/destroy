@@ -4,7 +4,7 @@ use std::ptr;
 
 pub mod prelude {
     pub use super::{
-        Down,
+        DownMut,
         Link,
         LinkError,
         LinkTreeCursor,
@@ -15,8 +15,8 @@ pub mod prelude {
     };
 }
 
-pub trait Down {
-    fn down(&mut self, idx: usize) -> Option<*mut Self>;
+pub trait DownMut {
+    fn down_mut(&mut self, idx: usize) -> Option<*mut Self>;
 }
 
 pub trait Link {
@@ -41,26 +41,26 @@ pub trait MutVerticalCursor<'n>: VerticalCursor<'n> {
 }
 
 #[derive(Debug)]
-pub struct MutTreeCursor<'n, N: 'n + Down> {
+pub struct MutTreeCursor<'n, N: 'n + DownMut> {
     root: PhantomData<&'n mut N>,
     stack: Vec<(*mut N, usize)>,
 }
 
-impl<'n, N: 'n + Down> MutTreeCursor<'n, N> {
+impl<'n, N: 'n + DownMut> MutTreeCursor<'n, N> {
     pub fn new(root: &'n mut N) -> Self {
         let root_ptr: *mut N = root;
         MutTreeCursor { root: PhantomData, stack: vec![(root_ptr, 0)] }
     }
 }
 
-impl<'n, N: 'n + Down> OpaqueVerticalCursor for MutTreeCursor<'n, N> {
+impl<'n, N: 'n + DownMut> OpaqueVerticalCursor for MutTreeCursor<'n, N> {
     fn zero(&mut self) {
         self.stack.last_mut().unwrap().1 = 0;
     }
 
     fn down(&mut self) -> bool {
         let idx = self.stack.last().unwrap().1;
-        let new_ptr = match self.get_mut().down(idx) {
+        let new_ptr = match self.get_mut().down_mut(idx) {
             Some(x) => x,
             None => return false,
         };
@@ -81,7 +81,7 @@ impl<'n, N: 'n + Down> OpaqueVerticalCursor for MutTreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down> VerticalCursor<'n> for MutTreeCursor<'n, N> {
+impl<'n, N: 'n + DownMut> VerticalCursor<'n> for MutTreeCursor<'n, N> {
     type Item = N;
 
     fn get(&self) -> &'n N {
@@ -91,7 +91,7 @@ impl<'n, N: 'n + Down> VerticalCursor<'n> for MutTreeCursor<'n, N> {
 
 }
 
-impl<'n, N: 'n + Down> MutVerticalCursor<'n> for MutTreeCursor<'n, N> {
+impl<'n, N: 'n + DownMut> MutVerticalCursor<'n> for MutTreeCursor<'n, N> {
     fn get_mut(&mut self) -> &'n mut N {
         let here = self.stack.last().unwrap().0;
         (unsafe { here.as_mut() }).unwrap()
@@ -108,12 +108,12 @@ pub enum LinkError {
 }
 
 #[derive(Debug)]
-pub struct LinkTreeCursor<'n, N: 'n + Down + Link> {
+pub struct LinkTreeCursor<'n, N: 'n + DownMut + Link> {
     tree_cursor: MutTreeCursor<'n, N>,
     link_map: LinkMap<*mut N>,
 }
 
-impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
+impl<'n, N: 'n + DownMut + Link> LinkTreeCursor<'n, N> {
     pub fn new(root: &'n mut N, start: &str) -> Result<Self, LinkError> {
         let mut c = MutTreeCursor::new(root);
         let mut link_map = LinkMap::<*mut N>::new();
@@ -163,7 +163,9 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down + Link> OpaqueVerticalCursor for LinkTreeCursor<'n, N> {
+impl<'n, N: 'n + DownMut + Link> OpaqueVerticalCursor
+        for LinkTreeCursor<'n, N>
+{
     fn zero(&mut self) {
         self.tree_cursor.zero();
     }
@@ -187,7 +189,7 @@ impl<'n, N: 'n + Down + Link> OpaqueVerticalCursor for LinkTreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down + Link> VerticalCursor<'n> for LinkTreeCursor<'n, N> {
+impl<'n, N: 'n + DownMut + Link> VerticalCursor<'n> for LinkTreeCursor<'n, N> {
     type Item = N;
 
     fn get(&self) -> &'n N {
@@ -195,7 +197,7 @@ impl<'n, N: 'n + Down + Link> VerticalCursor<'n> for LinkTreeCursor<'n, N> {
     }
 }
 
-impl<'n, N: 'n + Down + Link> MutVerticalCursor<'n>
+impl<'n, N: 'n + DownMut + Link> MutVerticalCursor<'n>
     for LinkTreeCursor<'n, N>
 {
     fn get_mut(&mut self) -> &'n mut N {

@@ -6,8 +6,8 @@ mod tree_tests {
         children: Vec<Node>,
     }
 
-    impl Down for Node {
-        fn down(&mut self, idx: usize) -> Option<*mut Self> {
+    impl DownMut for Node {
+        fn down_mut(&mut self, idx: usize) -> Option<*mut Self> {
             self.children.get_mut(idx).map(|c: &mut Self| c as *mut Self)
         }
     }
@@ -202,8 +202,8 @@ mod link_tree_tests {
         Link(String),
     }
 
-    impl Down for Node {
-        fn down(&mut self, idx: usize) -> Option<*mut Self> {
+    impl DownMut for Node {
+        fn down_mut(&mut self, idx: usize) -> Option<*mut Self> {
             match self {
                 &mut Node::Seq(ref mut children) =>
                     children.get_mut(idx).map(|c: &mut Self| c as *mut Self),
