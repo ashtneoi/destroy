@@ -202,19 +202,19 @@ mod link_tree_tests {
         Link(String),
     }
 
-    impl DownMut for Node {
-        fn down_mut(&mut self, idx: usize) -> Option<*mut Self> {
+    impl Down for Node {
+        fn down(&self, idx: usize) -> Option<*const Self> {
             match self {
-                &mut Node::Seq(ref mut children) =>
-                    children.get_mut(idx).map(|c: &mut Self| c as *mut Self),
-                &mut Node::Name(_, ref mut child) => {
+                &Node::Seq(ref children) =>
+                    children.get(idx).map(|c: &Self| c as *const Self),
+                &Node::Name(_, ref child) => {
                     if idx == 0 {
-                        Some(&mut **child as *mut Self)
+                        Some(&**child as *const Self)
                     } else {
                         None
                     }
                 },
-                &mut Node::Link(_) => None,
+                &Node::Link(_) => None,
             }
         }
     }
@@ -253,18 +253,18 @@ mod link_tree_tests {
 
     #[test]
     fn nested_names() {
-        let mut t = n("foo", n("bar", n("fuzz", f())));
+        let t = n("foo", n("bar", n("fuzz", f())));
 
-        LinkTreeCursor::new(&mut t, "foo").unwrap();
-        LinkTreeCursor::new(&mut t, "bar").unwrap();
-        LinkTreeCursor::new(&mut t, "fuzz").unwrap();
+        LinkTreeCursor::new(&t, "foo").unwrap();
+        LinkTreeCursor::new(&t, "bar").unwrap();
+        LinkTreeCursor::new(&t, "fuzz").unwrap();
 
-        LinkTreeCursor::new(&mut t, "zap").unwrap_err();
+        LinkTreeCursor::new(&t, "zap").unwrap_err();
     }
 
     #[test]
     fn full_traverse() {
-        let mut t = e(vec![
+        let t = e(vec![
             f(),
             f(),
             f(),
@@ -279,7 +279,7 @@ mod link_tree_tests {
             ])),
         ]);
 
-        let mut c = LinkTreeCursor::new(&mut t, "go").unwrap();
+        let mut c = LinkTreeCursor::new(&t, "go").unwrap();
 
         for _ in 0..100 {
             let start = c.get() as *const Node;
@@ -289,8 +289,6 @@ mod link_tree_tests {
 
             {
                 let here = c.get() as *const Node;
-                let here_mut = c.get_mut() as *mut Node;
-                assert!(ptr::eq(here, here_mut));
                 assert!(!ptr::eq(here, start));
 
                 assert!(c.down());
@@ -299,7 +297,6 @@ mod link_tree_tests {
                 assert!(c.up());
 
                 assert!(ptr::eq(c.get(), here));
-                assert!(ptr::eq(c.get_mut(), here_mut));
             }
 
             assert!(c.down());
@@ -341,11 +338,11 @@ mod link_tree_tests {
 
     #[test]
     fn deep_recursion() {
-        let mut t = n("foo", e(vec![
+        let t = n("foo", e(vec![
             k("foo")
         ]));
 
-        let mut c = LinkTreeCursor::new(&mut t, "foo").unwrap();
+        let mut c = LinkTreeCursor::new(&t, "foo").unwrap();
 
         let ee = c.get() as *const Node;
         assert!(c.down());
@@ -373,12 +370,12 @@ mod link_tree_tests {
 
     #[test]
     fn zero() {
-        let mut t = n("foo", e(vec![
+        let t = n("foo", e(vec![
             f(),
             f(),
         ]));
 
-        let mut c = LinkTreeCursor::new(&mut t, "foo").unwrap();
+        let mut c = LinkTreeCursor::new(&t, "foo").unwrap();
 
         assert!(c.down());
         assert!(!c.down());
@@ -417,18 +414,18 @@ mod link_tree_tests {
     #[test]
     fn link_errors() {
         {
-            let mut t = e(vec![
+            let t = e(vec![
                 k("foo"),
                 n("bar", f()),
             ]);
             assert_eq!(
-                LinkTreeCursor::new(&mut t, "bar").unwrap_err(),
+                LinkTreeCursor::new(&t, "bar").unwrap_err(),
                 LinkError::BrokenLink,
             );
         }
 
         {
-            let mut t = e(vec![
+            let t = e(vec![
                 n("bar", e(vec![
                     e(vec![
                         f(),
@@ -438,31 +435,31 @@ mod link_tree_tests {
                 ])),
             ]);
             assert_eq!(
-                LinkTreeCursor::new(&mut t, "bar").unwrap_err(),
+                LinkTreeCursor::new(&t, "bar").unwrap_err(),
                 LinkError::BrokenLink,
             );
         }
 
         {
-            let mut t = e(vec![
+            let t = e(vec![
                 f(),
                 n("foo", n("foo", f())),
                 n("bar", f()),
             ]);
             assert_eq!(
-                LinkTreeCursor::new(&mut t, "foo").unwrap_err(),
+                LinkTreeCursor::new(&t, "foo").unwrap_err(),
                 LinkError::DuplicateName,
             );
             assert_eq!(
-                LinkTreeCursor::new(&mut t, "bar").unwrap_err(),
+                LinkTreeCursor::new(&t, "bar").unwrap_err(),
                 LinkError::DuplicateName,
             );
         }
 
         {
-            let mut t = n("foo", f());
+            let t = n("foo", f());
             assert_eq!(
-                LinkTreeCursor::new(&mut t, "bar").unwrap_err(),
+                LinkTreeCursor::new(&t, "bar").unwrap_err(),
                 LinkError::BrokenLink,
             );
         }
@@ -471,21 +468,21 @@ mod link_tree_tests {
     #[test]
     fn link_error_precedence() {
         {
-            let mut t = n("foo", n("foo", f()));
+            let t = n("foo", n("foo", f()));
             assert_eq!(
-                LinkTreeCursor::new(&mut t, "bar").unwrap_err(),
+                LinkTreeCursor::new(&t, "bar").unwrap_err(),
                 LinkError::DuplicateName,
             );
         }
 
         {
-            let mut t = e(vec![
+            let t = e(vec![
                 n("foo", f()),
                 f(),
                 n("foo", f()),
             ]);
             assert_eq!(
-                LinkTreeCursor::new(&mut t, "bar").unwrap_err(),
+                LinkTreeCursor::new(&t, "bar").unwrap_err(),
                 LinkError::DuplicateName,
             );
         }

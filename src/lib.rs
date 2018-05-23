@@ -420,32 +420,32 @@ impl<'x, 's> Parser<'x, 's> {
     }
 }
 
-impl DownMut for GrammarNode {
-    fn down_mut(&mut self, idx: usize) -> Option<*mut Self> {
+impl Down for GrammarNode {
+    fn down(&self, idx: usize) -> Option<*const Self> {
         use GrammarNode::*;
         match self {
-            &mut Seq(ref mut children)
-            | &mut Choice(ref mut children) => {
-                children.get_mut(idx).map(|c| c as *mut Self)
+            &Seq(ref children)
+            | &Choice(ref children) => {
+                children.get(idx).map(|c| c as *const Self)
             },
-            &mut Star(ref mut child)
-            | &mut Plus(ref mut child)
-            | &mut Opt(ref mut child)
-            | &mut Pos(ref mut child)
-            | &mut Neg(ref mut child)
-            | &mut Name(_, ref mut child)
-            | &mut Group(_, ref mut child)
-            | &mut Erase(ref mut child) => {
+            &Star(ref child)
+            | &Plus(ref child)
+            | &Opt(ref child)
+            | &Pos(ref child)
+            | &Neg(ref child)
+            | &Name(_, ref child)
+            | &Group(_, ref child)
+            | &Erase(ref child) => {
                 if idx == 0 {
-                    Some(child.as_mut())
+                    Some(child.as_ref())
                 } else {
                     None
                 }
             },
-            &mut Link(_)
-            | &mut Range(_, _)
-            | &mut Text(_)
-            | &mut Anything => None,
+            &Link(_)
+            | &Range(_, _)
+            | &Text(_)
+            | &Anything => None,
         }
     }
 }
