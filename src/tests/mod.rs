@@ -536,44 +536,44 @@ mod standard {
             g.parse("grammar", "A = \"a\"\nB = \"b\"\n").unwrap();
             g.parse("grammar", "A = \"a\"\nB = \"b\"\n\n").unwrap();
         }
-    }
 
-    static GRAMMAR_GRAMMAR_STR: &str = r##"
-        comment = "#" (-"\n" %)*
+        static GRAMMAR_GRAMMAR_STR: &str = r##"
+            comment = "#" (-"\n" %)*
 
-        wso_part = " " / "\t"
-        ws_part = wso_part / comment? "\n"
-        wso = wso_part*
-        ws = ws_part*
-        pwso = wso_part+
-        pws = ws_part+
+            wso_part = " " / "\t"
+            ws_part = wso_part / comment? "\n"
+            wso = wso_part*
+            ws = ws_part*
+            pwso = wso_part+
+            pws = ws_part+
 
-        hex_digit = digit / 'a'..'f' / 'A'..'F'
-        hex_uint = "0x" hex_digit+
+            hex_digit = digit / 'a'..'f' / 'A'..'F'
+            hex_uint = "0x" hex_digit+
 
-        str = "\"" ("\\" ("n" / "\\" / "\"") / -"\"" -"\n" %)* "\""
-        cp = hex_uint / "'" ("\\" ("n" / "\\" / "'") / -"'" -"\n" %) "'"
-        cp_range = cp ".." cp
-        ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
-        ident = ident_initial (ident_initial / digit)* # TODO
+            str = "\"" ("\\" ("n" / "\\" / "\"") / -"\"" -"\n" %)* "\""
+            cp = hex_uint / "'" ("\\" ("n" / "\\" / "'") / -"'" -"\n" %) "'"
+            cp_range = cp ".." cp
+            ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
+            ident = ident_initial (ident_initial / digit)* # TODO
 
-        expr = expr_choice (pws expr_choice -(wso "="))*
-        expr_choice = expr_prefix[opd] (ws "/"[op] ws expr_prefix[opd])*
-        expr_prefix = ("^" / "-")[op]* expr_suffix[opd]
-        expr_suffix =
-            expr_atom[opd] ("*" / "+" / "?" / "[" ident[name] "]")[op]*
-        expr_atom =
-            ("%" / str / cp_range / ident / "(" ws expr ws ")")[atom]
+            expr = expr_choice (pws expr_choice -(wso "="))*
+            expr_choice = expr_prefix[opd] (ws "/"[op] ws expr_prefix[opd])*
+            expr_prefix = ("^" / "-")[op]* expr_suffix[opd]
+            expr_suffix =
+                expr_atom[opd] ("*" / "+" / "?" / "[" ident[name] "]")[op]*
+            expr_atom =
+                ("%" / str / cp_range / ident / "(" ws expr ws ")")[atom]
 
-        rule = ident[name] wso "=" ws expr[val]
-        grammar = ws (rule wso comment? "\n" ws)* (rule wso comment?)?
-    "##;
+            rule = ident[name] wso "=" ws expr[val]
+            grammar = ws (rule wso comment? "\n" ws)* (rule wso comment?)?
+        "##;
 
-    #[test]
-    fn bootstrap_parse() {
-        let g = get_grammar_grammar();
+        #[test]
+        fn bootstrap_parse() {
+            let g = get_grammar_grammar();
 
-        g.parse("grammar", GRAMMAR_GRAMMAR_STR).unwrap();
+            g.parse("grammar", GRAMMAR_GRAMMAR_STR).unwrap();
+        }
     }
 }
 
