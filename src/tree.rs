@@ -17,11 +17,11 @@ pub mod prelude {
 }
 
 pub trait Down {
-    fn down(&self, idx: usize) -> Option<*const Self>;
+    fn down(&self, idx: usize) -> Option<&Self>;
 }
 
 pub trait DownMut {
-    fn down_mut(&mut self, idx: usize) -> Option<*mut Self>;
+    fn down_mut(&mut self, idx: usize) -> Option<&mut Self>;
 }
 
 pub trait Link {
@@ -66,7 +66,7 @@ impl<'n, N: 'n + Down> OpaqueVerticalCursor for TreeCursor<'n, N> {
     fn down(&mut self) -> bool {
         let idx = self.stack.last().unwrap().1;
         let new_ptr = match self.get().down(idx) {
-            Some(x) => x,
+            Some(x) => x as *const N,
             None => return false,
         };
 
@@ -117,7 +117,7 @@ impl<'n, N: 'n + DownMut> OpaqueVerticalCursor for MutTreeCursor<'n, N> {
     fn down(&mut self) -> bool {
         let idx = self.stack.last().unwrap().1;
         let new_ptr = match self.get_mut().down_mut(idx) {
-            Some(x) => x,
+            Some(x) => x as *mut N,
             None => return false,
         };
 

@@ -7,8 +7,8 @@ mod tree_tests {
     }
 
     impl DownMut for Node {
-        fn down_mut(&mut self, idx: usize) -> Option<*mut Self> {
-            self.children.get_mut(idx).map(|c: &mut Self| c as *mut Self)
+        fn down_mut(&mut self, idx: usize) -> Option<&mut Self> {
+            self.children.get_mut(idx)
         }
     }
 
@@ -203,13 +203,12 @@ mod link_tree_tests {
     }
 
     impl Down for Node {
-        fn down(&self, idx: usize) -> Option<*const Self> {
+        fn down(&self, idx: usize) -> Option<&Self> {
             match self {
-                &Node::Seq(ref children) =>
-                    children.get(idx).map(|c: &Self| c as *const Self),
+                &Node::Seq(ref children) => children.get(idx),
                 &Node::Name(_, ref child) => {
                     if idx == 0 {
-                        Some(&**child as *const Self)
+                        Some(child.as_ref())
                     } else {
                         None
                     }
