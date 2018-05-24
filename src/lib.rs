@@ -801,6 +801,11 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 t("\n"),
                 k("ws"),
             ])),
+            q(e(vec![
+                k("rule"),
+                k("wso"),
+                q(k("comment")),
+            ])),
         ])),
     ])
 }

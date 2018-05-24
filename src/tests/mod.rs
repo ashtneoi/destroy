@@ -524,6 +524,18 @@ mod standard {
 
             g.parse("rule", "A = \"a\"").unwrap();
         }
+
+        #[test]
+        fn grammar() {
+            let mut g = get_grammar_grammar();
+
+            g.parse("grammar", "A = \"a\"").unwrap();
+            g.parse("grammar", "A = \"a\"\n").unwrap();
+            g.parse("grammar", "A = \"a\"\n\n").unwrap();
+            g.parse("grammar", "A = \"a\"\nB = \"b\"").unwrap();
+            g.parse("grammar", "A = \"a\"\nB = \"b\"\n").unwrap();
+            g.parse("grammar", "A = \"a\"\nB = \"b\"\n\n").unwrap();
+        }
     }
 
     static GRAMMAR_GRAMMAR_STR: &str = r##"
@@ -554,7 +566,7 @@ mod standard {
             ("%" / str / cp_range / ident / "(" ws expr ws ")")[atom]
 
         rule = ident[name] wso "=" ws expr[val]
-        grammar = ws (rule wso comment? "\n" ws)*
+        grammar = ws (rule wso comment? "\n" ws)* (rule wso comment?)?
     "##;
 
     #[test]
