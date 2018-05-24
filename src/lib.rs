@@ -195,7 +195,7 @@ impl GrammarNode {
         }
     }
 
-    pub fn parse(&mut self, start: &str, input: &str)
+    pub fn parse(&self, start: &str, input: &str)
             -> Result<Match, ParseError>
     {
         let mut _m = MatchNode::new();
@@ -261,7 +261,7 @@ struct Parser<'x, 's> {
 
 impl<'x, 's> Parser<'x, 's> {
     fn new(
-            root: &'x mut GrammarNode,
+            root: &'x GrammarNode,
             start: &str,
             input: &'s str,
             mroot: &'x mut MatchNode,

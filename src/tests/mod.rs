@@ -6,7 +6,7 @@ mod standard {
 
     #[test]
     fn minimal() {
-        let mut g = e(vec![
+        let g = e(vec![
             n("start", s(t("a"))),
         ]);
 
@@ -18,7 +18,7 @@ mod standard {
 
     #[test]
     fn optional() {
-        let mut g = e(vec![
+        let g = e(vec![
             n("start", e(vec![
                 q(t("-")),
                 q(t("+")),
@@ -38,7 +38,7 @@ mod standard {
 
     #[test]
     fn decimal_integer() {
-        let mut g = e(vec![
+        let g = e(vec![
             n("dec_nonzero_digit", c(vec![
                 t("1"),
                 t("2"),
@@ -88,7 +88,7 @@ mod standard {
 
     #[test]
     fn simple_expr() {
-        let mut g = e(vec![
+        let g = e(vec![
             n("expr", e(vec![
                 k("expr2"),
                 s(e(vec![
@@ -114,7 +114,7 @@ mod standard {
 
     #[test]
     fn range() {
-        let mut g = n("start", e(vec![
+        let g = n("start", e(vec![
             r('a', 'd'),
             t("e"),
         ]));
@@ -132,7 +132,7 @@ mod standard {
 
     #[test]
     fn lookahead() {
-        let mut g = n("start", e(vec![
+        let g = n("start", e(vec![
             z(t("a")),
             r('a', 'c'),
             g(t("a")),
@@ -157,7 +157,7 @@ mod standard {
 
         #[test]
         fn e_group_two_names() {
-            let mut g = n("x", e(vec![
+            let g = n("x", e(vec![
                 u("A", q(t("a"))),
                 u("B", q(t("b"))),
             ]));
@@ -173,7 +173,7 @@ mod standard {
 
         #[test]
         fn e_group_one_name() {
-            let mut g1 = n("x", e(vec![
+            let g1 = n("x", e(vec![
                 q(t("a")),
                 u("B", t("b")),
             ]));
@@ -191,7 +191,7 @@ mod standard {
                 ])
             );
 
-            let mut g2 = n("x", e(vec![
+            let g2 = n("x", e(vec![
                 u("A", t("a")),
                 q(t("b")),
             ]));
@@ -212,7 +212,7 @@ mod standard {
 
         #[test]
         fn e_group_same_name() {
-            let mut g = n("x", e(vec![
+            let g = n("x", e(vec![
                 u("A", t("a")),
                 u("A", t("b")),
             ]));
@@ -230,7 +230,7 @@ mod standard {
 
         #[test]
         fn e_group_no_names() {
-            let mut g = n("x", e(vec![
+            let g = n("x", e(vec![
                 q(t("a")),
                 q(t("b")),
             ]));
@@ -255,7 +255,7 @@ mod standard {
 
         #[test]
         fn c_group() {
-            let mut g = n("x", c(vec![
+            let g = n("x", c(vec![
                 u("A", t("a")),
                 u("B", t("b")),
             ]));
@@ -276,7 +276,7 @@ mod standard {
 
         #[test]
         fn s_group() {
-            let mut g = n("x", s(
+            let g = n("x", s(
                 u("A", u("E", t("a"))),
             ));
 
@@ -301,7 +301,7 @@ mod standard {
 
         #[test]
         fn p_group() {
-            let mut g = n("x", p(
+            let g = n("x", p(
                 u("A", u("E", t("a"))),
             ));
 
@@ -322,7 +322,7 @@ mod standard {
 
         #[test]
         fn q_group() {
-            let mut g = n("x", q(
+            let g = n("x", q(
                 u("A", t("a"))
             ));
 
@@ -340,7 +340,7 @@ mod standard {
 
         #[test]
         fn z_group() {
-            let mut g = n("x", e(vec![
+            let g = n("x", e(vec![
                 z(u("E", t("a"))),
                 u("A", t("a")),
             ]));
@@ -355,7 +355,7 @@ mod standard {
 
         #[test]
         fn g_group() {
-            let mut g = n("x", e(vec![
+            let g = n("x", e(vec![
                 g(u("E", t("e"))),
                 u("A", t("a")),
             ]));
@@ -370,7 +370,7 @@ mod standard {
 
         #[test]
         fn n_group() {
-            let mut g = n("x",
+            let g = n("x",
                 n("E", u("A", t("a"))),
             );
 
@@ -384,7 +384,7 @@ mod standard {
 
         #[test]
         fn x_group() {
-            let mut g = n("x",
+            let g = n("x",
                 x(u("A", t("a"))),
             );
 
@@ -396,7 +396,7 @@ mod standard {
 
         #[test]
         fn k_group() {
-            let mut g = e(vec![
+            let g = e(vec![
                 n("x", k("w")),
                 n("w", u("A", t("a"))),
             ]);
@@ -412,7 +412,7 @@ mod standard {
 
     #[test]
     fn anything() {
-        let mut g = n("x", e(vec![
+        let g = n("x", e(vec![
             a(),
             a(),
         ]));
@@ -437,7 +437,7 @@ mod standard {
 
         #[test]
         fn ident() {
-            let mut g = get_grammar_grammar();
+            let g = get_grammar_grammar();
 
             g.parse("ident", "a").unwrap();
             g.parse("ident", "A").unwrap();
@@ -455,14 +455,14 @@ mod standard {
 
         #[bench]
         fn bench_ident(b: &mut Bencher) {
-            let mut g = get_grammar_grammar();
+            let g = get_grammar_grammar();
 
             b.iter(|| g.parse("ident", "_foo_bar90"));
         }
 
         #[test]
         fn expr() {
-            let mut g = get_grammar_grammar();
+            let g = get_grammar_grammar();
 
             g.parse("expr", "\"a\"").unwrap();
             g.parse("expr", "0x80..0x10FFFF").unwrap();
@@ -470,7 +470,7 @@ mod standard {
 
         #[test]
         fn wso() {
-            let mut g = get_grammar_grammar();
+            let g = get_grammar_grammar();
 
             g.parse("wso", "").unwrap();
             g.parse("wso", " ").unwrap();
@@ -486,7 +486,7 @@ mod standard {
 
         #[test]
         fn ws() {
-            let mut g = get_grammar_grammar();
+            let g = get_grammar_grammar();
 
             g.parse("ws", "").unwrap();
             g.parse("ws", " ").unwrap();
@@ -505,7 +505,7 @@ mod standard {
 
         #[test]
         fn expr_plus() {
-            let mut g = get_grammar_grammar();
+            let g = get_grammar_grammar();
 
             g.parse("expr", "c+").unwrap();
             g.parse("rule", "a = b c+").unwrap();
@@ -513,21 +513,21 @@ mod standard {
 
         #[test]
         fn expr_atom() {
-            let mut g = get_grammar_grammar();
+            let g = get_grammar_grammar();
 
             g.parse("expr_atom", "\"a\"").unwrap();
         }
 
         #[test]
         fn rule() {
-            let mut g = get_grammar_grammar();
+            let g = get_grammar_grammar();
 
             g.parse("rule", "A = \"a\"").unwrap();
         }
 
         #[test]
         fn grammar() {
-            let mut g = get_grammar_grammar();
+            let g = get_grammar_grammar();
 
             g.parse("grammar", "A = \"a\"").unwrap();
             g.parse("grammar", "A = \"a\"\n").unwrap();
@@ -570,8 +570,8 @@ mod standard {
     "##;
 
     #[test]
-    fn meta_grammar_parse() {
-        let mut g = get_grammar_grammar();
+    fn bootstrap_parse() {
+        let g = get_grammar_grammar();
 
         g.parse("grammar", GRAMMAR_GRAMMAR_STR).unwrap();
     }
@@ -584,7 +584,7 @@ mod regression {
 
     #[test]
     fn raw_match() {
-        let mut g = n("start", e(vec![
+        let g = n("start", e(vec![
             s(t(" ")),
             u("a", p(t("a"))),
             u("tail", s(t(" "))),
@@ -612,7 +612,7 @@ mod regression {
     fn multichar_text() {
         // Fixed by 47c39cbade923608565a5542e408e91af7cea4be.
 
-        let mut g = n("x", t("aaa"));
+        let g = n("x", t("aaa"));
 
         assert_eq!(
             g.parse("x", "aaa").unwrap(),
@@ -624,7 +624,7 @@ mod regression {
     fn pos_confusion() {
         // Fixed by 5fddc3165725a178817f967eb687d4f173e9b166.
 
-        let mut g = n("x", e(vec![
+        let g = n("x", e(vec![
             s(e(vec![
                 s(t("a")),
                 t("b"),
@@ -639,7 +639,7 @@ mod regression {
     fn wrong_pos_after_nl() {
         // Fixed by dfc4bd5d6b9d14bef7d4873b0a0a07c0d1fafe95.
 
-        let mut g = n("x", e(vec![
+        let g = n("x", e(vec![
             t("a\nb"),
         ]));
 
