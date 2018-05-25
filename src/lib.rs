@@ -55,6 +55,7 @@ impl MatchNode {
     }
 }
 
+#[derive(Eq, PartialEq)]
 pub enum GrammarNode {
     Seq(Vec<GrammarNode>),
     Choice(Vec<GrammarNode>),
@@ -70,6 +71,56 @@ pub enum GrammarNode {
     Range(char, char),
     Text(String),
     Anything,
+}
+
+impl Debug for GrammarNode {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        use GrammarNode::*;
+        match self {
+            &Seq(ref children) => {
+                write!(f, "(")?;
+                let mut first = true;
+                for child in children.iter() {
+                    if !first {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "{:?}", child)?;
+                    first = false;
+                }
+                write!(f, ")")?;
+            },
+            &Choice(ref children) => {
+                let mut first = true;
+                for child in children.iter() {
+                    if !first {
+                        write!(f, " / ")?;
+                    }
+                    write!(f, "{:?}", child)?;
+                    first = false;
+                }
+            },
+            &Star(ref child) => write!(f, "{:?}*", child)?,
+            &Plus(ref child) => write!(f, "{:?}+", child)?,
+            &Opt(ref child) => write!(f, "{:?}?", child)?,
+            // TODO: Parens or no? vvv
+            &Pos(ref child) => write!(f, "^({:?})", child)?,
+            &Neg(ref child) => write!(f, "-({:?})", child)?,
+            // TODO: ^^^
+            &Name(ref name, ref child) =>
+                write!(f, "{} = ({:?})\n", name, child)?,
+            // TODO: vvv
+            &Group(ref name, ref child) =>
+                write!(f, "({:?})[{}]", child, name)?,
+            // TODO: ^^^
+            &Erase(ref child) => write!(f, "Erase({:?})", child)?, // TODO
+            &Link(ref target) => write!(f, "{:?}", target)?,
+            &Range(to, from) =>
+                write!(f, "{:#X}..{:#X}", &(to as u32), &(from as u32))?,
+            &Text(ref t) => write!(f, "{:?}", t)?,
+            &Anything => write!(f, "%")?,
+        }
+        Ok(())
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -448,6 +499,34 @@ impl Down for GrammarNode {
     }
 }
 
+impl DownMut for GrammarNode {
+    fn down_mut(&mut self, idx: usize) -> Option<&mut Self> {
+        use GrammarNode::*;
+        match self {
+            &mut Seq(ref mut children)
+            | &mut Choice(ref mut children) => children.get_mut(idx),
+            &mut Star(ref mut child)
+            | &mut Plus(ref mut child)
+            | &mut Opt(ref mut child)
+            | &mut Pos(ref mut child)
+            | &mut Neg(ref mut child)
+            | &mut Name(_, ref mut child)
+            | &mut Group(_, ref mut child)
+            | &mut Erase(ref mut child) => {
+                if idx == 0 {
+                    Some(child.as_mut())
+                } else {
+                    None
+                }
+            },
+            &mut Link(_)
+            | &mut Range(_, _)
+            | &mut Text(_)
+            | &mut Anything => None,
+        }
+    }
+}
+
 impl Link for GrammarNode {
     fn name(&self) -> Option<&str> {
         match self {
@@ -557,6 +636,12 @@ impl Match {
 
     fn is_empty(&self) -> bool {
         self.raw.0.lin == self.raw.1.lin
+    }
+}
+
+impl Down for Match {
+    fn down(&self, _idx: usize) -> Option<&Self> {
+        None
     }
 }
 
