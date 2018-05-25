@@ -569,10 +569,28 @@ mod standard {
         "##;
 
         #[test]
-        fn bootstrap_parse() {
-            let g = get_grammar_grammar();
+        fn bootstrap_stage0_parse_only() {
+            let gg0 = get_grammar_grammar();
 
-            g.parse("grammar", GRAMMAR_GRAMMAR_STR).unwrap();
+            gg0.parse("grammar", GRAMMAR_GRAMMAR_STR).unwrap();
+        }
+
+        #[test]
+        fn bootstrap_stage0_minimal() {
+            let gg0 = get_grammar_grammar();
+            let i0 = r##"
+                A = "a"*
+            "##;
+
+            let g0 = parse_grammar(i0);
+            assert_eq!(
+                g0.unwrap(),
+                e(vec![
+                    s(e(vec![
+                        t("a"),
+                    ])),
+                ]),
+            );
         }
     }
 }

@@ -12,6 +12,7 @@ pub mod prelude {
     pub use {e, c, s, p, q, z, g, n, u, x, k, r, t, a};
     pub use get_grammar_grammar;
     pub use GrammarNode;
+    pub use parse_grammar;
 }
 
 use std::fmt::{Debug, Formatter, self};
