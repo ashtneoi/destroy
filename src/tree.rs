@@ -12,6 +12,7 @@ pub mod prelude {
         MutVerticalCursor,
         OpaqueVerticalCursor,
         MutTreeCursor,
+        TreeCursor,
         VerticalCursor,
     };
 }
@@ -39,6 +40,8 @@ pub trait VerticalCursor<'n>: OpaqueVerticalCursor {
     type Item;
 
     fn get(&self) -> &Self::Item;
+    fn map_down<F>(&mut self, f: F)
+        where F: Fn(&Self::Item) -> &Self::Item;
 }
 
 pub trait MutVerticalCursor<'n>: VerticalCursor<'n> {
@@ -94,6 +97,13 @@ impl<'n, N: 'n + Down> VerticalCursor<'n> for TreeCursor<'n, N> {
         (unsafe { here.as_ref() }).unwrap()
     }
 
+    fn map_down<F>(&mut self, f: F)
+    where
+        F: Fn(&Self::Item) -> &Self::Item
+    {
+        let new_ptr = f(self.get()) as *const N;
+        self.stack.push((new_ptr, 0));
+    }
 }
 
 #[derive(Debug)]
@@ -145,6 +155,13 @@ impl<'n, N: 'n + DownMut> VerticalCursor<'n> for MutTreeCursor<'n, N> {
         (unsafe { here.as_ref() }).unwrap()
     }
 
+    fn map_down<F>(&mut self, f: F)
+    where
+        F: Fn(&Self::Item) -> &Self::Item
+    {
+        let new_ptr = f(self.get()) as *const N as *mut N;
+        self.stack.push((new_ptr, 0));
+    }
 }
 
 impl<'n, N: 'n + DownMut> MutVerticalCursor<'n> for MutTreeCursor<'n, N> {
@@ -248,6 +265,13 @@ impl<'n, N: 'n + Down + Link> VerticalCursor<'n> for LinkTreeCursor<'n, N> {
 
     fn get(&self) -> &N {
         self.tree_cursor.get()
+    }
+
+    fn map_down<F>(&mut self, f: F)
+    where
+        F: Fn(&Self::Item) -> &Self::Item
+    {
+        self.tree_cursor.map_down(f);
     }
 }
 
