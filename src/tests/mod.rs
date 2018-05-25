@@ -556,13 +556,12 @@ mod standard {
             ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
             ident = ident_initial (ident_initial / digit)* # TODO
 
-            expr = expr_choice (pws expr_choice -(wso "="))*
-            expr_choice = expr_prefix[opd] (ws "/"[op] ws expr_prefix[opd])*
-            expr_prefix = ("^" / "-")[op]* expr_suffix[opd]
+            expr = expr_choice[c] (pws expr_choice[c] -(wso "="))*
+            expr_choice = expr_prefix[pre] (ws "/" ws expr_prefix[pre])*
+            expr_prefix = ("^" / "-")[op]* expr_suffix[suf]
             expr_suffix =
-                expr_atom[opd] ("*" / "+" / "?" / "[" ident[name] "]")[op]*
-            expr_atom =
-                ("%" / str / cp_range / ident / "(" ws expr ws ")")[atom]
+                expr_atom[atom] ("*" / "+" / "?" / "[" ident[name] "]")[op]*
+            expr_atom = "%" / str / cp_range / ident / "(" ws expr[e] ws ")"
 
             rule = ident[name] wso "=" ws expr[val]
             grammar = ws (rule wso comment? "\n" ws)* (rule wso comment?)?
@@ -577,7 +576,6 @@ mod standard {
 
         #[test]
         fn bootstrap_stage0_minimal() {
-            let gg0 = get_grammar_grammar();
             let i0 = r##"
                 A = "a"*
             "##;
@@ -586,9 +584,7 @@ mod standard {
             assert_eq!(
                 g0.unwrap(),
                 e(vec![
-                    s(e(vec![
-                        t("a"),
-                    ])),
+                    n("A", s(t("a"))),
                 ]),
             );
         }

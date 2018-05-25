@@ -1,3 +1,45 @@
+/*
+mod idk {
+    use std::cell::Cell;
+    use tree::prelude::*;
+
+    struct X {
+        child: Option<Box<X>>,
+    }
+
+    fn xx(child: X) -> X {
+        X { child: Some(Box::new(child)) }
+    }
+
+    fn x() -> X {
+        X { child: None }
+    }
+
+    impl Down for X {
+        fn down(&self, idx: usize) -> Option<&Self> {
+            if idx == 0 {
+                self.child.as_ref().map(|b| b.as_ref())
+            } else {
+                None
+            }
+        }
+    }
+
+    #[test]
+    fn stuff() {
+        let t = xx(xx(x()));
+        let mut c = TreeCursor::new(&t);
+
+        let y: Cell<Option<&X>> = Cell::new(None);
+
+        c.map_down(|n| {
+            y.set(Some(n));
+            n.child.as_ref().unwrap().as_ref()
+        });
+    }
+}
+*/
+
 mod tree_tests {
     use std::ptr;
     use tree::prelude::*;

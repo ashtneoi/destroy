@@ -36,12 +36,23 @@ pub trait OpaqueVerticalCursor {
     fn up(&mut self) -> bool;
 }
 
-pub trait VerticalCursor<'n>: OpaqueVerticalCursor {
+pub trait VerticalCursor<'n>: OpaqueVerticalCursor
+where
+    Self: Sized,
+{
     type Item;
 
     fn get(&self) -> &Self::Item;
     fn map_down<F>(&mut self, f: F)
         where F: Fn(&Self::Item) -> &Self::Item;
+    fn new_here(&mut self) -> Option<Self>;
+    fn new_down(&mut self) -> Option<Self> {
+        if self.down() {
+            self.new_here().or_else(|| panic!())
+        } else {
+            None
+        }
+    }
 }
 
 pub trait MutVerticalCursor<'n>: VerticalCursor<'n> {
@@ -58,6 +69,16 @@ impl<'n, N: 'n + Down> TreeCursor<'n, N> {
     pub fn new(root: &'n N) -> Self {
         let root_ptr: *const N = root;
         Self { root: PhantomData, stack: vec![(root_ptr, 0)] }
+    }
+
+    fn up_get(&mut self) -> Option<&'n N> {
+        if self.stack.len() == 1 {
+            self.stack[0].1 = 0;
+            None
+        } else {
+            let here: *const N = self.stack.pop().unwrap().0;
+            Some((unsafe { here.as_ref() }).unwrap())
+        }
     }
 }
 
@@ -104,6 +125,23 @@ impl<'n, N: 'n + Down> VerticalCursor<'n> for TreeCursor<'n, N> {
         let new_ptr = f(self.get()) as *const N;
         self.stack.push((new_ptr, 0));
     }
+
+    fn new_here(&mut self) -> Option<Self> {
+        /*
+        match self.up_get() {
+            Some(root) => Some(Self::new(root)),
+            None => {
+                self.stack[0].1 = 0;
+                None
+            }
+        }
+        */
+        let here = self.up_get();
+        if here.is_none() {
+            self.stack[0].1 = 0;
+        }
+        here.map(|h| Self::new(h))
+    }
 }
 
 #[derive(Debug)]
@@ -116,6 +154,16 @@ impl<'n, N: 'n + DownMut> MutTreeCursor<'n, N> {
     pub fn new(root: &'n mut N) -> Self {
         let root_ptr: *mut N = root;
         Self { root: PhantomData, stack: vec![(root_ptr, 0)] }
+    }
+
+    fn up_get(&mut self) -> Option<&'n mut N> {
+        if self.stack.len() == 1 {
+            self.stack[0].1 = 0;
+            None
+        } else {
+            let here: *mut N = self.stack.pop().unwrap().0;
+            Some((unsafe { here.as_mut() }).unwrap())
+        }
     }
 }
 
@@ -161,6 +209,10 @@ impl<'n, N: 'n + DownMut> VerticalCursor<'n> for MutTreeCursor<'n, N> {
     {
         let new_ptr = f(self.get()) as *const N as *mut N;
         self.stack.push((new_ptr, 0));
+    }
+
+    fn new_here(&mut self) -> Option<Self> {
+        self.up_get().map(|h| Self::new(h))
     }
 }
 
@@ -272,6 +324,10 @@ impl<'n, N: 'n + Down + Link> VerticalCursor<'n> for LinkTreeCursor<'n, N> {
         F: Fn(&Self::Item) -> &Self::Item
     {
         self.tree_cursor.map_down(f);
+    }
+
+    fn new_here(&mut self) -> Option<Self> {
+        unimplemented!(); // TODO
     }
 }
 

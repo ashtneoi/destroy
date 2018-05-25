@@ -16,8 +16,13 @@ pub mod prelude {
 }
 
 use std::fmt::{Debug, Formatter, self};
+use std::ops::Index;
 use tree::OpaqueVerticalCursorGroup;
 use tree::prelude::*;
+
+fn empty_slice<'a, T: 'a>() -> &'a [T] {
+    unsafe { std::slice::from_raw_parts(0x1 as *const T, 0) }
+}
 
 pub struct MatchCursor<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
@@ -612,6 +617,23 @@ impl Match {
         self.raw.1 = other.raw.1;
     }
 
+    fn count(&self, name: &str) -> usize {
+        self.get(name).map(|v| v.len()).unwrap_or(0)
+    }
+
+    fn get_or_empty(&self, name: &str) -> &[Self] {
+        self.get(name).map(|v| v.as_slice()).unwrap_or(empty_slice())
+    }
+
+    fn iter(&self, name: &str) -> impl Iterator<Item = TreeCursor<Match>> {
+        self.get_or_empty(name).iter().map(|node| TreeCursor::new(node))
+    }
+
+    fn get(&self, name: &str) -> Option<&Vec<Self>> {
+        self.named.iter().find(|&&(ref n, _)| n == name)
+            .map(|&(_, ref cc)| cc)
+    }
+
     fn get_mut(&mut self, name: &str) -> Option<&mut Vec<Self>> {
         self.named.iter_mut().find(|&&mut (ref n, _)| n == name)
             .map(|&mut (_, ref mut cc)| cc)
@@ -637,6 +659,14 @@ impl Match {
 
     fn is_empty(&self) -> bool {
         self.raw.0.lin == self.raw.1.lin
+    }
+}
+
+impl<'a> Index<&'a str> for Match {
+    type Output = Vec<Self>;
+
+    fn index(&self, index: &'a str) -> &Self::Output {
+        self.get(index).unwrap()
     }
 }
 
@@ -816,10 +846,10 @@ pub fn get_grammar_grammar() -> GrammarNode {
         ])),
 
         n("expr", e(vec![
-            k("expr_choice"),
+            u("c", k("expr_choice")),
             s(e(vec![
                 k("pws"),
-                k("expr_choice"),
+                u("c", k("expr_choice")),
                 g(e(vec![
                     k("wso"),
                     t("="),
@@ -827,12 +857,12 @@ pub fn get_grammar_grammar() -> GrammarNode {
             ])),
         ])),
         n("expr_choice", e(vec![
-            u("opd", k("expr_prefix")),
+            u("pre", k("expr_prefix")),
             s(e(vec![
                 k("ws"),
-                u("op", t("/")),
+                t("/"),
                 k("ws"),
-                u("opd", k("expr_prefix")),
+                u("pre", k("expr_prefix")),
             ])),
         ])),
         n("expr_prefix", e(vec![
@@ -840,10 +870,10 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 t("^"),
                 t("-"),
             ]))),
-            u("opd", k("expr_suffix")),
+            u("suf", k("expr_suffix")),
         ])),
         n("expr_suffix", e(vec![
-            u("opd", k("expr_atom")),
+            u("atom", k("expr_atom")),
             s(u("op", c(vec![
                 t("*"),
                 t("+"),
@@ -855,7 +885,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 ]),
             ]))),
         ])),
-        n("expr_atom", u("atom", c(vec![
+        n("expr_atom", c(vec![
             t("%"),
             k("str"),
             k("cp_range"),
@@ -863,11 +893,11 @@ pub fn get_grammar_grammar() -> GrammarNode {
             e(vec![
                 t("("),
                 k("ws"),
-                k("expr"),
+                u("e", k("expr")),
                 k("ws"),
                 t(")"),
             ]),
-        ]))),
+        ])),
 
         n("rule", e(vec![
             u("name", k("ident")),
@@ -892,4 +922,74 @@ pub fn get_grammar_grammar() -> GrammarNode {
             ])),
         ])),
     ])
+}
+
+pub fn parse_expr(
+        input: &str,
+        mut stc: TreeCursor<Match>,
+        mut gc: MutTreeCursor<GrammarNode>,
+) -> Result<(), ParseError> {
+    use GrammarNode::*;
+
+    for choice in stc.get().iter("c") {
+        if let &mut Seq(ref mut children) = gc.get_mut() {
+            children.push(c(vec![]));
+        } else { panic!(); }
+        let mut gc = gc.new_down().unwrap();
+
+        for pre in choice.get().iter("pre") {
+            if let &mut Choice(ref mut children) = gc.get_mut() {
+            } else { panic!(); }
+        }
+    }
+
+    assert!(!stc.up());
+    assert!(!gc.up());
+
+    Ok(())
+}
+
+pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
+    use GrammarNode::*;
+
+    let gg = get_grammar_grammar();
+    let st = match gg.parse("grammar", input) {
+        Ok(x) => x,
+        Err(ParseError::BadGrammar(e)) => panic!("{:?}", e),
+        Err(e) => return Err(e),
+    };
+    let mut stc = TreeCursor::new(&st);
+
+    let mut g = Seq(vec![]);
+    let mut gc = MutTreeCursor::new(&mut g);
+
+    let rule_count = stc.get().count("name");
+    assert_eq!(rule_count, stc.get().count("val"));
+
+    // grammar
+
+    for (mut cname, mut cval)
+            in stc.get().iter("name").zip(stc.get().iter("val"))
+    {
+        let name_raw = cname.get().raw;
+        let name = &input[name_raw.0.lin..name_raw.1.lin];
+
+        if let &mut Seq(ref mut rules) = gc.get_mut() {
+            rules.push(n(name, e(vec![])));
+        } else { panic!(); }
+        let mut gc = gc.new_down().unwrap();
+        if let &Name(ref n, _) = gc.get() {
+            assert_eq!(name, n);
+        } else { panic!(); }
+        assert!(gc.down());
+
+        // expr
+
+        // e(vec![]), val
+        parse_expr(input, stc.new_here().unwrap(), gc.new_here().unwrap())?;
+
+        assert!(gc.up());
+    }
+
+    Ok(g)
 }
