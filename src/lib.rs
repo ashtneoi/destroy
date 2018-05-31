@@ -12,7 +12,7 @@ pub mod prelude {
     pub use {e, c, s, p, q, z, g, n, u, x, k, r, t, a};
     pub use get_grammar_grammar;
     pub use GrammarNode;
-    pub use parse_grammar;
+    //pub use parse_grammar;
 }
 
 use std::fmt::{Debug, Formatter, self};
@@ -617,24 +617,24 @@ impl Match {
         self.raw.1 = other.raw.1;
     }
 
-    fn count(&self, name: &str) -> usize {
+    pub fn count(&self, name: &str) -> usize {
         self.get(name).map(|v| v.len()).unwrap_or(0)
     }
 
-    fn get_or_empty(&self, name: &str) -> &[Self] {
+    pub fn get_or_empty(&self, name: &str) -> &[Self] {
         self.get(name).map(|v| v.as_slice()).unwrap_or(empty_slice())
     }
 
-    fn iter(&self, name: &str) -> impl Iterator<Item = TreeCursor<Match>> {
+    pub fn iter(&self, name: &str) -> impl Iterator<Item = TreeCursor<Match>> {
         self.get_or_empty(name).iter().map(|node| TreeCursor::new(node))
     }
 
-    fn get(&self, name: &str) -> Option<&Vec<Self>> {
+    pub fn get(&self, name: &str) -> Option<&Vec<Self>> {
         self.named.iter().find(|&&(ref n, _)| n == name)
             .map(|&(_, ref cc)| cc)
     }
 
-    fn get_mut(&mut self, name: &str) -> Option<&mut Vec<Self>> {
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut Vec<Self>> {
         self.named.iter_mut().find(|&&mut (ref n, _)| n == name)
             .map(|&mut (_, ref mut cc)| cc)
     }
@@ -924,6 +924,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
     ])
 }
 
+/*
 pub fn parse_expr(
         input: &str,
         mut stc: TreeCursor<Match>,
@@ -948,7 +949,9 @@ pub fn parse_expr(
 
     Ok(())
 }
+*/
 
+/*
 pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
     use GrammarNode::*;
 
@@ -993,3 +996,4 @@ pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
 
     Ok(g)
 }
+*/

@@ -574,6 +574,7 @@ mod standard {
             gg0.parse("grammar", GRAMMAR_GRAMMAR_STR).unwrap();
         }
 
+        /*
         #[test]
         fn bootstrap_stage0_minimal() {
             let i0 = r##"
@@ -588,6 +589,7 @@ mod standard {
                 ]),
             );
         }
+        */
     }
 }
 
