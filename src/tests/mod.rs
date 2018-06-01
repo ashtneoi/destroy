@@ -1,46 +1,46 @@
 mod tree;
 
-/*
 mod standard {
-    use prelude::*;
     use mat;
+    use parse;
+    use prelude::*;
 
     #[test]
     fn minimal() {
-        let g = e(vec![
-            n("start", s(t("a"))),
-        ]);
+        let g = &[
+            ("start", s(t("a"))),
+        ];
 
         assert_eq!(
-            g.parse("start", "aaa").unwrap(),
+            parse(g, "start", "aaa").unwrap(),
             mat((0, 1, 1, 3, 1, 4), vec![])
         );
     }
 
     #[test]
     fn optional() {
-        let g = e(vec![
-            n("start", e(vec![
+        let g = &[
+            ("start", e(vec![
                 q(t("-")),
                 q(t("+")),
             ])),
-        ]);
+        ];
 
-        g.parse("start", "-+").unwrap();
-        g.parse("start", "-").unwrap();
-        g.parse("start", "+").unwrap();
-        g.parse("start", "").unwrap();
+        parse(g, "start", "-+").unwrap();
+        parse(g, "start", "-").unwrap();
+        parse(g, "start", "+").unwrap();
+        parse(g, "start", "").unwrap();
 
-        g.parse("start", "+-").unwrap_err();
-        g.parse("start", " ").unwrap_err();
-        g.parse("start", "+0").unwrap_err();
-        g.parse("start", "0+").unwrap_err();
+        parse(g, "start", "+-").unwrap_err();
+        parse(g, "start", " ").unwrap_err();
+        parse(g, "start", "+0").unwrap_err();
+        parse(g, "start", "0+").unwrap_err();
     }
 
     #[test]
     fn decimal_integer() {
-        let g = e(vec![
-            n("dec_nonzero_digit", c(vec![
+        let g = &[
+            ("dec_nonzero_digit", c(vec![
                 t("1"),
                 t("2"),
                 t("3"),
@@ -51,11 +51,11 @@ mod standard {
                 t("8"),
                 t("9"),
             ])),
-            n("dec_digit", c(vec![
+            ("dec_digit", c(vec![
                 t("0"),
                 k("dec_nonzero_digit"),
             ])),
-            n("dec_int", e(vec![
+            ("dec_int", e(vec![
                 q(t("-")),
                 c(vec![
                     t("0"),
@@ -65,39 +65,39 @@ mod standard {
                     ]),
                 ]),
             ])),
-        ]);
+        ];
 
-        g.parse("dec_int", "0").unwrap();
-        g.parse("dec_int", "1").unwrap();
-        g.parse("dec_int", "9").unwrap();
-        g.parse("dec_int", "10").unwrap();
-        g.parse("dec_int", "19").unwrap();
-        g.parse("dec_int", "99").unwrap();
-        g.parse("dec_int", "-0").unwrap();
-        g.parse("dec_int", "-1").unwrap();
-        g.parse("dec_int", "-9").unwrap();
-        g.parse("dec_int", "-10").unwrap();
-        g.parse("dec_int", "-19").unwrap();
-        g.parse("dec_int", "-99").unwrap();
+        parse(g, "dec_int", "0").unwrap();
+        parse(g, "dec_int", "1").unwrap();
+        parse(g, "dec_int", "9").unwrap();
+        parse(g, "dec_int", "10").unwrap();
+        parse(g, "dec_int", "19").unwrap();
+        parse(g, "dec_int", "99").unwrap();
+        parse(g, "dec_int", "-0").unwrap();
+        parse(g, "dec_int", "-1").unwrap();
+        parse(g, "dec_int", "-9").unwrap();
+        parse(g, "dec_int", "-10").unwrap();
+        parse(g, "dec_int", "-19").unwrap();
+        parse(g, "dec_int", "-99").unwrap();
 
-        g.parse("dec_int", "y").unwrap_err();
-        g.parse("dec_int", "-").unwrap_err();
-        g.parse("dec_int", "0-").unwrap_err();
-        g.parse("dec_int", "1-").unwrap_err();
-        g.parse("dec_int", "01").unwrap_err();
+        parse(g, "dec_int", "y").unwrap_err();
+        parse(g, "dec_int", "-").unwrap_err();
+        parse(g, "dec_int", "0-").unwrap_err();
+        parse(g, "dec_int", "1-").unwrap_err();
+        parse(g, "dec_int", "01").unwrap_err();
     }
 
     #[test]
     fn simple_expr() {
-        let g = e(vec![
-            n("expr", e(vec![
+        let g = &[
+            ("expr", e(vec![
                 k("expr2"),
                 s(e(vec![
                     t("+"),
                     k("expr2"),
                 ])),
             ])),
-            n("expr2", c(vec![
+            ("expr2", c(vec![
                 t("1"),
                 e(vec![
                     t("("),
@@ -105,66 +105,73 @@ mod standard {
                     t(")"),
                 ]),
             ])),
-        ]);
+        ];
 
-        g.parse("expr", "1").unwrap();
-        g.parse("expr", "1+1").unwrap();
-        g.parse("expr", "(1+1+1)+1").unwrap();
-        g.parse("expr", "1+(1+1+1)").unwrap();
+        parse(g, "expr", "1").unwrap();
+        parse(g, "expr", "1+1").unwrap();
+        parse(g, "expr", "(1+1+1)+1").unwrap();
+        parse(g, "expr", "1+(1+1+1)").unwrap();
     }
 
     #[test]
     fn range() {
-        let g = n("start", e(vec![
-            r('a', 'd'),
-            t("e"),
-        ]));
+        let g = &[
+            ("start", e(vec![
+                r('a', 'd'),
+                t("e"),
+            ])),
+        ];
 
-        g.parse("start", "ae").unwrap();
-        g.parse("start", "be").unwrap();
-        g.parse("start", "ce").unwrap();
-        g.parse("start", "de").unwrap();
+        parse(g, "start", "ae").unwrap();
+        parse(g, "start", "be").unwrap();
+        parse(g, "start", "ce").unwrap();
+        parse(g, "start", "de").unwrap();
 
-        g.parse("start", "a").unwrap_err();
-        g.parse("start", "e").unwrap_err();
-        g.parse("start", "ee").unwrap_err();
-        g.parse("start", "ea").unwrap_err();
+        parse(g, "start", "a").unwrap_err();
+        parse(g, "start", "e").unwrap_err();
+        parse(g, "start", "ee").unwrap_err();
+        parse(g, "start", "ea").unwrap_err();
     }
 
     #[test]
     fn lookahead() {
-        let g = n("start", e(vec![
-            z(t("a")),
-            r('a', 'c'),
-            g(t("a")),
-            r('a', 'c'),
-        ]));
+        let g = &[
+            ("start", e(vec![
+                z(t("a")),
+                r('a', 'c'),
+                g(t("a")),
+                r('a', 'c'),
+            ])),
+        ];
 
-        g.parse("start", "ab").unwrap();
-        g.parse("start", "ac").unwrap();
+        parse(g, "start", "ab").unwrap();
+        parse(g, "start", "ac").unwrap();
 
-        g.parse("start", "aa").unwrap_err();
-        g.parse("start", "ba").unwrap_err();
-        g.parse("start", "bc").unwrap_err();
-        g.parse("start", ".c").unwrap_err();
-        g.parse("start", "a").unwrap_err();
-        g.parse("start", "b").unwrap_err();
-        g.parse("start", "").unwrap_err();
+        parse(g, "start", "aa").unwrap_err();
+        parse(g, "start", "ba").unwrap_err();
+        parse(g, "start", "bc").unwrap_err();
+        parse(g, "start", ".c").unwrap_err();
+        parse(g, "start", "a").unwrap_err();
+        parse(g, "start", "b").unwrap_err();
+        parse(g, "start", "").unwrap_err();
     }
 
     mod group_tests {
-        use prelude::*;
         use mat;
+        use parse;
+        use prelude::*;
 
         #[test]
         fn e_group_two_names() {
-            let g = n("x", e(vec![
-                u("A", q(t("a"))),
-                u("B", q(t("b"))),
-            ]));
+            let g = &[
+                ("x", e(vec![
+                    u("A", q(t("a"))),
+                    u("B", q(t("b"))),
+                ])),
+            ];
 
             assert_eq!(
-                g.parse("x", "ab").unwrap(),
+                parse(g, "x", "ab").unwrap(),
                 mat((0, 1, 1, 2, 1, 3), vec![
                     ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                     ("B", vec![mat((1, 1, 2, 2, 1, 3), vec![])]),
@@ -174,37 +181,41 @@ mod standard {
 
         #[test]
         fn e_group_one_name() {
-            let g1 = n("x", e(vec![
-                q(t("a")),
-                u("B", t("b")),
-            ]));
+            let g1 = &[
+                ("x", e(vec![
+                    q(t("a")),
+                    u("B", t("b")),
+                ])),
+            ];
 
             assert_eq!(
-                g1.parse("x", "b").unwrap(),
+                parse(g1, "x", "b").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![
                     ("B", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
             assert_eq!(
-                g1.parse("x", "ab").unwrap(),
+                parse(g1, "x", "ab").unwrap(),
                 mat((0, 1, 1, 2, 1, 3), vec![
                     ("B", vec![mat((1, 1, 2, 2, 1, 3), vec![])]),
                 ])
             );
 
-            let g2 = n("x", e(vec![
-                u("A", t("a")),
-                q(t("b")),
-            ]));
+            let g2 = &[
+                ("x", e(vec![
+                    u("A", t("a")),
+                    q(t("b")),
+                ])),
+            ];
 
             assert_eq!(
-                g2.parse("x", "a").unwrap(),
+                parse(g2, "x", "a").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![
                     ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
             assert_eq!(
-                g2.parse("x", "ab").unwrap(),
+                parse(g2, "x", "ab").unwrap(),
                 mat((0, 1, 1, 2, 1, 3), vec![
                     ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
@@ -213,13 +224,15 @@ mod standard {
 
         #[test]
         fn e_group_same_name() {
-            let g = n("x", e(vec![
-                u("A", t("a")),
-                u("A", t("b")),
-            ]));
+            let g = &[
+                ("x", e(vec![
+                    u("A", t("a")),
+                    u("A", t("b")),
+                ])),
+            ];
 
             assert_eq!(
-                g.parse("x", "ab").unwrap(),
+                parse(g, "x", "ab").unwrap(),
                 mat((0, 1, 1, 2, 1, 3), vec![
                     ("A", vec![
                         mat((0, 1, 1, 1, 1, 2), vec![]),
@@ -231,44 +244,48 @@ mod standard {
 
         #[test]
         fn e_group_no_names() {
-            let g = n("x", e(vec![
-                q(t("a")),
-                q(t("b")),
-            ]));
+            let g = &[
+                ("x", e(vec![
+                    q(t("a")),
+                    q(t("b")),
+                ])),
+            ];
 
             assert_eq!(
-                g.parse("x", "").unwrap(),
+                parse(g, "x", "").unwrap(),
                 mat((0, 1, 1, 0, 1, 1), vec![])
             );
             assert_eq!(
-                g.parse("x", "a").unwrap(),
+                parse(g, "x", "a").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![])
             );
             assert_eq!(
-                g.parse("x", "b").unwrap(),
+                parse(g, "x", "b").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![])
             );
             assert_eq!(
-                g.parse("x", "ab").unwrap(),
+                parse(g, "x", "ab").unwrap(),
                 mat((0, 1, 1, 2, 1, 3), vec![])
             );
         }
 
         #[test]
         fn c_group() {
-            let g = n("x", c(vec![
-                u("A", t("a")),
-                u("B", t("b")),
-            ]));
+            let g = &[
+                ("x", c(vec![
+                    u("A", t("a")),
+                    u("B", t("b")),
+                ])),
+            ];
 
             assert_eq!(
-                g.parse("x", "a").unwrap(),
+                parse(g, "x", "a").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![
                     ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
             );
             assert_eq!(
-                g.parse("x", "b").unwrap(),
+                parse(g, "x", "b").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![
                     ("B", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
@@ -277,16 +294,18 @@ mod standard {
 
         #[test]
         fn s_group() {
-            let g = n("x", s(
-                u("A", u("E", t("a"))),
-            ));
+            let g = &[
+                ("x", s(
+                    u("A", u("E", t("a"))),
+                )),
+            ];
 
             assert_eq!(
-                g.parse("x", "").unwrap(),
+                parse(g, "x", "").unwrap(),
                 mat((0, 1, 1, 0, 1, 1), vec![])
             );
             assert_eq!(
-                g.parse("x", "aa").unwrap(),
+                parse(g, "x", "aa").unwrap(),
                 mat((0, 1, 1, 2, 1, 3), vec![
                     ("A", vec![
                         mat((0, 1, 1, 1, 1, 2), vec![
@@ -302,12 +321,14 @@ mod standard {
 
         #[test]
         fn p_group() {
-            let g = n("x", p(
-                u("A", u("E", t("a"))),
-            ));
+            let g = &[
+                ("x", p(
+                    u("A", u("E", t("a"))),
+                )),
+            ];
 
             assert_eq!(
-                g.parse("x", "aa").unwrap(),
+                parse(g, "x", "aa").unwrap(),
                 mat((0, 1, 1, 2, 1, 3), vec![
                     ("A", vec![
                         mat((0, 1, 1, 1, 1, 2), vec![
@@ -323,16 +344,18 @@ mod standard {
 
         #[test]
         fn q_group() {
-            let g = n("x", q(
-                u("A", t("a"))
-            ));
+            let g = &[
+                ("x", q(
+                    u("A", t("a"))
+                )),
+            ];
 
             assert_eq!(
-                g.parse("x", "").unwrap(),
+                parse(g, "x", "").unwrap(),
                 mat((0, 1, 1, 0, 1, 1), vec![])
             );
             assert_eq!(
-                g.parse("x", "a").unwrap(),
+                parse(g, "x", "a").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![
                     ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
@@ -341,13 +364,15 @@ mod standard {
 
         #[test]
         fn z_group() {
-            let g = n("x", e(vec![
-                z(u("E", t("a"))),
-                u("A", t("a")),
-            ]));
+            let g = &[
+                ("x", e(vec![
+                    z(u("E", t("a"))),
+                    u("A", t("a")),
+                ])),
+            ];
 
             assert_eq!(
-                g.parse("x", "a").unwrap(),
+                parse(g, "x", "a").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![
                     ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
@@ -356,27 +381,15 @@ mod standard {
 
         #[test]
         fn g_group() {
-            let g = n("x", e(vec![
-                g(u("E", t("e"))),
-                u("A", t("a")),
-            ]));
+            let g = &[
+                ("x", e(vec![
+                    g(u("E", t("e"))),
+                    u("A", t("a")),
+                ])),
+            ];
 
             assert_eq!(
-                g.parse("x", "a").unwrap(),
-                mat((0, 1, 1, 1, 1, 2), vec![
-                    ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
-                ])
-            );
-        }
-
-        #[test]
-        fn n_group() {
-            let g = n("x",
-                n("E", u("A", t("a"))),
-            );
-
-            assert_eq!(
-                g.parse("x", "a").unwrap(),
+                parse(g, "x", "a").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![
                     ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
@@ -385,25 +398,27 @@ mod standard {
 
         #[test]
         fn x_group() {
-            let g = n("x",
-                x(u("A", t("a"))),
-            );
+            let g = &[
+                ("x",
+                    x(u("A", t("a"))),
+                ),
+            ];
 
             assert_eq!(
-                g.parse("x", "a").unwrap(),
+                parse(g, "x", "a").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![])
             );
         }
 
         #[test]
         fn k_group() {
-            let g = e(vec![
-                n("x", k("w")),
-                n("w", u("A", t("a"))),
-            ]);
+            let g = &[
+                ("x", k("w")),
+                ("w", u("A", t("a"))),
+            ];
 
             assert_eq!(
-                g.parse("x", "a").unwrap(),
+                parse(g, "x", "a").unwrap(),
                 mat((0, 1, 1, 1, 1, 2), vec![
                     ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
                 ])
@@ -413,26 +428,29 @@ mod standard {
 
     #[test]
     fn anything() {
-        let g = n("x", e(vec![
-            a(),
-            a(),
-        ]));
+        let g = &[
+            ("x", e(vec![
+                a(),
+                a(),
+            ])),
+        ];
 
         assert_eq!(
-            g.parse("x", "ab").unwrap(),
+            parse(g, "x", "ab").unwrap(),
             mat((0, 1, 1, 2, 1, 3), vec![])
         );
         assert_eq!(
-            g.parse("x", " \n").unwrap(),
+            parse(g, "x", " \n").unwrap(),
             mat((0, 1, 1, 2, 2, 1), vec![])
         );
 
-        g.parse("x", "").unwrap_err();
-        g.parse("x", "a").unwrap_err();
-        g.parse("x", "abc").unwrap_err();
+        parse(g, "x", "").unwrap_err();
+        parse(g, "x", "a").unwrap_err();
+        parse(g, "x", "abc").unwrap_err();
     }
 
     mod grammar_grammar_tests {
+        use parse;
         use prelude::*;
         use test::Bencher;
 
@@ -440,102 +458,102 @@ mod standard {
         fn ident() {
             let g = get_grammar_grammar();
 
-            g.parse("ident", "a").unwrap();
-            g.parse("ident", "A").unwrap();
-            g.parse("ident", "_").unwrap();
-            g.parse("ident", "foo").unwrap();
-            g.parse("ident", "foo_bar").unwrap();
-            g.parse("ident", "_foo_bar_").unwrap();
-            g.parse("ident", "a3").unwrap();
-            g.parse("ident", "_3").unwrap();
+            parse(&g, "ident", "a").unwrap();
+            parse(&g, "ident", "A").unwrap();
+            parse(&g, "ident", "_").unwrap();
+            parse(&g, "ident", "foo").unwrap();
+            parse(&g, "ident", "foo_bar").unwrap();
+            parse(&g, "ident", "_foo_bar_").unwrap();
+            parse(&g, "ident", "a3").unwrap();
+            parse(&g, "ident", "_3").unwrap();
 
-            g.parse("ident", "3").unwrap_err();
-            g.parse("ident", "3a").unwrap_err();
-            g.parse("ident", "3_").unwrap_err();
+            parse(&g, "ident", "3").unwrap_err();
+            parse(&g, "ident", "3a").unwrap_err();
+            parse(&g, "ident", "3_").unwrap_err();
         }
 
         #[bench]
         fn bench_ident(b: &mut Bencher) {
             let g = get_grammar_grammar();
 
-            b.iter(|| g.parse("ident", "_foo_bar90"));
+            b.iter(|| parse(&g, "ident", "_foo_bar90"));
         }
 
         #[test]
         fn expr() {
             let g = get_grammar_grammar();
 
-            g.parse("expr", "\"a\"").unwrap();
-            g.parse("expr", "0x80..0x10FFFF").unwrap();
+            parse(&g, "expr", "\"a\"").unwrap();
+            parse(&g, "expr", "0x80..0x10FFFF").unwrap();
         }
 
         #[test]
         fn wso() {
             let g = get_grammar_grammar();
 
-            g.parse("wso", "").unwrap();
-            g.parse("wso", " ").unwrap();
-            g.parse("wso", "\t\t  ").unwrap();
-            g.parse("wso", "\t\t\t\t\t").unwrap();
+            parse(&g, "wso", "").unwrap();
+            parse(&g, "wso", " ").unwrap();
+            parse(&g, "wso", "\t\t  ").unwrap();
+            parse(&g, "wso", "\t\t\t\t\t").unwrap();
 
-            g.parse("wso", "\n").unwrap_err();
-            g.parse("wso", "  \n").unwrap_err();
-            g.parse("wso", "\t\t\n").unwrap_err();
-            g.parse("wso", "# foo\n").unwrap_err();
-            g.parse("wso", "\n# foo").unwrap_err();
+            parse(&g, "wso", "\n").unwrap_err();
+            parse(&g, "wso", "  \n").unwrap_err();
+            parse(&g, "wso", "\t\t\n").unwrap_err();
+            parse(&g, "wso", "# foo\n").unwrap_err();
+            parse(&g, "wso", "\n# foo").unwrap_err();
         }
 
         #[test]
         fn ws() {
             let g = get_grammar_grammar();
 
-            g.parse("ws", "").unwrap();
-            g.parse("ws", " ").unwrap();
-            g.parse("ws", "\t\t  ").unwrap();
-            g.parse("ws", "# foo\n").unwrap();
-            g.parse("ws", " # foo\n").unwrap();
-            g.parse("ws", "\t\t  # foo\n").unwrap();
-            g.parse("ws", "#\t\t\t\t\t\n").unwrap();
-            g.parse("ws", "\n").unwrap();
-            g.parse("ws", "\n\n\n\n").unwrap();
-            g.parse("ws", "  \n").unwrap();
-            g.parse("ws", "\t\t\n").unwrap();
-            g.parse("ws", "# foo\n").unwrap();
-            g.parse("ws", "\n# foo\n").unwrap();
+            parse(&g, "ws", "").unwrap();
+            parse(&g, "ws", " ").unwrap();
+            parse(&g, "ws", "\t\t  ").unwrap();
+            parse(&g, "ws", "# foo\n").unwrap();
+            parse(&g, "ws", " # foo\n").unwrap();
+            parse(&g, "ws", "\t\t  # foo\n").unwrap();
+            parse(&g, "ws", "#\t\t\t\t\t\n").unwrap();
+            parse(&g, "ws", "\n").unwrap();
+            parse(&g, "ws", "\n\n\n\n").unwrap();
+            parse(&g, "ws", "  \n").unwrap();
+            parse(&g, "ws", "\t\t\n").unwrap();
+            parse(&g, "ws", "# foo\n").unwrap();
+            parse(&g, "ws", "\n# foo\n").unwrap();
         }
 
         #[test]
         fn expr_plus() {
             let g = get_grammar_grammar();
 
-            g.parse("expr", "c+").unwrap();
-            g.parse("rule", "a = b c+").unwrap();
+            parse(&g, "expr", "c+").unwrap();
+            parse(&g, "rule", "a = b c+").unwrap();
         }
 
         #[test]
         fn expr_atom() {
             let g = get_grammar_grammar();
 
-            g.parse("expr_atom", "\"a\"").unwrap();
+            parse(&g, "expr_atom", "\"a\"").unwrap();
         }
 
         #[test]
         fn rule() {
             let g = get_grammar_grammar();
 
-            g.parse("rule", "A = \"a\"").unwrap();
+            parse(&g, "rule", "A = \"a\"").unwrap();
         }
 
         #[test]
         fn grammar() {
             let g = get_grammar_grammar();
 
-            g.parse("grammar", "A = \"a\"").unwrap();
-            g.parse("grammar", "A = \"a\"\n").unwrap();
-            g.parse("grammar", "A = \"a\"\n\n").unwrap();
-            g.parse("grammar", "A = \"a\"\nB = \"b\"").unwrap();
-            g.parse("grammar", "A = \"a\"\nB = \"b\"\n").unwrap();
-            g.parse("grammar", "A = \"a\"\nB = \"b\"\n\n").unwrap();
+            parse(&g, "grammar", "A = \"a\"").unwrap();
+            parse(&g, "grammar", "A = \"a\"\n").unwrap();
+            parse(&g, "grammar", "A = \"a\"\n\n").unwrap();
+            parse(&g, "grammar", "A = \"a\"\nB = \"b\"").unwrap();
+            parse(&g, "grammar", "A = \"a\"\nB = \"b\"\n").unwrap();
+            parse(&g, "grammar", "A = \"a\"\nB = \"b\"\n\n").unwrap();
         }
 
         static GRAMMAR_GRAMMAR_STR: &str = r##"
@@ -572,7 +590,7 @@ mod standard {
         fn bootstrap_stage0_parse_only() {
             let gg0 = get_grammar_grammar();
 
-            gg0.parse("grammar", GRAMMAR_GRAMMAR_STR).unwrap();
+            parse(&gg0, "grammar", GRAMMAR_GRAMMAR_STR).unwrap();
         }
 
         /*
@@ -586,7 +604,7 @@ mod standard {
             assert_eq!(
                 g0.unwrap(),
                 e(vec![
-                    n("A", s(t("a"))),
+                    ("A", s(t("a"))),
                 ]),
             );
         }
@@ -595,32 +613,35 @@ mod standard {
 }
 
 mod regression {
-    use prelude::*;
     use mat;
+    use parse;
+    use prelude::*;
     use Pos;
 
     #[test]
     fn raw_match() {
-        let g = n("start", e(vec![
-            s(t(" ")),
-            u("a", p(t("a"))),
-            u("tail", s(t(" "))),
-        ]));
+        let g = &[
+            ("start", e(vec![
+                s(t(" ")),
+                u("a", p(t("a"))),
+                u("tail", s(t(" "))),
+            ])),
+        ];
 
         assert_eq!(
-            g.parse("start", "a").unwrap().raw,
+            parse(g, "start", "a").unwrap().raw,
             (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 1, row: 1, col: 2 })
         );
         assert_eq!(
-            g.parse("start", "a   ").unwrap().raw,
+            parse(g, "start", "a   ").unwrap().raw,
             (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 4, row: 1, col: 5 })
         );
         assert_eq!(
-            g.parse("start", "  a").unwrap().raw,
+            parse(g, "start", "  a").unwrap().raw,
             (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 3, row: 1, col: 4 })
         );
         assert_eq!(
-            g.parse("start", "  a   ").unwrap().raw,
+            parse(g, "start", "  a   ").unwrap().raw,
             (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 6, row: 1, col: 7 })
         );
     }
@@ -629,10 +650,12 @@ mod regression {
     fn multichar_text() {
         // Fixed by 47c39cbade923608565a5542e408e91af7cea4be.
 
-        let g = n("x", t("aaa"));
+        let g = &[
+            ("x", t("aaa")),
+        ];
 
         assert_eq!(
-            g.parse("x", "aaa").unwrap(),
+            parse(g, "x", "aaa").unwrap(),
             mat((0, 1, 1, 3, 1, 4), vec![])
         );
     }
@@ -641,29 +664,32 @@ mod regression {
     fn pos_confusion() {
         // Fixed by 5fddc3165725a178817f967eb687d4f173e9b166.
 
-        let g = n("x", e(vec![
-            s(e(vec![
-                s(t("a")),
-                t("b"),
+        let g = &[
+            ("x", e(vec![
+                s(e(vec![
+                    s(t("a")),
+                    t("b"),
+                ])),
+                t("a"),
             ])),
-            t("a"),
-        ]));
+        ];
 
-        g.parse("x", "a").unwrap();
+        parse(g, "x", "a").unwrap();
     }
 
     #[test]
     fn wrong_pos_after_nl() {
         // Fixed by dfc4bd5d6b9d14bef7d4873b0a0a07c0d1fafe95.
 
-        let g = n("x", e(vec![
-            t("a\nb"),
-        ]));
+        let g = &[
+            ("x", e(vec![
+                t("a\nb"),
+            ])),
+        ];
 
         assert_eq!(
-            g.parse("x", "a\nb").unwrap().raw,
+            parse(g, "x", "a\nb").unwrap().raw,
             (Pos { lin: 0, row: 1, col: 1}, Pos { lin: 3, row: 2, col: 2 })
         );
     }
 }
-*/

@@ -15,7 +15,7 @@ use tree_cursor::cursor::{TreeCursor, TreeCursorMut};
 #[cfg(test)]
 mod tests;
 
-mod tree;
+pub mod tree;
 
 pub mod prelude {
     pub use {e, c, s, p, q, z, g, u, x, k, r, t, a};
@@ -125,7 +125,7 @@ impl Debug for GrammarNode {
                 write!(f, "({:?})[{}]", child, name)?,
             // TODO: ^^^
             &Erase(ref child) => write!(f, "Erase({:?})", child)?, // TODO
-            &Link(ref target) => write!(f, "{:?}", target)?,
+            &Link(ref target) => write!(f, "{}", target)?,
             &Range(to, from) =>
                 write!(f, "{:#X}..{:#X}", &(to as u32), &(from as u32))?,
             &Text(ref t) => write!(f, "{:?}", t)?,
@@ -263,8 +263,8 @@ pub fn parse(
     start: &str,
     input: &str,
 ) -> Result<Match, ParseError> {
-    let mut _m = MatchNode::new();
-    let mut p = Parser::new(named, start, input, &mut _m).map_err(
+    let mut m = MatchNode::new();
+    let mut p = Parser::new(named, start, input, &mut m).map_err(
         |e| ParseError::BadGrammar(e)
     )?;
 

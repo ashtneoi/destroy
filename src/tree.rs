@@ -32,7 +32,9 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
             if !link_map.insert(name.to_string(), node).is_none() {
                 return Err(LinkError::DuplicateName(name.to_string()));
             }
+        }
 
+        for &(_, ref node) in named {
             let mut c = TreeCursor::new(node);
             loop {
                 while c.down() { }
