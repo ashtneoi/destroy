@@ -607,6 +607,10 @@ impl Match {
         }
     }
 
+    fn get_raw<'s>(&self, input: &'s str) -> &'s str {
+        &input[self.raw.0.lin..self.raw.1.lin]
+    }
+
     fn start_at(&mut self, other: &Self) {
         self.raw.0 = other.raw.0;
     }
@@ -920,37 +924,11 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
     gg
 }
 
-/*
-pub fn parse_expr(
-        input: &str,
-        mut stc: TreeCursor<Match>,
-        mut gc: TreeCursorMut<GrammarNode>,
-) -> Result<(), ParseError> {
-    use GrammarNode::*;
-
-    for choice in stc.get().iter("c") {
-        if let &mut Seq(ref mut children) = gc.get_mut() {
-            children.push(c(vec![]));
-        } else { panic!(); }
-        let mut gc = gc.new_down().unwrap();
-
-        for pre in choice.get().iter("pre") {
-            if let &mut Choice(ref mut children) = gc.get_mut() {
-            } else { panic!(); }
-        }
-    }
-
-    assert!(!stc.up());
-    assert!(!gc.up());
-
-    Ok(())
-}
-
 pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
     use GrammarNode::*;
 
     let gg = get_grammar_grammar();
-    let st = match gg.parse("grammar", input) {
+    let st = match parse(&gg, "grammar", input) {
         Ok(x) => x,
         Err(ParseError::BadGrammar(e)) => panic!("{:?}", e),
         Err(e) => return Err(e),
@@ -968,8 +946,9 @@ pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
     for (mut cname, mut cval)
             in stc.get().iter("name").zip(stc.get().iter("val"))
     {
+        let name = cname.get().get_raw(input);
+        println!("{}", name);
     }
 
     Ok(g)
 }
-*/
