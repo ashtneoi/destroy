@@ -1,11 +1,9 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
-use std::ptr;
 use tree_cursor::prelude::*;
 use tree_cursor::cursor::TreeCursor;
 
 pub trait Link {
-    fn name(&self) -> Option<&str>;
     fn target(&self) -> Option<&str>;
 }
 

@@ -18,7 +18,7 @@ mod tests;
 mod tree;
 
 pub mod prelude {
-    pub use {e, c, s, p, q, z, g, n, u, x, k, r, t, a};
+    pub use {e, c, s, p, q, z, g, u, x, k, r, t, a};
     pub use get_grammar_grammar;
     pub use GrammarNode;
     //pub use parse_grammar;
@@ -81,7 +81,6 @@ pub enum GrammarNode {
     Opt(Box<GrammarNode>),
     Pos(Box<GrammarNode>),
     Neg(Box<GrammarNode>),
-    Name(String, Box<GrammarNode>),
     Group(String, Box<GrammarNode>),
     Erase(Box<GrammarNode>),
     Link(String),
@@ -122,10 +121,6 @@ impl Debug for GrammarNode {
             // TODO: Parens or no? vvv
             &Pos(ref child) => write!(f, "^({:?})", child)?,
             &Neg(ref child) => write!(f, "-({:?})", child)?,
-            // TODO: ^^^
-            &Name(ref name, ref child) =>
-                write!(f, "{} = ({:?})\n", name, child)?,
-            // TODO: vvv
             &Group(ref name, ref child) =>
                 write!(f, "({:?})[{}]", child, name)?,
             // TODO: ^^^
@@ -225,8 +220,7 @@ impl GrammarNode {
             &Opt(_) => act(false, false, true, true),
             &Pos(_) => act(false, false, false, true),
             &Neg(_) => act(false, false, false, false),
-            &Name(_, _)
-            | &Group(_, _)
+            &Group(_, _)
             | &Erase(_)
             | &Link(_)
             | &Range(_, _)
@@ -253,8 +247,7 @@ impl GrammarNode {
             &Opt(_) => act(false, false, false, true),
             &Pos(_) => act(false, false, false, false),
             &Neg(_) => act(false, false, false, true),
-            &Name(_, _)
-            | &Group(_, _)
+            &Group(_, _)
             | &Erase(_)
             | &Link(_)
             | &Range(_, _)
@@ -502,7 +495,6 @@ impl Down for GrammarNode {
             | &Opt(ref child)
             | &Pos(ref child)
             | &Neg(ref child)
-            | &Name(_, ref child)
             | &Group(_, ref child)
             | &Erase(ref child) => {
                 if idx == 0 {
@@ -530,7 +522,6 @@ impl DownMut for GrammarNode {
             | &mut Opt(ref mut child)
             | &mut Pos(ref mut child)
             | &mut Neg(ref mut child)
-            | &mut Name(_, ref mut child)
             | &mut Group(_, ref mut child)
             | &mut Erase(ref mut child) => {
                 if idx == 0 {
@@ -548,13 +539,6 @@ impl DownMut for GrammarNode {
 }
 
 impl Link for GrammarNode {
-    fn name(&self) -> Option<&str> {
-        match self {
-            &GrammarNode::Name(ref n, _) => Some(n),
-            _ => None,
-        }
-    }
-
     fn target(&self) -> Option<&str> {
         match self {
             &GrammarNode::Link(ref t) => Some(t),
@@ -718,10 +702,6 @@ pub fn g(child: GrammarNode) -> GrammarNode {
     GrammarNode::Neg(Box::new(child))
 }
 
-pub fn n(name: &str, child: GrammarNode) -> GrammarNode {
-    GrammarNode::Name(name.to_string(), Box::new(child))
-}
-
 pub fn u(name: &str, child: GrammarNode) -> GrammarNode {
     GrammarNode::Group(name.to_string(), Box::new(child))
 }
@@ -746,27 +726,27 @@ pub fn a() -> GrammarNode {
     GrammarNode::Anything
 }
 
-pub fn get_utils() -> GrammarNode {
-    e(vec![
-        n("nzdigit", c(vec![
+pub fn get_utils() -> Vec<(&'static str, GrammarNode)> {
+    vec![
+        ("nzdigit", c(vec![
             r('1', '9'),
         ])),
-        n("digit", c(vec![
+        ("digit", c(vec![
             t("0"),
             k("nzdigit"),
         ])),
-        n("latin_letter", c(vec![
+        ("latin_letter", c(vec![
             r('a', 'z'),
             r('A', 'Z'),
         ])),
-    ])
+    ]
 }
 
-pub fn get_grammar_grammar() -> GrammarNode {
-    e(vec![
-        get_utils(),
+pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
+    let mut gg = get_utils();
 
-        n("comment", e(vec![
+    gg.append(&mut vec![
+        ("comment", e(vec![
             t("#"),
             s(e(vec![
                 g(t("\n")),
@@ -774,33 +754,33 @@ pub fn get_grammar_grammar() -> GrammarNode {
             ])),
         ])),
 
-        n("wso_part", c(vec![
+        ("wso_part", c(vec![
             t(" "),
             t("\t"),
         ])),
-        n("ws_part", c(vec![
+        ("ws_part", c(vec![
             k("wso_part"),
             e(vec![
                 q(k("comment")),
                 t("\n"),
             ]),
         ])),
-        n("wso", s(k("wso_part"))),
-        n("ws", s(k("ws_part"))),
-        n("pwso", p(k("wso_part"))),
-        n("pws", p(k("ws_part"))),
+        ("wso", s(k("wso_part"))),
+        ("ws", s(k("ws_part"))),
+        ("pwso", p(k("wso_part"))),
+        ("pws", p(k("ws_part"))),
 
-        n("hex_digit", c(vec![
+        ("hex_digit", c(vec![
             k("digit"),
             r('a', 'f'),
             r('A', 'F'),
         ])),
-        n("hex_uint", e(vec![
+        ("hex_uint", e(vec![
             t("0x"),
             p(k("hex_digit")),
         ])),
 
-        n("str", e(vec![
+        ("str", e(vec![
             t("\""),
             s(c(vec![
                 e(vec![
@@ -819,7 +799,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
             ])),
             t("\""),
         ])),
-        n("cp", c(vec![
+        ("cp", c(vec![
             k("hex_uint"),
             e(vec![
                 t("'"),
@@ -841,17 +821,17 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 t("'"),
             ]),
         ])),
-        n("cp_range", e(vec![
+        ("cp_range", e(vec![
             k("cp"),
             t(".."),
             k("cp"),
         ])),
-        n("ident_initial", c(vec![
+        ("ident_initial", c(vec![
             k("latin_letter"),
             t("_"),
             r('\u{80}', '\u{10FFFF}'), // TODO
         ])),
-        n("ident", e(vec![
+        ("ident", e(vec![
             k("ident_initial"),
             s(c(vec![
                 k("ident_initial"),
@@ -859,7 +839,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
             ])),
         ])),
 
-        n("expr", e(vec![
+        ("expr", e(vec![
             u("c", k("expr_choice")),
             s(e(vec![
                 k("pws"),
@@ -870,7 +850,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 ])),
             ])),
         ])),
-        n("expr_choice", e(vec![
+        ("expr_choice", e(vec![
             u("pre", k("expr_prefix")),
             s(e(vec![
                 k("ws"),
@@ -879,14 +859,14 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 u("pre", k("expr_prefix")),
             ])),
         ])),
-        n("expr_prefix", e(vec![
+        ("expr_prefix", e(vec![
             s(u("op", c(vec![
                 t("^"),
                 t("-"),
             ]))),
             u("suf", k("expr_suffix")),
         ])),
-        n("expr_suffix", e(vec![
+        ("expr_suffix", e(vec![
             u("atom", k("expr_atom")),
             s(u("op", c(vec![
                 t("*"),
@@ -899,7 +879,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 ]),
             ]))),
         ])),
-        n("expr_atom", c(vec![
+        ("expr_atom", c(vec![
             t("%"),
             k("str"),
             k("cp_range"),
@@ -913,14 +893,14 @@ pub fn get_grammar_grammar() -> GrammarNode {
             ]),
         ])),
 
-        n("rule", e(vec![
+        ("rule", e(vec![
             u("name", k("ident")),
             k("wso"),
             t("="),
             k("ws"),
             u("val", k("expr")),
         ])),
-        n("grammar", e(vec![
+        ("grammar", e(vec![
             k("ws"),
             s(e(vec![
                 k("rule"),
@@ -935,7 +915,9 @@ pub fn get_grammar_grammar() -> GrammarNode {
                 q(k("comment")),
             ])),
         ])),
-    ])
+    ]);
+
+    gg
 }
 
 /*
@@ -963,9 +945,7 @@ pub fn parse_expr(
 
     Ok(())
 }
-*/
 
-/*
 pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
     use GrammarNode::*;
 
@@ -988,24 +968,6 @@ pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
     for (mut cname, mut cval)
             in stc.get().iter("name").zip(stc.get().iter("val"))
     {
-        let name_raw = cname.get().raw;
-        let name = &input[name_raw.0.lin..name_raw.1.lin];
-
-        if let &mut Seq(ref mut rules) = gc.get_mut() {
-            rules.push(n(name, e(vec![])));
-        } else { panic!(); }
-        let mut gc = gc.new_down().unwrap();
-        if let &Name(ref n, _) = gc.get() {
-            assert_eq!(name, n);
-        } else { panic!(); }
-        assert!(gc.down());
-
-        // expr
-
-        // e(vec![]), val
-        parse_expr(input, stc.new_here().unwrap(), gc.new_here().unwrap())?;
-
-        assert!(gc.up());
     }
 
     Ok(g)
