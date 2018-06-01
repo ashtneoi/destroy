@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
-use tree_cursor::prelude::*;
 use tree_cursor::cursor::TreeCursor;
+use tree_cursor::prelude::*;
 
 pub trait Link {
     fn target(&self) -> Option<&str>;
@@ -55,13 +55,6 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
         };
 
         Ok(Self { tree_cursor: TreeCursor::new(start_node), link_map })
-    }
-
-    pub fn down_map<F>(&mut self, f: F)
-    where
-        F: Fn(&N, usize) -> Option<&N>
-    {
-        self.tree_cursor.down_map(f);
     }
 
     pub fn zero(&mut self) {
