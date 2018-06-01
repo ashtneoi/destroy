@@ -3,6 +3,15 @@
 #[cfg(test)]
 extern crate test;
 
+extern crate tree_cursor;
+
+use std::borrow::Borrow;
+use std::fmt::{Debug, Formatter, self};
+use std::ops::Index;
+use tree::{Link, LinkError, LinkTreeCursor};
+use tree_cursor::prelude::*;
+use tree_cursor::cursor::{TreeCursor, TreeCursorMut};
+
 #[cfg(test)]
 mod tests;
 
@@ -15,31 +24,33 @@ pub mod prelude {
     //pub use parse_grammar;
 }
 
-use std::fmt::{Debug, Formatter, self};
-use std::ops::Index;
-use tree::OpaqueVerticalCursorGroup;
-use tree::prelude::*;
-
 fn empty_slice<'a, T: 'a>() -> &'a [T] {
     unsafe { std::slice::from_raw_parts(0x1 as *const T, 0) }
 }
 
 pub struct MatchCursor<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
-    m: MutTreeCursor<'x, MatchNode>,
+    m: TreeCursorMut<'x, MatchNode>,
 }
 
 impl<'x> MatchCursor<'x> {
-    fn new(g: LinkTreeCursor<'x, GrammarNode>, m: MutTreeCursor<'x, MatchNode>)
+    fn new(g: LinkTreeCursor<'x, GrammarNode>, m: TreeCursorMut<'x, MatchNode>)
             -> Self
     {
         MatchCursor { g, m }
     }
-}
 
-impl<'x> OpaqueVerticalCursorGroup for MatchCursor<'x> {
-    fn list(&mut self) -> Vec<&mut OpaqueVerticalCursor> {
-        vec![&mut self.g, &mut self.m] // TODO: don't allocate every time
+    fn zero(&mut self) {
+        self.g.zero();
+        self.m.zero();
+    }
+
+    fn up(&mut self) -> bool {
+        self.g.up() && self.m.up()
+    }
+
+    fn down(&mut self) -> bool {
+        self.g.down() && self.m.down()
     }
 }
 
@@ -252,29 +263,32 @@ impl GrammarNode {
         }
     }
 
-    pub fn parse(&self, start: &str, input: &str)
-            -> Result<Match, ParseError>
-    {
-        let mut _m = MatchNode::new();
-        let mut p = Parser::new(self, start, input, &mut _m).map_err(
-            |e| ParseError::BadGrammar(e)
-        )?;
+}
+
+pub fn parse(
+    named: &[(impl Borrow<str>, GrammarNode)],
+    start: &str,
+    input: &str,
+) -> Result<Match, ParseError> {
+    let mut _m = MatchNode::new();
+    let mut p = Parser::new(named, start, input, &mut _m).map_err(
+        |e| ParseError::BadGrammar(e)
+    )?;
+
+    loop {
+        let mut success = p.try_match();
 
         loop {
-            let mut success = p.try_match();
+            let a = match p.do_action(success) {
+                Some(a) => a,
+                None => break,
+            };
 
-            loop {
-                let a = match p.do_action(success) {
-                    Some(a) => a,
-                    None => break,
-                };
-
-                if let Some(r) = p.go_up(a) {
-                    return r;
-                }
-
-                success = a.success;
+            if let Some(r) = p.go_up(a) {
+                return r;
             }
+
+            success = a.success;
         }
     }
 }
@@ -318,14 +332,14 @@ struct Parser<'x, 's> {
 
 impl<'x, 's> Parser<'x, 's> {
     fn new(
-            root: &'x GrammarNode,
+            named: &'x [(impl Borrow<str>, GrammarNode)],
             start: &str,
             input: &'s str,
             mroot: &'x mut MatchNode,
     ) -> Result<Self, LinkError> {
         let mut c = MatchCursor::new(
-            LinkTreeCursor::new(root, start)?,
-            MutTreeCursor::new(mroot),
+            LinkTreeCursor::new(named, start)?,
+            TreeCursorMut::new(mroot),
         );
 
         while c.down() { }
@@ -928,7 +942,7 @@ pub fn get_grammar_grammar() -> GrammarNode {
 pub fn parse_expr(
         input: &str,
         mut stc: TreeCursor<Match>,
-        mut gc: MutTreeCursor<GrammarNode>,
+        mut gc: TreeCursorMut<GrammarNode>,
 ) -> Result<(), ParseError> {
     use GrammarNode::*;
 
@@ -964,7 +978,7 @@ pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
     let mut stc = TreeCursor::new(&st);
 
     let mut g = Seq(vec![]);
-    let mut gc = MutTreeCursor::new(&mut g);
+    let mut gc = TreeCursorMut::new(&mut g);
 
     let rule_count = stc.get().count("name");
     assert_eq!(rule_count, stc.get().count("val"));
