@@ -934,11 +934,37 @@ fn parse_expr(
     assert_eq!(gc.get(), &Seq(vec![]));
 
     for expr_choice in expr.get().iter("c") {
+        if let &mut Seq(ref mut children) = gc.get_mut() {
+            children.push(c(vec![]));
+        } else { panic!(); }
         println!("c = {}", expr_choice.get().raw(input));
+
+        let mut gc = gc.down_new().unwrap();
+
         for expr_pre in expr_choice.get().iter("pre") {
+
+            for op in expr_pre.get().iter("op") {
+                let new = match op.get().raw(input) {
+                    "^" => z(e(vec![])),
+                    "-" => g(e(vec![])),
+                    _ => panic!(),
+                };
+                match gc.get_mut() {
+                    &mut Choice(ref mut children) =>
+                        children.push(new),
+                    &mut Pos(ref mut child)
+                    | &mut Neg(ref mut child) =>
+                        *child = Box::new(new),
+                    _ => panic!(),
+                }
+                let old_gc = gc;
+                gc = &mut old_gc.down_new().unwrap();
+            }
             println!("pre = {}", expr_pre.get().raw(input));
+
             for expr_suf in expr_pre.get().iter("suf") {
                 println!("suf = {}", expr_suf.get().raw(input));
+
                 for expr_atom in expr_suf.get().iter("atom") {
                     println!("atom = {}", expr_atom.get().raw(input));
                     if let Some(mut expr) =
