@@ -607,7 +607,7 @@ impl Match {
         }
     }
 
-    fn get_raw<'s>(&self, input: &'s str) -> &'s str {
+    pub fn raw<'s>(&self, input: &'s str) -> &'s str {
         &input[self.raw.0.lin..self.raw.1.lin]
     }
 
@@ -924,7 +924,39 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
     gg
 }
 
-pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
+fn parse_expr(
+    input: &str,
+    expr: &mut TreeCursor<Match>,
+    gc: &mut TreeCursorMut<GrammarNode>,
+) -> Result<(), ParseError> {
+    use GrammarNode::*;
+
+    assert_eq!(gc.get(), &Seq(vec![]));
+
+    for expr_choice in expr.get().iter("c") {
+        println!("c = {}", expr_choice.get().raw(input));
+        for expr_pre in expr_choice.get().iter("pre") {
+            println!("pre = {}", expr_pre.get().raw(input));
+            for expr_suf in expr_pre.get().iter("suf") {
+                println!("suf = {}", expr_suf.get().raw(input));
+                for expr_atom in expr_suf.get().iter("atom") {
+                    println!("atom = {}", expr_atom.get().raw(input));
+                    if let Some(mut expr) =
+                            expr_atom.get().get_or_empty("e").get(0) {
+                        parse_expr(input, &mut TreeCursor::new(expr), gc);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+
+pub fn parse_grammar(
+    input: &str
+) -> Result<Vec<(String, GrammarNode)>, ParseError> {
     use GrammarNode::*;
 
     let gg = get_grammar_grammar();
@@ -935,8 +967,7 @@ pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
     };
     let mut stc = TreeCursor::new(&st);
 
-    let mut g = Seq(vec![]);
-    let mut gc = TreeCursorMut::new(&mut g);
+    let mut g = Vec::<(String, GrammarNode)>::new();
 
     let rule_count = stc.get().count("name");
     assert_eq!(rule_count, stc.get().count("val"));
@@ -946,8 +977,10 @@ pub fn parse_grammar(input: &str) -> Result<GrammarNode, ParseError> {
     for (mut cname, mut cval)
             in stc.get().iter("name").zip(stc.get().iter("val"))
     {
-        let name = cname.get().get_raw(input);
-        println!("{}", name);
+        let name = cname.get().raw(input);
+        g.push((name.to_string(), Seq(vec![])));
+        let mut gc = TreeCursorMut::new(&mut g.last_mut().unwrap().1);
+        parse_expr(input, &mut cval, &mut gc)?;
     }
 
     Ok(g)
