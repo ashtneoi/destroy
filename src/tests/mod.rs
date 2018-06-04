@@ -623,7 +623,6 @@ mod standard {
         #[test]
         fn bootstrap_stage1() {
             let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
-            println!("{:?}", g1);
 
             parse(&g1, "ws", r##" "##).unwrap();
         }
@@ -631,9 +630,18 @@ mod standard {
         #[test]
         fn bootstrap_stage2() {
             let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
-            println!("{:?}", g1);
+
+            parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR).unwrap();
+        }
+
+        #[test]
+        fn bootstrap_stage3() {
+            let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
 
             let g2 = parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR)
+                .unwrap();
+
+            parse_grammar_with_grammar(&g2, GRAMMAR_GRAMMAR_STR)
                 .unwrap();
         }
     }
