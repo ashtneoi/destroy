@@ -818,7 +818,7 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                         ]),
                     ]),
                     e(vec![
-                        g(t("\"")),
+                        g(t("'")),
                         g(t("\n")),
                         a(),
                     ]),
@@ -925,6 +925,23 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
     gg
 }
 
+fn parse_escape(s: &str) -> char {
+    let ss: Vec<_> = s.chars().collect();
+    match ss[0] {
+        '\\' => {
+            assert!(ss.len() == 2);
+            match ss[1] {
+                'n' => '\n',
+                c => c, // note: grammar should be more restrictive than this
+            }
+        },
+        c => {
+            assert!(ss.len() == 1);
+            c
+        }
+    }
+}
+
 fn parse_expr(
     input: &str,
     expr: &Match,
@@ -998,7 +1015,11 @@ fn parse_expr(
                 if atom_raw == "%" {
                     *gc.get_mut() = a();
                 } else if atom_raw.starts_with('"') {
-                    *gc.get_mut() = t(atom_raw); // TODO
+                    let mut s = String::new();
+                    for cp in atom.iter("cp") {
+                        s.push(parse_escape(cp.raw(input)));
+                    }
+                    *gc.get_mut() = t(&s);
                 } else if let Some(rr) = atom.get("r").map(first) {
                     let ff = &rr["from"][0];
                     let tt = &rr["to"][0];
@@ -1008,7 +1029,7 @@ fn parse_expr(
                                 .unwrap()
                         ).unwrap() // TODO
                     } else if let Some(raw) = ff.get("raw").map(first) {
-                        '\n' // TODO
+                        parse_escape(raw.raw(input))
                     } else { panic!(); };
                     let ttc = if let Some(hex) = tt.get("hex").map(first) {
                         char::from_u32(
@@ -1016,7 +1037,7 @@ fn parse_expr(
                                 .unwrap()
                         ).unwrap() // TODO
                     } else if let Some(raw) = tt.get("raw").map(first) {
-                        '\n' // TODO
+                        parse_escape(raw.raw(input))
                     } else { panic!(); };
                     *gc.get_mut() = r(ffc, ttc);
                 } else if let Some(id) = atom.get("id").map(first) {
