@@ -934,22 +934,54 @@ fn parse_expr(
     assert_eq!(gc.get(), &Seq(vec![]));
 
     for cc in expr.get().iter("c") {
-        println!("c = {}", cc.get().raw(input));
+        println!("cc = {}", cc.get().raw(input));
+
+        // push c
+        if let &mut Seq(ref mut v) = gc.get_mut() {
+            v.push(c(vec![]));
+        } else { panic!(); }
+        // down
+        let mut gc = gc.down_new().unwrap();
 
         for pre in cc.get().iter("pre") {
             println!("pre = {}", pre.get().raw(input));
 
+            // push a
+            if let &mut Choice(ref mut v) = gc.get_mut() {
+                v.push(a()); // placeholder
+            } else { panic!(); }
+            // down
+            let mut gc = gc.down_new().unwrap();
+
             for op in pre.get().iter("op") {
+                // down
+                if let Some(gc2) = gc.down_new() {
+                    gc = gc2;
+                }
+                // change a to g(a)
+                *gc.get_mut() = g(a());
             }
 
             for suf in pre.get().iter("suf") {
                 println!("suf = {}", suf.get().raw(input));
 
+                // down
+                let mut gc = gc.down_new().unwrap();
+
+                for op in pre.get().iter("op") {
+                    // down
+                    if let Some(gc2) = gc.down_new() {
+                        gc = gc2;
+                    }
+                    // change a to s(a)
+                    *gc.get_mut() = s(a());
+                }
+
                 for atom in suf.get().iter("atom") {
                     println!("atom = {}", atom.get().raw(input));
 
                     if let Some(mut ee) = atom.get().iter("ee").next() {
-                        parse_expr(input, &mut ee, gc);
+                        parse_expr(input, &mut ee, &mut gc)?;
                     }
                 }
             }
