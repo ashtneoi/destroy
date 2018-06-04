@@ -954,35 +954,32 @@ fn parse_expr(
             let mut gc = gc.down_new().unwrap();
 
             for op in pre.get().iter("op") {
-                // down
-                if let Some(gc2) = gc.down_new() {
-                    gc = gc2;
-                }
                 // change a to g(a)
                 *gc.get_mut() = g(a());
+                // down
+                let mut old_gc = gc;
+                gc = old_gc.down_new().unwrap();
             }
 
-            for suf in pre.get().iter("suf") {
-                println!("suf = {}", suf.get().raw(input));
+            let suf = &pre.get()["suf"][0];
 
+            println!("suf = {}", suf.raw(input));
+
+            for op in suf.iter("op") {
+                // change a to s(a)
+                *gc.get_mut() = s(a());
                 // down
-                let mut gc = gc.down_new().unwrap();
+                let mut old_gc = gc;
+                gc = old_gc.down_new().unwrap();
+            }
 
-                for op in pre.get().iter("op") {
-                    // down
-                    if let Some(gc2) = gc.down_new() {
-                        gc = gc2;
-                    }
-                    // change a to s(a)
-                    *gc.get_mut() = s(a());
-                }
+            for atom in suf.iter("atom") {
+                println!("atom = {}", atom.get().raw(input));
 
-                for atom in suf.get().iter("atom") {
-                    println!("atom = {}", atom.get().raw(input));
-
-                    if let Some(mut ee) = atom.get().iter("ee").next() {
-                        parse_expr(input, &mut ee, &mut gc)?;
-                    }
+                if let Some(mut ee) = atom.get().iter("e").next() {
+                    // change a to e([])
+                    *gc.get_mut() = e(vec![]);
+                    parse_expr(input, &mut ee, &mut gc)?;
                 }
             }
         }
