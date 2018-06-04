@@ -634,6 +634,10 @@ impl Match {
         self.get_or_empty(name).iter()
     }
 
+    pub fn iter_rev(&self, name: &str) -> impl Iterator<Item = &Match> {
+        self.get_or_empty(name).iter().rev()
+    }
+
     pub fn get(&self, name: &str) -> Option<&Vec<Self>> {
         self.named.iter().find(|&&(ref n, _)| n == name)
             .map(|&(_, ref cc)| cc)
@@ -939,6 +943,7 @@ fn parse_escape(s: &str) -> char {
             }
         },
         c => {
+            println!("{:?}", &ss);
             assert!(ss.len() == 1);
             c
         }
@@ -974,7 +979,7 @@ fn parse_expr(
             // down
             let mut gc = gc.down_new().unwrap();
 
-            for op in pre.iter("op") {
+            for op in pre.iter_rev("op") {
                 // change a to op(a)
                 *gc.get_mut() = match op.raw(input) {
                     "^" => z(a()),
@@ -990,7 +995,7 @@ fn parse_expr(
 
             println!("suf = {}", suf.raw(input));
 
-            for op in suf.iter("op") {
+            for op in suf.iter_rev("op") {
                 // change a to op(a)
                 *gc.get_mut() = match op.raw(input) {
                     "*" => s(a()),
@@ -1021,6 +1026,7 @@ fn parse_expr(
                 } else if atom_raw.starts_with('"') {
                     let mut s = String::new();
                     for cp in atom.iter("cp") {
+                        println!("cp = {:?}", cp.raw(input));
                         s.push(parse_escape(cp.raw(input)));
                     }
                     *gc.get_mut() = t(&s);

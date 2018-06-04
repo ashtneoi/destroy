@@ -631,6 +631,7 @@ mod standard {
         #[test]
         fn bootstrap_stage2() {
             let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
+            println!("{:?}", g1);
 
             let g2 = parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR)
                 .unwrap();
