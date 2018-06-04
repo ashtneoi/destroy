@@ -451,6 +451,8 @@ mod standard {
 
     mod grammar_grammar_tests {
         use parse;
+        use parse_grammar;
+        use parse_grammar_with_grammar;
         use prelude::*;
         use test::Bencher;
 
@@ -569,10 +571,12 @@ mod standard {
             hex_digit = digit / 'a'..'f' / 'A'..'F'
             hex_uint = "0x" hex_digit+
 
-            str = "\"" ("\\" ("n" / "\\" / "\"") / -"\"" -"\n" %)[cp]* "\""
+            str =
+                "\"" ("\\" ("n" / "t" / "\\" / "\"")
+                / -"\"" -"\n" %)[cp]* "\""
             cp =
                 hex_uint[hex]
-                / "'" ("\\" ("n" / "\\" / "'") / -"'" -"\n" %)[raw] "'"
+                / "'" ("\\" ("n" / "t" / "\\" / "'") / -"'" -"\n" %)[raw] "'"
             cp_range = cp[from] ".." cp[to]
             ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
             ident = ident_initial (ident_initial / digit)* # TODO
@@ -596,22 +600,28 @@ mod standard {
             parse(&gg0, "grammar", GRAMMAR_GRAMMAR_STR).unwrap();
         }
 
-        /*
         #[test]
         fn bootstrap_stage0_minimal() {
             let i0 = r##"
                 A = "a"*
             "##;
 
-            let g0 = parse_grammar(i0);
+            let g0 = parse_grammar(i0).unwrap();
             assert_eq!(
-                g0.unwrap(),
-                e(vec![
-                    ("A", s(t("a"))),
-                ]),
+                g0,
+                vec![
+                    ("A".to_string(), e(vec![c(vec![s(t("a"))])])),
+                ],
             );
         }
-        */
+
+        #[test]
+        fn bootstrap() {
+            let g0 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
+
+            let g1 = parse_grammar_with_grammar(&g0[..], GRAMMAR_GRAMMAR_STR)
+                .unwrap();
+        }
     }
 }
 

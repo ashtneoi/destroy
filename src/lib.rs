@@ -107,6 +107,7 @@ impl Debug for GrammarNode {
                 write!(f, ")")?;
             },
             &Choice(ref children) => {
+                write!(f, "{{")?;
                 let mut first = true;
                 for child in children.iter() {
                     if !first {
@@ -115,6 +116,7 @@ impl Debug for GrammarNode {
                     write!(f, "{:?}", child)?;
                     first = false;
                 }
+                write!(f, "}}")?;
             },
             &Star(ref child) => write!(f, "{:?}*", child)?,
             &Plus(ref child) => write!(f, "{:?}+", child)?,
@@ -792,6 +794,7 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                     t("\\"),
                     c(vec![
                         t("n"),
+                        t("t"),
                         t("\\"),
                         t("\""),
                     ]),
@@ -813,6 +816,7 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                         t("\\"),
                         c(vec![
                             t("n"),
+                            t("t"),
                             t("\\"),
                             t("'"),
                         ]),
@@ -932,6 +936,7 @@ fn parse_escape(s: &str) -> char {
             assert!(ss.len() == 2);
             match ss[1] {
                 'n' => '\n',
+                't' => '\t',
                 c => c, // note: grammar should be more restrictive than this
             }
         },
@@ -1055,13 +1060,14 @@ fn parse_expr(
     Ok(())
 }
 
-
-pub fn parse_grammar(
-    input: &str
-) -> Result<Vec<(String, GrammarNode)>, ParseError> {
+fn parse_grammar_with_grammar<S>(
+    gg: &[(S, GrammarNode)], input: &str
+) -> Result<Vec<(String, GrammarNode)>, ParseError>
+where
+    S: Borrow<str>,
+{
     use GrammarNode::*;
 
-    let gg = get_grammar_grammar();
     let st = match parse(&gg, "grammar", input) {
         Ok(x) => x,
         Err(ParseError::BadGrammar(e)) => panic!("{:?}", e),
@@ -1075,9 +1081,7 @@ pub fn parse_grammar(
 
     // grammar
 
-    for (mut cname, mut cval)
-            in st.iter("name").zip(st.iter("val"))
-    {
+    for (cname, cval) in st.iter("name").zip(st.iter("val")) {
         let name = cname.raw(input);
         g.push((name.to_string(), Seq(vec![])));
         let mut gc = TreeCursorMut::new(&mut g.last_mut().unwrap().1);
@@ -1085,4 +1089,11 @@ pub fn parse_grammar(
     }
 
     Ok(g)
+}
+
+pub fn parse_grammar(
+    input: &str
+) -> Result<Vec<(String, GrammarNode)>, ParseError> {
+    let gg = get_grammar_grammar();
+    parse_grammar_with_grammar(&gg, input)
 }
