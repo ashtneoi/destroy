@@ -586,13 +586,13 @@ mod standard {
             ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
             ident = ident_initial (ident_initial / digit)* # TODO
 
-            expr = expr_choice[c] (pws expr_choice[c] -(wso "="))*
-            expr_choice = expr_prefix[pre] (ws "/" ws expr_prefix[pre])*
+            expr = expr_seq[e] (ws "/" ws expr_seq[e])*
+            expr_seq = expr_prefix[pre] (pws expr_prefix[pre] -(wso "="))*
             expr_prefix = ("^" / "-")[op]* expr_suffix[suf]
             expr_suffix =
                 expr_atom[atom] ("*" / "+" / "?" / "[" ident[name] "]")[op]*
             expr_atom =
-                "%" / str / cp_range[r] / ident[id] / "(" ws expr[e] ws ")"
+                "%" / str / cp_range[r] / ident[id] / "(" ws expr[c] ws ")"
 
             rule = ident[name] wso "=" ws expr[val]
             grammar = ws (rule wso comment? "\n" ws)* (rule wso comment?)?
@@ -615,7 +615,7 @@ mod standard {
             assert_eq!(
                 g,
                 vec![
-                    ("A".to_string(), e(vec![c(vec![s(t("a"))])])),
+                    ("A".to_string(), c(vec![e(vec![s(t("a"))])])),
                 ],
             );
         }
@@ -722,7 +722,7 @@ mod regression {
 
     #[test]
     fn choice_precedence() {
-        let g = parse_grammar(r##"A = "a" / "b"? "c"##).unwrap();
+        let g = parse_grammar(r##"A = "a" / "b"? "c""##).unwrap();
         parse(&g, "A", "a").unwrap();
     }
 }

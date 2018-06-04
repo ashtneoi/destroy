@@ -209,7 +209,7 @@ impl GrammarNode {
                     None => None,
                 }
             },
-            _ => panic!(),
+            x => panic!("{:?}", x),
         }
     }
 
@@ -847,23 +847,23 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
         ])),
 
         ("expr", e(vec![
-            u("c", k("expr_choice")),
-            s(e(vec![
-                k("pws"),
-                u("c", k("expr_choice")),
-                g(e(vec![
-                    k("wso"),
-                    t("="),
-                ])),
-            ])),
-        ])),
-        ("expr_choice", e(vec![
-            u("pre", k("expr_prefix")),
+            u("e", k("expr_seq")),
             s(e(vec![
                 k("ws"),
                 t("/"),
                 k("ws"),
+                u("e", k("expr_seq")),
+            ])),
+        ])),
+        ("expr_seq", e(vec![
+            u("pre", k("expr_prefix")),
+            s(e(vec![
+                k("pws"),
                 u("pre", k("expr_prefix")),
+                g(e(vec![
+                    k("wso"),
+                    t("="),
+                ])),
             ])),
         ])),
         ("expr_prefix", e(vec![
@@ -894,7 +894,7 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
             e(vec![
                 t("("),
                 k("ws"),
-                u("e", k("expr")),
+                u("c", k("expr")),
                 k("ws"),
                 t(")"),
             ]),
@@ -952,23 +952,23 @@ fn parse_expr(
 ) -> Result<(), ParseError> {
     use GrammarNode::*;
 
-    assert_eq!(gc.get(), &Seq(vec![]));
+    assert_eq!(gc.get(), &Choice(vec![]));
 
-    for cc in expr.iter("c") {
-        println!("cc = {}", cc.raw(input));
+    for ee in expr.iter("e") {
+        println!("ee = {}", ee.raw(input));
 
         // push c
-        if let &mut Seq(ref mut v) = gc.get_mut() {
-            v.push(c(vec![]));
+        if let &mut Choice(ref mut v) = gc.get_mut() {
+            v.push(e(vec![]));
         } else { panic!(); }
         // down
         let mut gc = gc.down_new().unwrap();
 
-        for pre in cc.iter("pre") {
+        for pre in ee.iter("pre") {
             println!("pre = {}", pre.raw(input));
 
             // push a
-            if let &mut Choice(ref mut v) = gc.get_mut() {
+            if let &mut Seq(ref mut v) = gc.get_mut() {
                 v.push(a()); // placeholder
             } else { panic!(); }
             // down
@@ -1046,11 +1046,11 @@ fn parse_expr(
                     *gc.get_mut() = r(ffc, ttc);
                 } else if let Some(id) = atom.get("id").map(first) {
                     *gc.get_mut() = k(id.raw(input));
-                } else if let Some(ee) = atom.get("e").map(first) {
-                    // change a to e([])
-                    *gc.get_mut() = e(vec![]);
+                } else if let Some(cc) = atom.get("c").map(first) {
+                    // change a to c([])
+                    *gc.get_mut() = c(vec![]);
                     // recurse
-                    parse_expr(input, &ee, &mut gc)?;
+                    parse_expr(input, &cc, &mut gc)?;
                 }
             }
         }
@@ -1082,7 +1082,7 @@ where
 
     for (cname, cval) in st.iter("name").zip(st.iter("val")) {
         let name = cname.raw(input);
-        g.push((name.to_string(), Seq(vec![])));
+        g.push((name.to_string(), Choice(vec![])));
         let mut gc = TreeCursorMut::new(&mut g.last_mut().unwrap().1);
         parse_expr(input, &cval, &mut gc)?;
     }
