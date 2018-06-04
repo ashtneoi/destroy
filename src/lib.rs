@@ -943,7 +943,6 @@ fn parse_escape(s: &str) -> char {
             }
         },
         c => {
-            println!("{:?}", &ss);
             assert!(ss.len() == 1);
             c
         }
@@ -960,8 +959,6 @@ fn parse_expr(
     assert_eq!(gc.get(), &Choice(vec![]));
 
     for ee in expr.iter("e") {
-        println!("ee = {}", ee.raw(input));
-
         // push c
         if let &mut Choice(ref mut v) = gc.get_mut() {
             v.push(e(vec![]));
@@ -970,8 +967,6 @@ fn parse_expr(
         let mut gc = gc.down_new().unwrap();
 
         for pre in ee.iter("pre") {
-            println!("pre = {}", pre.raw(input));
-
             // push a
             if let &mut Seq(ref mut v) = gc.get_mut() {
                 v.push(a()); // placeholder
@@ -993,8 +988,6 @@ fn parse_expr(
 
             let suf = &pre["suf"][0];
 
-            println!("suf = {}", suf.raw(input));
-
             for op in suf.iter_rev("op") {
                 // change a to op(a)
                 *gc.get_mut() = match op.raw(input) {
@@ -1009,13 +1002,10 @@ fn parse_expr(
                 };
                 // down
                 let mut old_gc = gc;
-                println!("{:?}", old_gc.get());
                 gc = old_gc.down_new().unwrap();
             }
 
             for atom in suf.iter("atom") {
-                println!("atom = {}", atom.raw(input));
-
                 fn first<'a>(v: &'a Vec<Match>) -> &'a Match {
                     &v[0]
                 }
@@ -1026,7 +1016,6 @@ fn parse_expr(
                 } else if atom_raw.starts_with('"') {
                     let mut s = String::new();
                     for cp in atom.iter("cp") {
-                        println!("cp = {:?}", cp.raw(input));
                         s.push(parse_escape(cp.raw(input)));
                     }
                     *gc.get_mut() = t(&s);
