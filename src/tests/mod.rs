@@ -631,7 +631,10 @@ mod standard {
         fn bootstrap_stage2() {
             let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
 
-            parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR).unwrap();
+            let g2 = parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR)
+                .unwrap();
+
+            assert_eq!(&g1, &g2);
         }
 
         #[test]
@@ -641,8 +644,10 @@ mod standard {
             let g2 = parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR)
                 .unwrap();
 
-            parse_grammar_with_grammar(&g2, GRAMMAR_GRAMMAR_STR)
+            let g3 = parse_grammar_with_grammar(&g2, GRAMMAR_GRAMMAR_STR)
                 .unwrap();
+
+            assert_eq!(&g2, &g3);
         }
     }
 }
