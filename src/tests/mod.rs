@@ -569,8 +569,10 @@ mod standard {
             hex_digit = digit / 'a'..'f' / 'A'..'F'
             hex_uint = "0x" hex_digit+
 
-            str = "\"" ("\\" ("n" / "\\" / "\"") / -"\"" -"\n" %)* "\""
-            cp = hex_uint / "'" ("\\" ("n" / "\\" / "'") / -"'" -"\n" %) "'"
+            str = "\"" ("\\" ("n" / "\\" / "\"") / -"\"" -"\n" %)[cp]* "\""
+            cp =
+                hex_uint[hex]
+                / "'" ("\\" ("n" / "\\" / "'") / -"'" -"\n" %)[raw] "'"
             cp_range = cp[from] ".." cp[to]
             ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
             ident = ident_initial (ident_initial / digit)* # TODO

@@ -6,6 +6,7 @@ extern crate test;
 extern crate tree_cursor;
 
 use std::borrow::Borrow;
+use std::char;
 use std::fmt::{Debug, Formatter, self};
 use std::ops::Index;
 use tree::{Link, LinkError, LinkTreeCursor};
@@ -786,7 +787,7 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
 
         ("str", e(vec![
             t("\""),
-            s(c(vec![
+            s(u("cp", c(vec![
                 e(vec![
                     t("\\"),
                     c(vec![
@@ -800,14 +801,14 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                     g(t("\n")),
                     a(),
                 ]),
-            ])),
+            ]))),
             t("\""),
         ])),
         ("cp", c(vec![
-            k("hex_uint"),
+            u("hex", k("hex_uint")),
             e(vec![
                 t("'"),
-                c(vec![
+                u("raw", c(vec![
                     e(vec![
                         t("\\"),
                         c(vec![
@@ -821,14 +822,14 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                         g(t("\n")),
                         a(),
                     ]),
-                ]),
+                ])),
                 t("'"),
             ]),
         ])),
         ("cp_range", e(vec![
-            k("cp"),
+            u("from", k("cp")),
             t(".."),
-            k("cp"),
+            u("to", k("cp")),
         ])),
         ("ident_initial", c(vec![
             k("latin_letter"),
@@ -886,8 +887,8 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
         ("expr_atom", c(vec![
             t("%"),
             k("str"),
-            k("cp_range"),
-            k("ident"),
+            u("r", k("cp_range")),
+            u("id", k("ident")),
             e(vec![
                 t("("),
                 k("ws"),
@@ -989,16 +990,38 @@ fn parse_expr(
             for atom in suf.iter("atom") {
                 println!("atom = {}", atom.raw(input));
 
+                fn first<'a>(v: &'a Vec<Match>) -> &'a Match {
+                    &v[0]
+                }
+
                 let atom_raw = atom.raw(input);
                 if atom_raw == "%" {
                     *gc.get_mut() = a();
                 } else if atom_raw.starts_with('"') {
                     *gc.get_mut() = t(atom_raw); // TODO
-                } else if let Some(rr) = atom.get("r").map(|rr| &rr[0]) {
-                    unimplemented!();
-                } else if let Some(id) = atom.get("id").map(|id| &id[0]) {
+                } else if let Some(rr) = atom.get("r").map(first) {
+                    let ff = &rr["from"][0];
+                    let tt = &rr["to"][0];
+                    let ffc = if let Some(hex) = ff.get("hex").map(first) {
+                        char::from_u32(
+                            u32::from_str_radix(&hex.raw(input)[2..], 16)
+                                .unwrap()
+                        ).unwrap() // TODO
+                    } else if let Some(raw) = ff.get("raw").map(first) {
+                        '\n' // TODO
+                    } else { panic!(); };
+                    let ttc = if let Some(hex) = tt.get("hex").map(first) {
+                        char::from_u32(
+                            u32::from_str_radix(&hex.raw(input)[2..], 16)
+                                .unwrap()
+                        ).unwrap() // TODO
+                    } else if let Some(raw) = tt.get("raw").map(first) {
+                        '\n' // TODO
+                    } else { panic!(); };
+                    *gc.get_mut() = r(ffc, ttc);
+                } else if let Some(id) = atom.get("id").map(first) {
                     *gc.get_mut() = k(id.raw(input));
-                } else if let Some(ee) = atom.get("e").map(|ee| &ee[0]) {
+                } else if let Some(ee) = atom.get("e").map(first) {
                     // change a to e([])
                     *gc.get_mut() = e(vec![]);
                     // recurse
