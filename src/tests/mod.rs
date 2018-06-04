@@ -576,8 +576,9 @@ mod standard {
             hex_uint = "0x" hex_digit+
 
             str =
-                "\"" ("\\" ("n" / "t" / "\\" / "\"")
-                / -"\"" -"\n" %)[cp]* "\""
+                "\""
+                ("\\" ("n" / "t" / "\\" / "\"") / -"\"" -"\n" %)[cp]*
+                "\""
             cp =
                 hex_uint[hex]
                 / "'" ("\\" ("n" / "t" / "\\" / "'") / -"'" -"\n" %)[raw] "'"
@@ -620,9 +621,16 @@ mod standard {
         }
 
         #[test]
-        fn bootstrap() {
+        fn bootstrap_stage1() {
             let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
             println!("{:?}", g1);
+
+            parse(&g1, "ws", r##" "##).unwrap();
+        }
+
+        #[test]
+        fn bootstrap_stage2() {
+            let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
 
             let g2 = parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR)
                 .unwrap();
@@ -633,6 +641,7 @@ mod standard {
 mod regression {
     use mat;
     use parse;
+    use parse_grammar;
     use prelude::*;
     use Pos;
 
@@ -709,5 +718,11 @@ mod regression {
             parse(g, "x", "a\nb").unwrap().raw,
             (Pos { lin: 0, row: 1, col: 1}, Pos { lin: 3, row: 2, col: 2 })
         );
+    }
+
+    #[test]
+    fn choice_precedence() {
+        let g = parse_grammar(r##"A = "a" / "b"? "c"##).unwrap();
+        parse(&g, "A", "a").unwrap();
     }
 }
