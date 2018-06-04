@@ -571,7 +571,7 @@ mod standard {
 
             str = "\"" ("\\" ("n" / "\\" / "\"") / -"\"" -"\n" %)* "\""
             cp = hex_uint / "'" ("\\" ("n" / "\\" / "'") / -"'" -"\n" %) "'"
-            cp_range = cp ".." cp
+            cp_range = cp[from] ".." cp[to]
             ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
             ident = ident_initial (ident_initial / digit)* # TODO
 
@@ -580,7 +580,8 @@ mod standard {
             expr_prefix = ("^" / "-")[op]* expr_suffix[suf]
             expr_suffix =
                 expr_atom[atom] ("*" / "+" / "?" / "[" ident[name] "]")[op]*
-            expr_atom = "%" / str / cp_range / ident / "(" ws expr[e] ws ")"
+            expr_atom =
+                "%" / str / cp_range[r] / ident[id] / "(" ws expr[e] ws ")"
 
             rule = ident[name] wso "=" ws expr[val]
             grammar = ws (rule wso comment? "\n" ws)* (rule wso comment?)?

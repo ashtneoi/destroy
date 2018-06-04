@@ -10,7 +10,7 @@ use std::fmt::{Debug, Formatter, self};
 use std::ops::Index;
 use tree::{Link, LinkError, LinkTreeCursor};
 use tree_cursor::prelude::*;
-use tree_cursor::cursor::{TreeCursor, TreeCursorMut};
+use tree_cursor::cursor::TreeCursorMut;
 
 #[cfg(test)]
 mod tests;
@@ -954,8 +954,12 @@ fn parse_expr(
             let mut gc = gc.down_new().unwrap();
 
             for op in pre.iter("op") {
-                // change a to g(a)
-                *gc.get_mut() = g(a());
+                // change a to op(a)
+                *gc.get_mut() = match op.raw(input) {
+                    "^" => z(a()),
+                    "-" => g(a()),
+                    _ => panic!(),
+                };
                 // down
                 let mut old_gc = gc;
                 gc = old_gc.down_new().unwrap();
@@ -966,8 +970,17 @@ fn parse_expr(
             println!("suf = {}", suf.raw(input));
 
             for op in suf.iter("op") {
-                // change a to s(a)
-                *gc.get_mut() = s(a());
+                // change a to op(a)
+                *gc.get_mut() = match op.raw(input) {
+                    "*" => s(a()),
+                    "+" => p(a()),
+                    "?" => q(a()),
+                    name => {
+                        assert!(name.starts_with("["));
+                        assert!(name.ends_with("]"));
+                        k(op["name"][0].raw(input))
+                    },
+                };
                 // down
                 let mut old_gc = gc;
                 gc = old_gc.down_new().unwrap();
@@ -976,10 +989,20 @@ fn parse_expr(
             for atom in suf.iter("atom") {
                 println!("atom = {}", atom.raw(input));
 
-                if let Some(mut ee) = atom.iter("e").next() {
+                let atom_raw = atom.raw(input);
+                if atom_raw == "%" {
+                    *gc.get_mut() = a();
+                } else if atom_raw.starts_with('"') {
+                    *gc.get_mut() = t(atom_raw); // TODO
+                } else if let Some(rr) = atom.get("r").map(|rr| &rr[0]) {
+                    unimplemented!();
+                } else if let Some(id) = atom.get("id").map(|id| &id[0]) {
+                    *gc.get_mut() = k(id.raw(input));
+                } else if let Some(ee) = atom.get("e").map(|ee| &ee[0]) {
                     // change a to e([])
                     *gc.get_mut() = e(vec![]);
-                    parse_expr(input, &mut ee, &mut gc)?;
+                    // recurse
+                    parse_expr(input, &ee, &mut gc)?;
                 }
             }
         }
