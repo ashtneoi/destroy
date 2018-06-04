@@ -559,6 +559,10 @@ mod standard {
         }
 
         static GRAMMAR_GRAMMAR_STR: &str = r##"
+            nzdigit = '1'..'9'
+            digit = "0" / nzdigit
+            latin_letter = 'a'..'z' / 'A'..'Z'
+
             comment = "#" (-"\n" %)*
 
             wso_part = " " / "\t"
@@ -594,21 +598,21 @@ mod standard {
         "##;
 
         #[test]
-        fn bootstrap_stage0_parse_only() {
-            let gg0 = get_grammar_grammar();
+        fn bootstrap_stage1_parse_only() {
+            let g0 = get_grammar_grammar();
 
-            parse(&gg0, "grammar", GRAMMAR_GRAMMAR_STR).unwrap();
+            parse(&g0, "grammar", GRAMMAR_GRAMMAR_STR).unwrap();
         }
 
         #[test]
-        fn bootstrap_stage0_minimal() {
-            let i0 = r##"
+        fn parse_minimal_grammar() {
+            let i = r##"
                 A = "a"*
             "##;
 
-            let g0 = parse_grammar(i0).unwrap();
+            let g = parse_grammar(i).unwrap();
             assert_eq!(
-                g0,
+                g,
                 vec![
                     ("A".to_string(), e(vec![c(vec![s(t("a"))])])),
                 ],
@@ -617,9 +621,10 @@ mod standard {
 
         #[test]
         fn bootstrap() {
-            let g0 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
+            let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
+            println!("{:?}", g1);
 
-            let g1 = parse_grammar_with_grammar(&g0[..], GRAMMAR_GRAMMAR_STR)
+            let g2 = parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR)
                 .unwrap();
         }
     }

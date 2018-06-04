@@ -735,9 +735,7 @@ pub fn a() -> GrammarNode {
 
 pub fn get_utils() -> Vec<(&'static str, GrammarNode)> {
     vec![
-        ("nzdigit", c(vec![
-            r('1', '9'),
-        ])),
+        ("nzdigit", r('1', '9')),
         ("digit", c(vec![
             t("0"),
             k("nzdigit"),
@@ -1001,11 +999,12 @@ fn parse_expr(
                     name => {
                         assert!(name.starts_with("["));
                         assert!(name.ends_with("]"));
-                        k(op["name"][0].raw(input))
+                        u(op["name"][0].raw(input), a())
                     },
                 };
                 // down
                 let mut old_gc = gc;
+                println!("{:?}", old_gc.get());
                 gc = old_gc.down_new().unwrap();
             }
 
