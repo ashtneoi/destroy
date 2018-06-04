@@ -933,43 +933,23 @@ fn parse_expr(
 
     assert_eq!(gc.get(), &Seq(vec![]));
 
-    for expr_choice in expr.get().iter("c") {
-        if let &mut Seq(ref mut children) = gc.get_mut() {
-            children.push(c(vec![]));
-        } else { panic!(); }
-        println!("c = {}", expr_choice.get().raw(input));
+    for cc in expr.get().iter("c") {
+        println!("c = {}", cc.get().raw(input));
 
-        let mut gc = gc.down_new().unwrap();
+        for pre in cc.get().iter("pre") {
+            println!("pre = {}", pre.get().raw(input));
 
-        for expr_pre in expr_choice.get().iter("pre") {
-
-            for op in expr_pre.get().iter("op") {
-                let new = match op.get().raw(input) {
-                    "^" => z(e(vec![])),
-                    "-" => g(e(vec![])),
-                    _ => panic!(),
-                };
-                match gc.get_mut() {
-                    &mut Choice(ref mut children) =>
-                        children.push(new),
-                    &mut Pos(ref mut child)
-                    | &mut Neg(ref mut child) =>
-                        *child = Box::new(new),
-                    _ => panic!(),
-                }
-                let old_gc = gc;
-                gc = &mut old_gc.down_new().unwrap();
+            for op in pre.get().iter("op") {
             }
-            println!("pre = {}", expr_pre.get().raw(input));
 
-            for expr_suf in expr_pre.get().iter("suf") {
-                println!("suf = {}", expr_suf.get().raw(input));
+            for suf in pre.get().iter("suf") {
+                println!("suf = {}", suf.get().raw(input));
 
-                for expr_atom in expr_suf.get().iter("atom") {
-                    println!("atom = {}", expr_atom.get().raw(input));
-                    if let Some(mut expr) =
-                            expr_atom.get().get_or_empty("e").get(0) {
-                        parse_expr(input, &mut TreeCursor::new(expr), gc);
+                for atom in suf.get().iter("atom") {
+                    println!("atom = {}", atom.get().raw(input));
+
+                    if let Some(mut ee) = atom.get().iter("ee").next() {
+                        parse_expr(input, &mut ee, gc);
                     }
                 }
             }
