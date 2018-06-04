@@ -627,8 +627,8 @@ impl Match {
         self.get(name).map(|v| v.as_slice()).unwrap_or(empty_slice())
     }
 
-    pub fn iter(&self, name: &str) -> impl Iterator<Item = TreeCursor<Match>> {
-        self.get_or_empty(name).iter().map(|node| TreeCursor::new(node))
+    pub fn iter(&self, name: &str) -> impl Iterator<Item = &Match> {
+        self.get_or_empty(name).iter()
     }
 
     pub fn get(&self, name: &str) -> Option<&Vec<Self>> {
@@ -926,15 +926,15 @@ pub fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
 
 fn parse_expr(
     input: &str,
-    expr: &mut TreeCursor<Match>,
+    expr: &Match,
     gc: &mut TreeCursorMut<GrammarNode>,
 ) -> Result<(), ParseError> {
     use GrammarNode::*;
 
     assert_eq!(gc.get(), &Seq(vec![]));
 
-    for cc in expr.get().iter("c") {
-        println!("cc = {}", cc.get().raw(input));
+    for cc in expr.iter("c") {
+        println!("cc = {}", cc.raw(input));
 
         // push c
         if let &mut Seq(ref mut v) = gc.get_mut() {
@@ -943,8 +943,8 @@ fn parse_expr(
         // down
         let mut gc = gc.down_new().unwrap();
 
-        for pre in cc.get().iter("pre") {
-            println!("pre = {}", pre.get().raw(input));
+        for pre in cc.iter("pre") {
+            println!("pre = {}", pre.raw(input));
 
             // push a
             if let &mut Choice(ref mut v) = gc.get_mut() {
@@ -953,7 +953,7 @@ fn parse_expr(
             // down
             let mut gc = gc.down_new().unwrap();
 
-            for op in pre.get().iter("op") {
+            for op in pre.iter("op") {
                 // change a to g(a)
                 *gc.get_mut() = g(a());
                 // down
@@ -961,7 +961,7 @@ fn parse_expr(
                 gc = old_gc.down_new().unwrap();
             }
 
-            let suf = &pre.get()["suf"][0];
+            let suf = &pre["suf"][0];
 
             println!("suf = {}", suf.raw(input));
 
@@ -974,9 +974,9 @@ fn parse_expr(
             }
 
             for atom in suf.iter("atom") {
-                println!("atom = {}", atom.get().raw(input));
+                println!("atom = {}", atom.raw(input));
 
-                if let Some(mut ee) = atom.get().iter("e").next() {
+                if let Some(mut ee) = atom.iter("e").next() {
                     // change a to e([])
                     *gc.get_mut() = e(vec![]);
                     parse_expr(input, &mut ee, &mut gc)?;
@@ -1000,22 +1000,21 @@ pub fn parse_grammar(
         Err(ParseError::BadGrammar(e)) => panic!("{:?}", e),
         Err(e) => return Err(e),
     };
-    let mut stc = TreeCursor::new(&st);
 
     let mut g = Vec::<(String, GrammarNode)>::new();
 
-    let rule_count = stc.get().count("name");
-    assert_eq!(rule_count, stc.get().count("val"));
+    let rule_count = st.count("name");
+    assert_eq!(rule_count, st.count("val"));
 
     // grammar
 
     for (mut cname, mut cval)
-            in stc.get().iter("name").zip(stc.get().iter("val"))
+            in st.iter("name").zip(st.iter("val"))
     {
-        let name = cname.get().raw(input);
+        let name = cname.raw(input);
         g.push((name.to_string(), Seq(vec![])));
         let mut gc = TreeCursorMut::new(&mut g.last_mut().unwrap().1);
-        parse_expr(input, &mut cval, &mut gc)?;
+        parse_expr(input, &cval, &mut gc)?;
     }
 
     Ok(g)
