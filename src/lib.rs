@@ -277,9 +277,9 @@ impl Link for GrammarNode {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Pos {
-    lin: usize,
-    row: usize,
-    col: usize,
+    pub lin: usize,
+    pub row: usize,
+    pub col: usize,
 }
 
 impl Pos {
