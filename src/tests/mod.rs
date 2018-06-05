@@ -736,12 +736,14 @@ mod regression {
 
     #[test]
     fn choice_precedence() {
+        // Fixed by 24ed683888da95edb2eea971da2e342d7ac40284.
         let g = parse_grammar(r##"A = "a" / "b"? "c""##).unwrap();
         parse(&g, "A", "a").unwrap();
     }
 
     #[test]
     fn wrong_prefix_order() {
+        // Fixed by c5a113997e5b962ed247ef62f1e04099260f7d18.
         let g1 = parse_grammar(r##"A = ^-"a""##).unwrap();
         assert_eq!(g1, vec![
             ("A".to_string(), c(vec![e(vec![z(g(t("a")))])])),
