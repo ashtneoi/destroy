@@ -974,7 +974,7 @@ fn parse_expr(
             // down
             let mut gc = gc.down_new().unwrap();
 
-            for op in pre.iter_rev("op") {
+            for op in pre.iter("op") {
                 // change a to op(a)
                 *gc.get_mut() = match op.raw(input) {
                     "^" => z(a()),

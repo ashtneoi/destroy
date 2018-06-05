@@ -739,4 +739,12 @@ mod regression {
         let g = parse_grammar(r##"A = "a" / "b"? "c""##).unwrap();
         parse(&g, "A", "a").unwrap();
     }
+
+    #[test]
+    fn wrong_prefix_order() {
+        let g1 = parse_grammar(r##"A = ^-"a""##).unwrap();
+        assert_eq!(g1, vec![
+            ("A".to_string(), c(vec![e(vec![z(g(t("a")))])])),
+        ]);
+    }
 }
