@@ -1,5 +1,5 @@
 use std::ptr;
-use tree::{Link, LinkError, LinkTreeCursor};
+use link_tree::{Link, LinkError, LinkTreeCursor};
 use tree_cursor::prelude::*;
 
 #[derive(Debug)]

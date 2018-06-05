@@ -1,6 +1,6 @@
-use mat;
-use parse;
+use parse::parse;
 use prelude::*;
+use tests::mat;
 
 #[test]
 fn minimal() {

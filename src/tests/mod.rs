@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use parse::Match;
+use Pos;
 
 mod grammar_node;
 mod group;

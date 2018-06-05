@@ -1,6 +1,9 @@
-use parse;
-use parse_grammar;
-use parse_grammar_with_grammar;
+use parse::{
+    get_grammar_grammar,
+    parse,
+    parse_grammar,
+    parse_grammar_with_grammar,
+};
 use prelude::*;
 use test::Bencher;
 

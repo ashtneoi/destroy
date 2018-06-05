@@ -16,7 +16,7 @@ fn empty_slice<'a, T: 'a>() -> &'a [T] {
 
 #[derive(PartialEq, Eq)]
 pub struct Match {
-    raw: (Pos, Pos),
+    pub(super) raw: (Pos, Pos),
     named: Vec<(String, Vec<Match>)>,
 }
 
@@ -42,7 +42,7 @@ impl fmt::Debug for Match {
 }
 
 impl Match {
-    fn new(raw: (Pos, Pos), named: Vec<(&str, Vec<Match>)>) -> Self
+    pub(super) fn new(raw: (Pos, Pos), named: Vec<(&str, Vec<Match>)>) -> Self
     {
         Match {
             raw,
@@ -374,7 +374,7 @@ pub fn parse(
     }
 }
 
-fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
+pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
     let mut gg = get_utils();
 
     gg.append(&mut vec![
@@ -677,7 +677,7 @@ fn parse_expr(
     Ok(())
 }
 
-fn parse_grammar_with_grammar<S>(
+pub(super) fn parse_grammar_with_grammar<S>(
     gg: &[(S, GrammarNode)], input: &str
 ) -> Result<Vec<(String, GrammarNode)>, ParseError>
 where

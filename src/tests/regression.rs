@@ -1,8 +1,6 @@
-use mat;
-use parse;
-use parse_grammar;
+use parse::{parse, parse_grammar};
 use prelude::*;
-use Pos;
+use tests::mat;
 
 #[test]
 fn raw_match() {
