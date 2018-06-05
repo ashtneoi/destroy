@@ -124,7 +124,7 @@ impl Down for Match {
     }
 }
 
-pub struct MatchNode {
+struct MatchNode {
     child: Option<Box<MatchNode>>,
     st: Option<Match>,
 }
