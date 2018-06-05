@@ -169,13 +169,6 @@ fn parse_minimal_grammar() {
 }
 
 #[test]
-fn bootstrap_stage1() {
-    let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
-
-    parse(&g1, "ws", r##" "##).unwrap();
-}
-
-#[test]
 fn bootstrap_stage2() {
     let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
 
