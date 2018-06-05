@@ -9,10 +9,7 @@ use std::ops::Index;
 use tree_cursor::prelude::*;
 use tree_cursor::cursor::TreeCursorMut;
 
-// TODO
-fn empty_slice<'a, T: 'a>() -> &'a [T] {
-    unsafe { ::std::slice::from_raw_parts(0x1 as *const T, 0) }
-}
+static EMPTY_MATCH_SLICE: &[Match] = &[];
 
 #[derive(PartialEq, Eq)]
 pub struct Match {
@@ -69,7 +66,7 @@ impl Match {
     }
 
     pub fn get_or_empty(&self, name: &str) -> &[Self] {
-        self.get(name).map(|v| v.as_slice()).unwrap_or(empty_slice())
+        self.get(name).map(|v| v.as_slice()).unwrap_or(EMPTY_MATCH_SLICE)
     }
 
     pub fn iter(&self, name: &str) -> impl Iterator<Item = &Match> {
