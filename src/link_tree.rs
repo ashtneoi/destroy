@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use tree_cursor::cursor::TreeCursor;
 use tree_cursor::prelude::*;
 
-pub trait Link {
+pub(super) trait Link {
     fn target(&self) -> Option<&str>;
 }
 
-type LinkMap<X> = HashMap<String, X>;
+pub(super) type LinkMap<X> = HashMap<String, X>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LinkError {
@@ -16,7 +16,7 @@ pub enum LinkError {
 }
 
 #[derive(Clone, Debug)]
-pub struct LinkTreeCursor<'n, N: 'n + Down + Link> {
+pub(super) struct LinkTreeCursor<'n, N: 'n + Down + Link> {
     tree_cursor: TreeCursor<'n, N>,
     link_map: LinkMap<&'n N>,
 }
