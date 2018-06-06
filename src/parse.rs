@@ -11,8 +11,6 @@ use std::ops::Index;
 use tree_cursor::cursor::TreeCursorMut;
 use tree_cursor::prelude::*;
 
-static EMPTY_MATCH_SLICE: &[Match] = &[];
-
 #[derive(PartialEq, Eq)]
 pub struct Match {
     pub(super) raw: (Pos, Pos),
@@ -68,6 +66,7 @@ impl Match {
     }
 
     pub fn get_or_empty(&self, name: &str) -> &[Self] {
+        static EMPTY_MATCH_SLICE: &[Match] = &[];
         self.get(name).map(|v| v.as_slice()).unwrap_or(EMPTY_MATCH_SLICE)
     }
 
