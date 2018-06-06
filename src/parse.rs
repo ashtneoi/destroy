@@ -480,26 +480,23 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
             ])),
         ])),
         ("expr_seq", e(vec![
-            u("pre", k("expr_prefix")),
+            u("af", k("expr_affix")),
             s(e(vec![
                 k("pws"),
-                u("pre", k("expr_prefix")),
+                u("af", k("expr_affix")),
                 g(e(vec![
                     k("wso"),
                     t("="),
                 ])),
             ])),
         ])),
-        ("expr_prefix", e(vec![
-            s(u("op", c(vec![
+        ("expr_affix", e(vec![
+            s(u("pre", c(vec![
                 t("^"),
                 t("-"),
             ]))),
-            u("suf", k("expr_suffix")),
-        ])),
-        ("expr_suffix", e(vec![
             u("atom", k("expr_atom")),
-            s(u("op", c(vec![
+            s(u("suf", c(vec![
                 t("*"),
                 t("+"),
                 t("?"),
@@ -586,7 +583,7 @@ fn parse_expr(
         // down
         let mut gc = gc.down_new().unwrap();
 
-        for pre in ee.iter("pre") {
+        for af in ee.iter("af") {
             // push a
             if let &mut Seq(ref mut v) = gc.get_mut() {
                 v.push(a()); // placeholder
@@ -594,9 +591,9 @@ fn parse_expr(
             // down
             let mut gc = gc.down_new().unwrap();
 
-            for op in pre.iter("op") {
+            for pre in af.iter("pre") {
                 // change a to op(a)
-                *gc.get_mut() = match op.raw(input) {
+                *gc.get_mut() = match pre.raw(input) {
                     "^" => z(a()),
                     "-" => g(a()),
                     _ => panic!(),
@@ -606,18 +603,16 @@ fn parse_expr(
                 gc = old_gc.down_new().unwrap();
             }
 
-            let suf = &pre["suf"][0];
-
-            for op in suf.iter_rev("op") {
+            for suf in af.iter_rev("suf") {
                 // change a to op(a)
-                *gc.get_mut() = match op.raw(input) {
+                *gc.get_mut() = match suf.raw(input) {
                     "*" => s(a()),
                     "+" => p(a()),
                     "?" => q(a()),
                     name => {
                         assert!(name.starts_with("["));
                         assert!(name.ends_with("]"));
-                        u(op["name"][0].raw(input), a())
+                        u(suf["name"][0].raw(input), a())
                     },
                 };
                 // down
@@ -625,48 +620,49 @@ fn parse_expr(
                 gc = old_gc.down_new().unwrap();
             }
 
-            for atom in suf.iter("atom") {
-                fn first<'a>(v: &'a Vec<Match>) -> &'a Match {
-                    &v[0]
-                }
+            let atom = &af["atom"][0];
 
-                let atom_raw = atom.raw(input);
-                if atom_raw == "%" {
-                    *gc.get_mut() = a();
-                } else if atom_raw.starts_with('"') {
-                    let mut s = String::new();
-                    for cp in atom.iter("cp") {
-                        s.push(parse_escape(cp.raw(input)));
-                    }
-                    *gc.get_mut() = t(&s);
-                } else if let Some(rr) = atom.get("r").map(first) {
-                    let ff = &rr["from"][0];
-                    let tt = &rr["to"][0];
-                    let ffc = if let Some(hex) = ff.get("hex").map(first) {
-                        char::from_u32(
-                            u32::from_str_radix(&hex.raw(input)[2..], 16)
-                                .unwrap()
-                        ).unwrap() // TODO
-                    } else if let Some(raw) = ff.get("raw").map(first) {
-                        parse_escape(raw.raw(input))
-                    } else { panic!(); };
-                    let ttc = if let Some(hex) = tt.get("hex").map(first) {
-                        char::from_u32(
-                            u32::from_str_radix(&hex.raw(input)[2..], 16)
-                                .unwrap()
-                        ).unwrap() // TODO
-                    } else if let Some(raw) = tt.get("raw").map(first) {
-                        parse_escape(raw.raw(input))
-                    } else { panic!(); };
-                    *gc.get_mut() = r(ffc, ttc);
-                } else if let Some(id) = atom.get("id").map(first) {
-                    *gc.get_mut() = k(id.raw(input));
-                } else if let Some(cc) = atom.get("c").map(first) {
-                    // change a to c([])
-                    *gc.get_mut() = c(vec![]);
-                    // recurse
-                    parse_expr(input, &cc, &mut gc)?;
+            fn first<'a>(v: &'a Vec<Match>) -> &'a Match {
+                &v[0]
+            }
+
+            let atom_raw = atom.raw(input);
+            println!("{}", atom_raw);
+            if atom_raw == "%" {
+                *gc.get_mut() = a();
+            } else if atom_raw.starts_with('"') {
+                let mut s = String::new();
+                for cp in atom.iter("cp") {
+                    s.push(parse_escape(cp.raw(input)));
                 }
+                *gc.get_mut() = t(&s);
+            } else if let Some(rr) = atom.get("r").map(first) {
+                let ff = &rr["from"][0];
+                let tt = &rr["to"][0];
+                let ffc = if let Some(hex) = ff.get("hex").map(first) {
+                    char::from_u32(
+                        u32::from_str_radix(&hex.raw(input)[2..], 16)
+                            .unwrap()
+                    ).unwrap() // TODO
+                } else if let Some(raw) = ff.get("raw").map(first) {
+                    parse_escape(raw.raw(input))
+                } else { panic!(); };
+                let ttc = if let Some(hex) = tt.get("hex").map(first) {
+                    char::from_u32(
+                        u32::from_str_radix(&hex.raw(input)[2..], 16)
+                            .unwrap()
+                    ).unwrap() // TODO
+                } else if let Some(raw) = tt.get("raw").map(first) {
+                    parse_escape(raw.raw(input))
+                } else { panic!(); };
+                *gc.get_mut() = r(ffc, ttc);
+            } else if let Some(id) = atom.get("id").map(first) {
+                *gc.get_mut() = k(id.raw(input));
+            } else if let Some(cc) = atom.get("c").map(first) {
+                // change a to c([])
+                *gc.get_mut() = c(vec![]);
+                // recurse
+                parse_expr(input, &cc, &mut gc)?;
             }
         }
     }

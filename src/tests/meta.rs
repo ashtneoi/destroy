@@ -138,10 +138,11 @@ static GRAMMAR_GRAMMAR_STR: &str = r##"
     ident = ident_initial (ident_initial / digit)* # TODO
 
     expr = expr_seq[e] (ws "/" ws expr_seq[e])*
-    expr_seq = expr_prefix[pre] (pws expr_prefix[pre] -(wso "="))*
-    expr_prefix = ("^" / "-")[op]* expr_suffix[suf]
-    expr_suffix =
-        expr_atom[atom] ("*" / "+" / "?" / "[" ident[name] "]")[op]*
+    expr_seq = expr_affix[af] (pws expr_affix[af] -(wso "="))*
+    expr_affix =
+        ("^" / "-")[pre]*
+        expr_atom[atom]
+        ("*" / "+" / "?" / "[" ident[name] "]")[suf]*
     expr_atom =
         "%" / str / cp_range[r] / ident[id] / "(" ws expr[c] ws ")"
 
