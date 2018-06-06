@@ -627,7 +627,6 @@ fn parse_expr(
             }
 
             let atom_raw = atom.raw(input);
-            println!("{}", atom_raw);
             if atom_raw == "%" {
                 *gc.get_mut() = a();
             } else if atom_raw.starts_with('"') {
