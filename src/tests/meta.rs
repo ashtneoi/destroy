@@ -1,10 +1,10 @@
+use constructors::*;
 use parse::{
     get_grammar_grammar,
     parse,
     parse_grammar,
     parse_grammar_with_grammar,
 };
-use prelude::*;
 use test::Bencher;
 
 #[test]

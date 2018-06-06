@@ -5,19 +5,15 @@ extern crate test;
 
 extern crate tree_cursor;
 
+use constructors::*;
 use link_tree::Link;
 use std::fmt;
 use tree_cursor::prelude::*;
 
+pub mod constructors;
 mod link_tree;
 pub mod parse;
 mod tests;
-
-pub mod prelude {
-    pub use {e, c, s, p, q, z, g, u, x, k, r, t, a};
-    pub use GrammarNode;
-    pub use Pos;
-}
 
 struct PosDelta {
     lin: usize,
@@ -292,59 +288,6 @@ impl fmt::Debug for Pos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}/{},{}", self.lin, self.row, self.col)
     }
-}
-
-
-pub fn e(children: Vec<GrammarNode>) -> GrammarNode {
-    GrammarNode::Seq(children)
-}
-
-pub fn c(children: Vec<GrammarNode>) -> GrammarNode {
-    GrammarNode::Choice(children)
-}
-
-pub fn s(child: GrammarNode) -> GrammarNode {
-    GrammarNode::Star(Box::new(child))
-}
-
-pub fn p(child: GrammarNode) -> GrammarNode {
-    GrammarNode::Plus(Box::new(child))
-}
-
-pub fn q(child: GrammarNode) -> GrammarNode {
-    GrammarNode::Opt(Box::new(child))
-}
-
-pub fn z(child: GrammarNode) -> GrammarNode {
-    GrammarNode::Pos(Box::new(child))
-}
-
-pub fn g(child: GrammarNode) -> GrammarNode {
-    GrammarNode::Neg(Box::new(child))
-}
-
-pub fn u(name: &str, child: GrammarNode) -> GrammarNode {
-    GrammarNode::Group(name.to_string(), Box::new(child))
-}
-
-pub fn x(child: GrammarNode) -> GrammarNode {
-    GrammarNode::Erase(Box::new(child))
-}
-
-pub fn k(target: &str) -> GrammarNode {
-    GrammarNode::Link(target.to_string())
-}
-
-pub fn r(from: char, to: char) -> GrammarNode {
-    GrammarNode::Range(from, to)
-}
-
-pub fn t(text: &str) -> GrammarNode {
-    GrammarNode::Text(text.to_string())
-}
-
-pub fn a() -> GrammarNode {
-    GrammarNode::Anything
 }
 
 pub fn get_utils() -> Vec<(&'static str, GrammarNode)> {

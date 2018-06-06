@@ -1,5 +1,6 @@
+use constructors::*;
 use parse::{parse, parse_grammar};
-use prelude::*;
+use Pos;
 use tests::mat;
 
 #[test]
