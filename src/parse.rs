@@ -471,19 +471,19 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
         ])),
 
         ("expr", e(vec![
-            u("e", k("expr_seq")),
+            u("opd", k("expr_seq")),
             s(e(vec![
                 k("ws"),
                 t("/"),
                 k("ws"),
-                u("e", k("expr_seq")),
+                u("opd", k("expr_seq")),
             ])),
         ])),
         ("expr_seq", e(vec![
-            u("af", k("expr_affix")),
+            u("opd", k("expr_affix")),
             s(e(vec![
                 k("pws"),
-                u("af", k("expr_affix")),
+                u("opd", k("expr_affix")),
                 g(e(vec![
                     k("wso"),
                     t("="),
@@ -495,7 +495,7 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                 t("^"),
                 t("-"),
             ]))),
-            u("atom", k("expr_atom")),
+            u("opd", k("expr_atom")),
             s(u("suf", c(vec![
                 t("*"),
                 t("+"),
@@ -515,7 +515,7 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
             e(vec![
                 t("("),
                 k("ws"),
-                u("c", k("expr")),
+                u("expr", k("expr")),
                 k("ws"),
                 t(")"),
             ]),
@@ -575,7 +575,7 @@ fn parse_expr(
 
     assert_eq!(gc.get(), &Choice(vec![]));
 
-    for ee in expr.iter("e") {
+    for ee in expr.iter("opd") {
         // push c
         if let &mut Choice(ref mut v) = gc.get_mut() {
             v.push(e(vec![]));
@@ -583,7 +583,7 @@ fn parse_expr(
         // down
         let mut gc = gc.down_new().unwrap();
 
-        for af in ee.iter("af") {
+        for af in ee.iter("opd") {
             // push a
             if let &mut Seq(ref mut v) = gc.get_mut() {
                 v.push(a()); // placeholder
@@ -620,7 +620,7 @@ fn parse_expr(
                 gc = old_gc.down_new().unwrap();
             }
 
-            let atom = &af["atom"][0];
+            let atom = &af["opd"][0];
 
             fn first<'a>(v: &'a Vec<Match>) -> &'a Match {
                 &v[0]
@@ -658,11 +658,11 @@ fn parse_expr(
                 *gc.get_mut() = r(ffc, ttc);
             } else if let Some(id) = atom.get("id").map(first) {
                 *gc.get_mut() = k(id.raw(input));
-            } else if let Some(cc) = atom.get("c").map(first) {
+            } else if let Some(inner_expr) = atom.get("expr").map(first) {
                 // change a to c([])
                 *gc.get_mut() = c(vec![]);
                 // recurse
-                parse_expr(input, &cc, &mut gc)?;
+                parse_expr(input, &inner_expr, &mut gc)?;
             }
         }
     }

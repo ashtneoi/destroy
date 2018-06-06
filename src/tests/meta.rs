@@ -137,14 +137,14 @@ static GRAMMAR_GRAMMAR_STR: &str = r##"
     ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
     ident = ident_initial (ident_initial / digit)* # TODO
 
-    expr = expr_seq[e] (ws "/" ws expr_seq[e])*
-    expr_seq = expr_affix[af] (pws expr_affix[af] -(wso "="))*
+    expr = expr_seq[opd] (ws "/" ws expr_seq[opd])*
+    expr_seq = expr_affix[opd] (pws expr_affix[opd] -(wso "="))*
     expr_affix =
         ("^" / "-")[pre]*
-        expr_atom[atom]
+        expr_atom[opd]
         ("*" / "+" / "?" / "[" ident[name] "]")[suf]*
     expr_atom =
-        "%" / str / cp_range[r] / ident[id] / "(" ws expr[c] ws ")"
+        "%" / str / cp_range[r] / ident[id] / "(" ws expr[expr] ws ")"
 
     rule = ident[name] wso "=" ws expr[val]
     grammar = ws (rule wso comment? "\n" ws)* (rule wso comment?)?
