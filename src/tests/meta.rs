@@ -173,24 +173,21 @@ fn parse_minimal_grammar() {
 }
 
 #[test]
-fn bootstrap_stage2() {
+fn bootstrap() {
     let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
 
     let g2 = parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR)
         .unwrap();
 
     assert_eq!(&g1, &g2);
-}
-
-#[test]
-fn bootstrap_stage3() {
-    let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
-
-    let g2 = parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR)
-        .unwrap();
 
     let g3 = parse_grammar_with_grammar(&g2, GRAMMAR_GRAMMAR_STR)
         .unwrap();
 
     assert_eq!(&g2, &g3);
+}
+
+#[bench]
+fn bench_bootstrap(b: &mut Bencher) {
+    b.iter(|| parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap());
 }
