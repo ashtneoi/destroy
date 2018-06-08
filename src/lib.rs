@@ -214,6 +214,12 @@ impl GrammarNode {
         }
     }
 
+    // depth-first, left to right
+    fn initial(&self) -> Vec<GrammarAtom> {
+        let s = vec![];
+        s
+    }
+
     fn action(&self) -> Action {
         use GrammarAtom::*;
         use GrammarNode::*;
