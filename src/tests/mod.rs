@@ -3,6 +3,7 @@
 use parse::Match;
 use Pos;
 
+mod error;
 mod grammar_node;
 mod group;
 mod link_tree;

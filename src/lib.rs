@@ -319,6 +319,12 @@ impl Link for GrammarNode {
     }
 }
 
+// depth-first, left to right
+fn initial(&self) -> Vec<GrammarAtom> {
+    let s = vec![];
+    s
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Pos {
     pub lin: usize,
