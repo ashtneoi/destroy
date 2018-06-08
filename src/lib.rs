@@ -76,6 +76,27 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
     Action { down, zero, keep, success }
 }
 
+// TODO: Derive more traits.
+#[derive(Eq, PartialEq)]
+pub enum GrammarAtom {
+    Range(char, char),
+    Text(String),
+    Anything,
+}
+
+impl fmt::Debug for GrammarAtom {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use GrammarAtom::*;
+        match self {
+            &Range(to, from) =>
+                write!(f, "{:#X}..{:#X}", &(to as u32), &(from as u32)),
+            &Text(ref t) => write!(f, "{:?}", t),
+            &Anything => write!(f, "%"),
+        }
+    }
+}
+
+// TODO: Derive more traits.
 #[derive(Eq, PartialEq)]
 pub enum GrammarNode {
     Seq(Vec<GrammarNode>),
@@ -88,9 +109,7 @@ pub enum GrammarNode {
     Group(String, Box<GrammarNode>),
     Erase(Box<GrammarNode>),
     Link(String),
-    Range(char, char),
-    Text(String),
-    Anything,
+    Atom(GrammarAtom),
 }
 
 impl fmt::Debug for GrammarNode {
@@ -132,10 +151,7 @@ impl fmt::Debug for GrammarNode {
             // TODO: ^^^
             &Erase(ref child) => write!(f, "Erase({:?})", child)?, // TODO
             &Link(ref target) => write!(f, "{}", target)?,
-            &Range(to, from) =>
-                write!(f, "{:#X}..{:#X}", &(to as u32), &(from as u32))?,
-            &Text(ref t) => write!(f, "{:?}", t)?,
-            &Anything => write!(f, "%")?,
+            &Atom(ref inner) => write!(f, "{:?}", inner)?,
         }
         Ok(())
     }
@@ -143,9 +159,10 @@ impl fmt::Debug for GrammarNode {
 
 impl GrammarNode {
     fn try_match(&self, input: &str) -> Option<PosDelta> {
+        use GrammarAtom::*;
         use GrammarNode::*;
         match self {
-            &Range(from, to) => {
+            &Atom(Range(from, to)) => {
                 if let Some(c) = input.chars().next() {
                     if from <= c && c <= to {
                         if c == '\n' {
@@ -160,7 +177,7 @@ impl GrammarNode {
                     None
                 }
             },
-            &Text(ref t) => {
+            &Atom(Text(ref t)) => {
                 if input.starts_with(t) {
                     let mut cp_count: isize = 0;
                     let nls: Vec<isize> = t.chars()
@@ -184,7 +201,7 @@ impl GrammarNode {
                     None
                 }
             },
-            &Anything => {
+            &Atom(Anything) => {
                 match input.chars().next() {
                     Some('\n') =>
                         Some(PosDelta { lin: 1, row: 1, col: 0 }),
@@ -198,6 +215,7 @@ impl GrammarNode {
     }
 
     fn action(&self) -> Action {
+        use GrammarAtom::*;
         use GrammarNode::*;
         match self {
             &Seq(_) => act(true, false, true, true),
@@ -210,13 +228,12 @@ impl GrammarNode {
             &Group(_, _)
             | &Erase(_)
             | &Link(_)
-            | &Range(_, _)
-            | &Text(_)
-            | &Anything => act(false, false, true, true),
+            | &Atom(_) => act(false, false, true, true),
         }
     }
 
     fn fail_action(&self) -> Action {
+        use GrammarAtom::*;
         use GrammarNode::*;
         match self {
             &Plus(_) => act(false, false, true, true),
@@ -237,9 +254,7 @@ impl GrammarNode {
             &Group(_, _)
             | &Erase(_)
             | &Link(_)
-            | &Range(_, _)
-            | &Text(_)
-            | &Anything => act(false, false, false, false),
+            | &Atom(_) => act(false, false, false, false),
         }
     }
 
@@ -265,9 +280,7 @@ impl Down for GrammarNode {
                 }
             },
             &Link(_)
-            | &Range(_, _)
-            | &Text(_)
-            | &Anything => None,
+            | &Atom(_) => None,
         }
     }
 }
@@ -292,9 +305,7 @@ impl DownMut for GrammarNode {
                 }
             },
             &mut Link(_)
-            | &mut Range(_, _)
-            | &mut Text(_)
-            | &mut Anything => None,
+            | &mut Atom(_) => None,
         }
     }
 }

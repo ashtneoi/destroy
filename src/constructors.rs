@@ -1,3 +1,4 @@
+use GrammarAtom;
 use GrammarNode;
 
 pub fn e(children: Vec<GrammarNode>) -> GrammarNode {
@@ -41,13 +42,13 @@ pub fn k(target: &str) -> GrammarNode {
 }
 
 pub fn r(from: char, to: char) -> GrammarNode {
-    GrammarNode::Range(from, to)
+    GrammarNode::Atom(GrammarAtom::Range(from, to))
 }
 
 pub fn t(text: &str) -> GrammarNode {
-    GrammarNode::Text(text.to_string())
+    GrammarNode::Atom(GrammarAtom::Text(text.to_string()))
 }
 
 pub fn a() -> GrammarNode {
-    GrammarNode::Anything
+    GrammarNode::Atom(GrammarAtom::Anything)
 }
