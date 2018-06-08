@@ -214,12 +214,6 @@ impl GrammarNode {
         }
     }
 
-    // depth-first, left to right
-    fn initial(&self) -> Vec<GrammarAtom> {
-        let s = vec![];
-        s
-    }
-
     fn action(&self) -> Action {
         use GrammarAtom::*;
         use GrammarNode::*;
@@ -323,6 +317,12 @@ impl Link for GrammarNode {
             _ => None,
         }
     }
+}
+
+// depth-first, left to right
+fn initial(&self) -> Vec<GrammarAtom> {
+    let s = vec![];
+    s
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
