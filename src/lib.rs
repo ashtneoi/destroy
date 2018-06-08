@@ -8,12 +8,25 @@ extern crate tree_cursor;
 use constructors::*;
 use link_tree::Link;
 use std::fmt;
+use std::ops::{Add, AddAssign};
 use tree_cursor::prelude::*;
 
 pub mod constructors;
 mod link_tree;
 pub mod parse;
 mod tests;
+
+impl Pos {
+    fn empty() -> Self {
+        Pos { lin: 0, row: 1, col: 1 }
+    }
+}
+
+impl fmt::Debug for Pos {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}/{},{}", self.lin, self.row, self.col)
+    }
+}
 
 struct PosDelta {
     lin: usize,
@@ -24,6 +37,30 @@ struct PosDelta {
 impl fmt::Debug for PosDelta {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}/{},{}", self.lin, self.row, self.col)
+    }
+}
+
+impl Add<PosDelta> for Pos {
+    type Output = Pos;
+
+    fn add(self, delta: PosDelta) -> Pos {
+        Pos {
+            lin: self.lin + delta.lin,
+            row: self.row + delta.row,
+            col: (
+                if delta.row > 0 {
+                    1
+                } else {
+                    self.col
+                }
+            ) + delta.col,
+        }
+    }
+}
+
+impl AddAssign<PosDelta> for Pos {
+    fn add_assign(&mut self, delta: PosDelta) {
+        *self = *self + delta
     }
 }
 
@@ -276,18 +313,6 @@ pub struct Pos {
     pub lin: usize,
     pub row: usize,
     pub col: usize,
-}
-
-impl Pos {
-    fn empty() -> Self {
-        Pos { lin: 0, row: 1, col: 1 }
-    }
-}
-
-impl fmt::Debug for Pos {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{},{}", self.lin, self.row, self.col)
-    }
 }
 
 pub fn get_utils() -> Vec<(&'static str, GrammarNode)> {

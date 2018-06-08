@@ -205,21 +205,7 @@ impl<'x, 's> Parser<'x, 's> {
 
         let maybe_delta = here.try_match(&self.input[self.pos.lin..]);
         match maybe_delta {
-            Some(delta) => {
-                let prev_raw = here_st.raw.1;
-                here_st.raw.1 = Pos {
-                    lin: prev_raw.lin + delta.lin,
-                    row: prev_raw.row + delta.row,
-                    col: (
-                        if delta.row > 0 {
-                            1
-                        } else {
-                            prev_raw.col
-                        }
-                    ) + delta.col,
-                };
-                true
-            },
+            Some(delta) => { here_st.raw.1 += delta; true }
             None => false,
         }
     }
