@@ -1,5 +1,5 @@
 use constructors::*;
-use parse::parse;
+use parse::Parser;
 use tests::mat;
 
 #[test]
@@ -9,7 +9,7 @@ fn minimal() {
     ];
 
     assert_eq!(
-        parse(g, "start", "aaa").unwrap(),
+        Parser::parse(g, "start", "aaa").unwrap(),
         mat((0, 1, 1, 3, 1, 4), vec![])
     );
 }
@@ -23,15 +23,15 @@ fn optional() {
         ])),
     ];
 
-    parse(g, "start", "-+").unwrap();
-    parse(g, "start", "-").unwrap();
-    parse(g, "start", "+").unwrap();
-    parse(g, "start", "").unwrap();
+    Parser::parse(g, "start", "-+").unwrap();
+    Parser::parse(g, "start", "-").unwrap();
+    Parser::parse(g, "start", "+").unwrap();
+    Parser::parse(g, "start", "").unwrap();
 
-    parse(g, "start", "+-").unwrap_err();
-    parse(g, "start", " ").unwrap_err();
-    parse(g, "start", "+0").unwrap_err();
-    parse(g, "start", "0+").unwrap_err();
+    Parser::parse(g, "start", "+-").unwrap_err();
+    Parser::parse(g, "start", " ").unwrap_err();
+    Parser::parse(g, "start", "+0").unwrap_err();
+    Parser::parse(g, "start", "0+").unwrap_err();
 }
 
 #[test]
@@ -64,24 +64,24 @@ fn decimal_integer() {
         ])),
     ];
 
-    parse(g, "dec_int", "0").unwrap();
-    parse(g, "dec_int", "1").unwrap();
-    parse(g, "dec_int", "9").unwrap();
-    parse(g, "dec_int", "10").unwrap();
-    parse(g, "dec_int", "19").unwrap();
-    parse(g, "dec_int", "99").unwrap();
-    parse(g, "dec_int", "-0").unwrap();
-    parse(g, "dec_int", "-1").unwrap();
-    parse(g, "dec_int", "-9").unwrap();
-    parse(g, "dec_int", "-10").unwrap();
-    parse(g, "dec_int", "-19").unwrap();
-    parse(g, "dec_int", "-99").unwrap();
+    Parser::parse(g, "dec_int", "0").unwrap();
+    Parser::parse(g, "dec_int", "1").unwrap();
+    Parser::parse(g, "dec_int", "9").unwrap();
+    Parser::parse(g, "dec_int", "10").unwrap();
+    Parser::parse(g, "dec_int", "19").unwrap();
+    Parser::parse(g, "dec_int", "99").unwrap();
+    Parser::parse(g, "dec_int", "-0").unwrap();
+    Parser::parse(g, "dec_int", "-1").unwrap();
+    Parser::parse(g, "dec_int", "-9").unwrap();
+    Parser::parse(g, "dec_int", "-10").unwrap();
+    Parser::parse(g, "dec_int", "-19").unwrap();
+    Parser::parse(g, "dec_int", "-99").unwrap();
 
-    parse(g, "dec_int", "y").unwrap_err();
-    parse(g, "dec_int", "-").unwrap_err();
-    parse(g, "dec_int", "0-").unwrap_err();
-    parse(g, "dec_int", "1-").unwrap_err();
-    parse(g, "dec_int", "01").unwrap_err();
+    Parser::parse(g, "dec_int", "y").unwrap_err();
+    Parser::parse(g, "dec_int", "-").unwrap_err();
+    Parser::parse(g, "dec_int", "0-").unwrap_err();
+    Parser::parse(g, "dec_int", "1-").unwrap_err();
+    Parser::parse(g, "dec_int", "01").unwrap_err();
 }
 
 #[test]
@@ -104,10 +104,10 @@ fn simple_expr() {
         ])),
     ];
 
-    parse(g, "expr", "1").unwrap();
-    parse(g, "expr", "1+1").unwrap();
-    parse(g, "expr", "(1+1+1)+1").unwrap();
-    parse(g, "expr", "1+(1+1+1)").unwrap();
+    Parser::parse(g, "expr", "1").unwrap();
+    Parser::parse(g, "expr", "1+1").unwrap();
+    Parser::parse(g, "expr", "(1+1+1)+1").unwrap();
+    Parser::parse(g, "expr", "1+(1+1+1)").unwrap();
 }
 
 #[test]
@@ -119,15 +119,15 @@ fn range() {
         ])),
     ];
 
-    parse(g, "start", "ae").unwrap();
-    parse(g, "start", "be").unwrap();
-    parse(g, "start", "ce").unwrap();
-    parse(g, "start", "de").unwrap();
+    Parser::parse(g, "start", "ae").unwrap();
+    Parser::parse(g, "start", "be").unwrap();
+    Parser::parse(g, "start", "ce").unwrap();
+    Parser::parse(g, "start", "de").unwrap();
 
-    parse(g, "start", "a").unwrap_err();
-    parse(g, "start", "e").unwrap_err();
-    parse(g, "start", "ee").unwrap_err();
-    parse(g, "start", "ea").unwrap_err();
+    Parser::parse(g, "start", "a").unwrap_err();
+    Parser::parse(g, "start", "e").unwrap_err();
+    Parser::parse(g, "start", "ee").unwrap_err();
+    Parser::parse(g, "start", "ea").unwrap_err();
 }
 
 #[test]
@@ -141,16 +141,16 @@ fn lookahead() {
         ])),
     ];
 
-    parse(g, "start", "ab").unwrap();
-    parse(g, "start", "ac").unwrap();
+    Parser::parse(g, "start", "ab").unwrap();
+    Parser::parse(g, "start", "ac").unwrap();
 
-    parse(g, "start", "aa").unwrap_err();
-    parse(g, "start", "ba").unwrap_err();
-    parse(g, "start", "bc").unwrap_err();
-    parse(g, "start", ".c").unwrap_err();
-    parse(g, "start", "a").unwrap_err();
-    parse(g, "start", "b").unwrap_err();
-    parse(g, "start", "").unwrap_err();
+    Parser::parse(g, "start", "aa").unwrap_err();
+    Parser::parse(g, "start", "ba").unwrap_err();
+    Parser::parse(g, "start", "bc").unwrap_err();
+    Parser::parse(g, "start", ".c").unwrap_err();
+    Parser::parse(g, "start", "a").unwrap_err();
+    Parser::parse(g, "start", "b").unwrap_err();
+    Parser::parse(g, "start", "").unwrap_err();
 }
 
 #[test]
@@ -163,15 +163,15 @@ fn anything() {
     ];
 
     assert_eq!(
-        parse(g, "x", "ab").unwrap(),
+        Parser::parse(g, "x", "ab").unwrap(),
         mat((0, 1, 1, 2, 1, 3), vec![])
     );
     assert_eq!(
-        parse(g, "x", " \n").unwrap(),
+        Parser::parse(g, "x", " \n").unwrap(),
         mat((0, 1, 1, 2, 2, 1), vec![])
     );
 
-    parse(g, "x", "").unwrap_err();
-    parse(g, "x", "a").unwrap_err();
-    parse(g, "x", "abc").unwrap_err();
+    Parser::parse(g, "x", "").unwrap_err();
+    Parser::parse(g, "x", "a").unwrap_err();
+    Parser::parse(g, "x", "abc").unwrap_err();
 }

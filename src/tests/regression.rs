@@ -1,5 +1,5 @@
 use constructors::*;
-use parse::{parse, parse_grammar};
+use parse::{parse_grammar, Parser};
 use Pos;
 use tests::mat;
 
@@ -14,19 +14,19 @@ fn raw_match() {
     ];
 
     assert_eq!(
-        parse(g, "start", "a").unwrap().raw,
+        Parser::parse(g, "start", "a").unwrap().raw,
         (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 1, row: 1, col: 2 })
     );
     assert_eq!(
-        parse(g, "start", "a   ").unwrap().raw,
+        Parser::parse(g, "start", "a   ").unwrap().raw,
         (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 4, row: 1, col: 5 })
     );
     assert_eq!(
-        parse(g, "start", "  a").unwrap().raw,
+        Parser::parse(g, "start", "  a").unwrap().raw,
         (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 3, row: 1, col: 4 })
     );
     assert_eq!(
-        parse(g, "start", "  a   ").unwrap().raw,
+        Parser::parse(g, "start", "  a   ").unwrap().raw,
         (Pos { lin: 0, row: 1, col: 1 }, Pos { lin: 6, row: 1, col: 7 })
     );
 }
@@ -40,7 +40,7 @@ fn multichar_text() {
     ];
 
     assert_eq!(
-        parse(g, "x", "aaa").unwrap(),
+        Parser::parse(g, "x", "aaa").unwrap(),
         mat((0, 1, 1, 3, 1, 4), vec![])
     );
 }
@@ -59,7 +59,7 @@ fn pos_confusion() {
         ])),
     ];
 
-    parse(g, "x", "a").unwrap();
+    Parser::parse(g, "x", "a").unwrap();
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn wrong_pos_after_nl() {
     ];
 
     assert_eq!(
-        parse(g, "x", "a\nb").unwrap().raw,
+        Parser::parse(g, "x", "a\nb").unwrap().raw,
         (Pos { lin: 0, row: 1, col: 1}, Pos { lin: 3, row: 2, col: 2 })
     );
 }
@@ -82,7 +82,7 @@ fn wrong_pos_after_nl() {
 fn choice_precedence() {
     // Fixed by 24ed683888da95edb2eea971da2e342d7ac40284.
     let g = parse_grammar(r##"A = "a" / "b"? "c""##).unwrap();
-    parse(&g, "A", "a").unwrap();
+    Parser::parse(&g, "A", "a").unwrap();
 }
 
 #[test]
