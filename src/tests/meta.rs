@@ -1,9 +1,9 @@
 use constructors::*;
 use parse::{
     get_grammar_grammar,
-    parse,
     parse_grammar,
     parse_grammar_with_grammar,
+    Parser,
 };
 use test::Bencher;
 
@@ -11,102 +11,102 @@ use test::Bencher;
 fn ident() {
     let g = get_grammar_grammar();
 
-    parse(&g, "ident", "a").unwrap();
-    parse(&g, "ident", "A").unwrap();
-    parse(&g, "ident", "_").unwrap();
-    parse(&g, "ident", "foo").unwrap();
-    parse(&g, "ident", "foo_bar").unwrap();
-    parse(&g, "ident", "_foo_bar_").unwrap();
-    parse(&g, "ident", "a3").unwrap();
-    parse(&g, "ident", "_3").unwrap();
+    Parser::parse(&g, "ident", "a").unwrap();
+    Parser::parse(&g, "ident", "A").unwrap();
+    Parser::parse(&g, "ident", "_").unwrap();
+    Parser::parse(&g, "ident", "foo").unwrap();
+    Parser::parse(&g, "ident", "foo_bar").unwrap();
+    Parser::parse(&g, "ident", "_foo_bar_").unwrap();
+    Parser::parse(&g, "ident", "a3").unwrap();
+    Parser::parse(&g, "ident", "_3").unwrap();
 
-    parse(&g, "ident", "3").unwrap_err();
-    parse(&g, "ident", "3a").unwrap_err();
-    parse(&g, "ident", "3_").unwrap_err();
+    Parser::parse(&g, "ident", "3").unwrap_err();
+    Parser::parse(&g, "ident", "3a").unwrap_err();
+    Parser::parse(&g, "ident", "3_").unwrap_err();
 }
 
 #[bench]
 fn bench_ident(b: &mut Bencher) {
     let g = get_grammar_grammar();
 
-    b.iter(|| parse(&g, "ident", "_foo_bar90"));
+    b.iter(|| Parser::parse(&g, "ident", "_foo_bar90"));
 }
 
 #[test]
 fn expr() {
     let g = get_grammar_grammar();
 
-    parse(&g, "expr", "\"a\"").unwrap();
-    parse(&g, "expr", "0x80..0x10FFFF").unwrap();
+    Parser::parse(&g, "expr", "\"a\"").unwrap();
+    Parser::parse(&g, "expr", "0x80..0x10FFFF").unwrap();
 }
 
 #[test]
 fn wso() {
     let g = get_grammar_grammar();
 
-    parse(&g, "wso", "").unwrap();
-    parse(&g, "wso", " ").unwrap();
-    parse(&g, "wso", "\t\t  ").unwrap();
-    parse(&g, "wso", "\t\t\t\t\t").unwrap();
+    Parser::parse(&g, "wso", "").unwrap();
+    Parser::parse(&g, "wso", " ").unwrap();
+    Parser::parse(&g, "wso", "\t\t  ").unwrap();
+    Parser::parse(&g, "wso", "\t\t\t\t\t").unwrap();
 
-    parse(&g, "wso", "\n").unwrap_err();
-    parse(&g, "wso", "  \n").unwrap_err();
-    parse(&g, "wso", "\t\t\n").unwrap_err();
-    parse(&g, "wso", "# foo\n").unwrap_err();
-    parse(&g, "wso", "\n# foo").unwrap_err();
+    Parser::parse(&g, "wso", "\n").unwrap_err();
+    Parser::parse(&g, "wso", "  \n").unwrap_err();
+    Parser::parse(&g, "wso", "\t\t\n").unwrap_err();
+    Parser::parse(&g, "wso", "# foo\n").unwrap_err();
+    Parser::parse(&g, "wso", "\n# foo").unwrap_err();
 }
 
 #[test]
 fn ws() {
     let g = get_grammar_grammar();
 
-    parse(&g, "ws", "").unwrap();
-    parse(&g, "ws", " ").unwrap();
-    parse(&g, "ws", "\t\t  ").unwrap();
-    parse(&g, "ws", "# foo\n").unwrap();
-    parse(&g, "ws", " # foo\n").unwrap();
-    parse(&g, "ws", "\t\t  # foo\n").unwrap();
-    parse(&g, "ws", "#\t\t\t\t\t\n").unwrap();
-    parse(&g, "ws", "\n").unwrap();
-    parse(&g, "ws", "\n\n\n\n").unwrap();
-    parse(&g, "ws", "  \n").unwrap();
-    parse(&g, "ws", "\t\t\n").unwrap();
-    parse(&g, "ws", "# foo\n").unwrap();
-    parse(&g, "ws", "\n# foo\n").unwrap();
+    Parser::parse(&g, "ws", "").unwrap();
+    Parser::parse(&g, "ws", " ").unwrap();
+    Parser::parse(&g, "ws", "\t\t  ").unwrap();
+    Parser::parse(&g, "ws", "# foo\n").unwrap();
+    Parser::parse(&g, "ws", " # foo\n").unwrap();
+    Parser::parse(&g, "ws", "\t\t  # foo\n").unwrap();
+    Parser::parse(&g, "ws", "#\t\t\t\t\t\n").unwrap();
+    Parser::parse(&g, "ws", "\n").unwrap();
+    Parser::parse(&g, "ws", "\n\n\n\n").unwrap();
+    Parser::parse(&g, "ws", "  \n").unwrap();
+    Parser::parse(&g, "ws", "\t\t\n").unwrap();
+    Parser::parse(&g, "ws", "# foo\n").unwrap();
+    Parser::parse(&g, "ws", "\n# foo\n").unwrap();
 }
 
 #[test]
 fn expr_plus() {
     let g = get_grammar_grammar();
 
-    parse(&g, "expr", "c+").unwrap();
-    parse(&g, "rule", "a = b c+").unwrap();
+    Parser::parse(&g, "expr", "c+").unwrap();
+    Parser::parse(&g, "rule", "a = b c+").unwrap();
 }
 
 #[test]
 fn expr_atom() {
     let g = get_grammar_grammar();
 
-    parse(&g, "expr_atom", "\"a\"").unwrap();
+    Parser::parse(&g, "expr_atom", "\"a\"").unwrap();
 }
 
 #[test]
 fn rule() {
     let g = get_grammar_grammar();
 
-    parse(&g, "rule", "A = \"a\"").unwrap();
+    Parser::parse(&g, "rule", "A = \"a\"").unwrap();
 }
 
 #[test]
 fn grammar() {
     let g = get_grammar_grammar();
 
-    parse(&g, "grammar", "A = \"a\"").unwrap();
-    parse(&g, "grammar", "A = \"a\"\n").unwrap();
-    parse(&g, "grammar", "A = \"a\"\n\n").unwrap();
-    parse(&g, "grammar", "A = \"a\"\nB = \"b\"").unwrap();
-    parse(&g, "grammar", "A = \"a\"\nB = \"b\"\n").unwrap();
-    parse(&g, "grammar", "A = \"a\"\nB = \"b\"\n\n").unwrap();
+    Parser::parse(&g, "grammar", "A = \"a\"").unwrap();
+    Parser::parse(&g, "grammar", "A = \"a\"\n").unwrap();
+    Parser::parse(&g, "grammar", "A = \"a\"\n\n").unwrap();
+    Parser::parse(&g, "grammar", "A = \"a\"\nB = \"b\"").unwrap();
+    Parser::parse(&g, "grammar", "A = \"a\"\nB = \"b\"\n").unwrap();
+    Parser::parse(&g, "grammar", "A = \"a\"\nB = \"b\"\n\n").unwrap();
 }
 
 static GRAMMAR_GRAMMAR_STR: &str = r##"
@@ -154,7 +154,7 @@ static GRAMMAR_GRAMMAR_STR: &str = r##"
 fn bootstrap_stage1_parse_only() {
     let g0 = get_grammar_grammar();
 
-    parse(&g0, "grammar", GRAMMAR_GRAMMAR_STR).unwrap();
+    Parser::parse(&g0, "grammar", GRAMMAR_GRAMMAR_STR).unwrap();
 }
 
 #[test]

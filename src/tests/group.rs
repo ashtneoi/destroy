@@ -1,5 +1,5 @@
 use constructors::*;
-use parse::parse;
+use parse::Parser;
 use tests::mat;
 
 #[test]
@@ -12,7 +12,7 @@ fn e_group_two_names() {
     ];
 
     assert_eq!(
-        parse(g, "x", "ab").unwrap(),
+        Parser::parse(g, "x", "ab").unwrap(),
         mat((0, 1, 1, 2, 1, 3), vec![
             ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
             ("B", vec![mat((1, 1, 2, 2, 1, 3), vec![])]),
@@ -30,13 +30,13 @@ fn e_group_one_name() {
     ];
 
     assert_eq!(
-        parse(g1, "x", "b").unwrap(),
+        Parser::parse(g1, "x", "b").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![
             ("B", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
         ])
     );
     assert_eq!(
-        parse(g1, "x", "ab").unwrap(),
+        Parser::parse(g1, "x", "ab").unwrap(),
         mat((0, 1, 1, 2, 1, 3), vec![
             ("B", vec![mat((1, 1, 2, 2, 1, 3), vec![])]),
         ])
@@ -50,13 +50,13 @@ fn e_group_one_name() {
     ];
 
     assert_eq!(
-        parse(g2, "x", "a").unwrap(),
+        Parser::parse(g2, "x", "a").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![
             ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
         ])
     );
     assert_eq!(
-        parse(g2, "x", "ab").unwrap(),
+        Parser::parse(g2, "x", "ab").unwrap(),
         mat((0, 1, 1, 2, 1, 3), vec![
             ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
         ])
@@ -73,7 +73,7 @@ fn e_group_same_name() {
     ];
 
     assert_eq!(
-        parse(g, "x", "ab").unwrap(),
+        Parser::parse(g, "x", "ab").unwrap(),
         mat((0, 1, 1, 2, 1, 3), vec![
             ("A", vec![
                 mat((0, 1, 1, 1, 1, 2), vec![]),
@@ -93,19 +93,19 @@ fn e_group_no_names() {
     ];
 
     assert_eq!(
-        parse(g, "x", "").unwrap(),
+        Parser::parse(g, "x", "").unwrap(),
         mat((0, 1, 1, 0, 1, 1), vec![])
     );
     assert_eq!(
-        parse(g, "x", "a").unwrap(),
+        Parser::parse(g, "x", "a").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![])
     );
     assert_eq!(
-        parse(g, "x", "b").unwrap(),
+        Parser::parse(g, "x", "b").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![])
     );
     assert_eq!(
-        parse(g, "x", "ab").unwrap(),
+        Parser::parse(g, "x", "ab").unwrap(),
         mat((0, 1, 1, 2, 1, 3), vec![])
     );
 }
@@ -120,13 +120,13 @@ fn c_group() {
     ];
 
     assert_eq!(
-        parse(g, "x", "a").unwrap(),
+        Parser::parse(g, "x", "a").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![
             ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
         ])
     );
     assert_eq!(
-        parse(g, "x", "b").unwrap(),
+        Parser::parse(g, "x", "b").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![
             ("B", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
         ])
@@ -142,11 +142,11 @@ fn s_group() {
     ];
 
     assert_eq!(
-        parse(g, "x", "").unwrap(),
+        Parser::parse(g, "x", "").unwrap(),
         mat((0, 1, 1, 0, 1, 1), vec![])
     );
     assert_eq!(
-        parse(g, "x", "aa").unwrap(),
+        Parser::parse(g, "x", "aa").unwrap(),
         mat((0, 1, 1, 2, 1, 3), vec![
             ("A", vec![
                 mat((0, 1, 1, 1, 1, 2), vec![
@@ -169,7 +169,7 @@ fn p_group() {
     ];
 
     assert_eq!(
-        parse(g, "x", "aa").unwrap(),
+        Parser::parse(g, "x", "aa").unwrap(),
         mat((0, 1, 1, 2, 1, 3), vec![
             ("A", vec![
                 mat((0, 1, 1, 1, 1, 2), vec![
@@ -192,11 +192,11 @@ fn q_group() {
     ];
 
     assert_eq!(
-        parse(g, "x", "").unwrap(),
+        Parser::parse(g, "x", "").unwrap(),
         mat((0, 1, 1, 0, 1, 1), vec![])
     );
     assert_eq!(
-        parse(g, "x", "a").unwrap(),
+        Parser::parse(g, "x", "a").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![
             ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
         ])
@@ -213,7 +213,7 @@ fn z_group() {
     ];
 
     assert_eq!(
-        parse(g, "x", "a").unwrap(),
+        Parser::parse(g, "x", "a").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![
             ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
         ])
@@ -230,7 +230,7 @@ fn g_group() {
     ];
 
     assert_eq!(
-        parse(g, "x", "a").unwrap(),
+        Parser::parse(g, "x", "a").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![
             ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
         ])
@@ -246,7 +246,7 @@ fn x_group() {
     ];
 
     assert_eq!(
-        parse(g, "x", "a").unwrap(),
+        Parser::parse(g, "x", "a").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![])
     );
 }
@@ -259,7 +259,7 @@ fn k_group() {
     ];
 
     assert_eq!(
-        parse(g, "x", "a").unwrap(),
+        Parser::parse(g, "x", "a").unwrap(),
         mat((0, 1, 1, 1, 1, 2), vec![
             ("A", vec![mat((0, 1, 1, 1, 1, 2), vec![])]),
         ])

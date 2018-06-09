@@ -169,13 +169,41 @@ impl<'x> MatchCursor<'x> {
     }
 }
 
-struct Parser<'x, 's> {
+pub struct Parser<'x, 's> {
     c: MatchCursor<'x>,
     pos: Pos,
     input: &'s str,
 }
 
 impl<'x, 's> Parser<'x, 's> {
+    pub fn parse(
+        named: &[(impl Borrow<str>, GrammarNode)],
+        start: &str,
+        input: &str,
+    ) -> Result<Match, ParseError> {
+        let mut m = MatchNode::new();
+        let mut p = Parser::new(named, start, input, &mut m).map_err(
+            |e| ParseError::BadGrammar(e)
+        )?;
+
+        loop {
+            let mut success = p.try_match();
+
+            loop {
+                let a = match p.do_action(success) {
+                    Some(a) => a,
+                    None => break,
+                };
+
+                if let Some(r) = p.go_up(a) {
+                    return r;
+                }
+
+                success = a.success;
+            }
+        }
+    }
+
     fn new(
             named: &'x [(impl Borrow<str>, GrammarNode)],
             start: &str,
@@ -328,34 +356,6 @@ pub enum ParseError {
     BadGrammar(LinkError),
     MatchFail(Pos),
     UnmatchedInput(Match),
-}
-
-pub fn parse(
-    named: &[(impl Borrow<str>, GrammarNode)],
-    start: &str,
-    input: &str,
-) -> Result<Match, ParseError> {
-    let mut m = MatchNode::new();
-    let mut p = Parser::new(named, start, input, &mut m).map_err(
-        |e| ParseError::BadGrammar(e)
-    )?;
-
-    loop {
-        let mut success = p.try_match();
-
-        loop {
-            let a = match p.do_action(success) {
-                Some(a) => a,
-                None => break,
-            };
-
-            if let Some(r) = p.go_up(a) {
-                return r;
-            }
-
-            success = a.success;
-        }
-    }
 }
 
 pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
@@ -664,7 +664,7 @@ where
 {
     use GrammarNode::*;
 
-    let st = match parse(&gg, "grammar", input) {
+    let st = match Parser::parse(&gg, "grammar", input) {
         Ok(x) => x,
         Err(ParseError::BadGrammar(e)) => panic!("{:?}", e),
         Err(e) => return Err(e),
