@@ -77,7 +77,7 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
 }
 
 // TODO: Derive more traits.
-#[derive(Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum GrammarAtom {
     Range(char, char),
     Text(String),
@@ -97,7 +97,7 @@ impl fmt::Debug for GrammarAtom {
 }
 
 // TODO: Derive more traits.
-#[derive(Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum GrammarNode {
     Seq(Vec<GrammarNode>),
     Choice(Vec<GrammarNode>),

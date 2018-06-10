@@ -1,6 +1,7 @@
 use Action;
 use constructors::*;
 use get_utils;
+use GrammarAtom;
 use GrammarNode;
 use link_tree::{LinkError, LinkTreeCursor};
 use Pos;
@@ -169,6 +170,14 @@ impl<'x> MatchCursor<'x> {
     }
 }
 
+// TODO
+#[derive(Debug)]
+pub enum ParseError {
+    BadGrammar(LinkError),
+    MatchFail(Pos),
+    UnmatchedInput(Match),
+}
+
 pub struct Parser<'x, 's> {
     c: MatchCursor<'x>,
     pos: Pos,
@@ -186,7 +195,12 @@ impl<'x, 's> Parser<'x, 's> {
             |e| ParseError::BadGrammar(e)
         )?;
 
-        loop {
+        let mut prev_sth = p.c.g.clone();
+
+        let mut collect_atoms = false;
+        let mut atoms: Vec<GrammarAtom> = vec![];
+
+        'outer: loop {
             let mut success = p.try_match();
 
             loop {
@@ -196,7 +210,34 @@ impl<'x, 's> Parser<'x, 's> {
                 };
 
                 if let Some(r) = p.go_up(a) {
-                    return r;
+                    match r {
+                        Err(ParseError::MatchFail(pos)) => break 'outer,
+                        r => return r,
+                    }
+                }
+
+                success = a.success;
+            }
+        }
+
+        p.c.g = prev_sth; // move
+
+        loop {
+            if let &GrammarNode::Atom(ref atom) = p.c.g.get() {
+                atoms.push(atom.clone());
+            } else { panic!(); }
+
+            let mut success = false;
+
+            loop {
+                let a = match p.do_action(success) {
+                    Some(a) => a,
+                    None => break,
+                };
+
+                if let Some(r) = p.go_up(a) {
+                    println!("{:?}", atoms);
+                    return r
                 }
 
                 success = a.success;
@@ -348,14 +389,6 @@ impl<'x, 's> Parser<'x, 's> {
             },
         }
     }
-}
-
-// TODO
-#[derive(Debug)]
-pub enum ParseError {
-    BadGrammar(LinkError),
-    MatchFail(Pos),
-    UnmatchedInput(Match),
 }
 
 pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
