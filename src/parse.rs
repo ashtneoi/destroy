@@ -191,13 +191,13 @@ impl<'x> MatchCursor<'x> {
 #[derive(Debug)]
 pub enum ParseError {
     BadGrammar(LinkError),
-    MatchFail(Pos),
-    UnmatchedInput(Match),
+    Expected(Match, Vec<GrammarAtom>, Pos),
+    Unexpected(Match, Pos, Pos),
 }
 
-#[derive(Debug)]
-pub struct ExpectedError {
-    pos: Pos
+enum EarlyParseError {
+    MatchFail(Match, Pos),
+    UnmatchedInput(Match),
 }
 
 pub struct Parser<'x, 's> {
@@ -233,7 +233,7 @@ impl<'x, 's> Parser<'x, 's> {
 
                 if let Some(r) = p.go_up(a) {
                     match r {
-                        Err(ParseError::UnmatchedInput(_)) => break 'outer,
+                        Err(EarlyParseError::UnmatchedInput(_)) => break 'outer,
                         r => return r,
                     }
                 }
@@ -333,19 +333,19 @@ impl<'x, 's> Parser<'x, 's> {
 
         if !self.c.up() {
             // Parsing finished.
+            let st = old_st.unwrap_or_else(
+                || Match::new(
+                    (Pos::empty(), Pos::empty()),
+                    vec![],
+                )
+            );
             if a.success {
-                let st = old_st.unwrap_or_else(
-                    || Match::new(
-                        (Pos::empty(), Pos::empty()),
-                        vec![],
-                    )
-                );
                 if st.raw.1.lin < self.input.len() {
-                    return Some(Err(ParseError::UnmatchedInput(st)));
+                    return Some(Err(EarlyParseError::UnmatchedInput(st)));
                 }
                 return Some(Ok(st));
             } else {
-                return Some(Err(ParseError::MatchFail(self.pos)));
+                return Some(Err(EarlyParseError::MatchFail(st, self.pos)));
             }
         }
 
