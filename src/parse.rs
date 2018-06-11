@@ -9,7 +9,7 @@ use std::borrow::Borrow;
 use std::char;
 use std::fmt;
 use std::ops::Index;
-use tree_cursor::cursor::TreeCursorMut;
+use tree_cursor::cursor::{SetPosError, TreeCursorMut, TreeCursorPos};
 use tree_cursor::prelude::*;
 
 #[derive(PartialEq, Eq)]
@@ -149,6 +149,11 @@ struct MatchCursor<'x> {
     m: TreeCursorMut<'x, MatchNode>,
 }
 
+struct MatchCursorPos<'x> {
+    gp: LinkTreeCursor<'x, GrammarNode>,
+    mp: TreeCursorPos,
+}
+
 impl<'x> MatchCursor<'x> {
     fn new(g: LinkTreeCursor<'x, GrammarNode>, m: TreeCursorMut<'x, MatchNode>)
             -> Self
@@ -167,6 +172,18 @@ impl<'x> MatchCursor<'x> {
 
     fn down(&mut self) -> bool {
         self.g.down() && self.m.down()
+    }
+
+    fn pos(&self) -> MatchCursorPos<'x> {
+        MatchCursorPos {
+            gp: self.g.clone(),
+            mp: self.m.pos(),
+        }
+    }
+
+    fn set_pos(&mut self, pos: &MatchCursorPos<'x>) -> Result<(), SetPosError> {
+        self.g = pos.gp.clone();
+        self.m.set_pos(&pos.mp)
     }
 }
 
@@ -195,13 +212,13 @@ impl<'x, 's> Parser<'x, 's> {
             |e| ParseError::BadGrammar(e)
         )?;
 
-        let mut prev_sth = p.c.g.clone();
-
-        let mut collect_atoms = false;
-        let mut atoms: Vec<GrammarAtom> = vec![];
+        let mut error_pos = p.c.pos();
 
         'outer: loop {
             let mut success = p.try_match();
+            if !success {
+                error_pos = p.c.pos();
+            }
 
             loop {
                 let a = match p.do_action(success) {
@@ -211,7 +228,7 @@ impl<'x, 's> Parser<'x, 's> {
 
                 if let Some(r) = p.go_up(a) {
                     match r {
-                        Err(ParseError::MatchFail(pos)) => break 'outer,
+                        Err(ParseError::UnmatchedInput(_)) => break 'outer,
                         r => return r,
                     }
                 }
@@ -220,7 +237,8 @@ impl<'x, 's> Parser<'x, 's> {
             }
         }
 
-        p.c.g = prev_sth; // move
+        p.c.set_pos(&error_pos).unwrap();
+        let mut atoms: Vec<GrammarAtom> = vec![];
 
         loop {
             if let &GrammarNode::Atom(ref atom) = p.c.g.get() {
