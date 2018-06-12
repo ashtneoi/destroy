@@ -16,6 +16,13 @@ mod link_tree;
 pub mod parse;
 mod tests;
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct Pos {
+    pub lin: usize,
+    pub row: usize,
+    pub col: usize,
+}
+
 impl Pos {
     fn empty() -> Self {
         Pos { lin: 0, row: 1, col: 1 }
@@ -315,13 +322,6 @@ impl Link for GrammarNode {
             _ => None,
         }
     }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Pos {
-    pub lin: usize,
-    pub row: usize,
-    pub col: usize,
 }
 
 pub fn get_utils() -> Vec<(&'static str, GrammarNode)> {

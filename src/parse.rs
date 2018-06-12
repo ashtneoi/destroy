@@ -8,6 +8,7 @@ use Pos;
 use std::borrow::Borrow;
 use std::char;
 use std::fmt;
+use std::mem;
 use std::ops::Index;
 use std::ptr::NonNull;
 use std::slice;
@@ -42,6 +43,13 @@ impl fmt::Debug for Match {
 }
 
 impl Match {
+    fn empty() -> Self {
+        Match {
+            raw: (Pos::empty(), Pos::empty()),
+            named: vec![],
+        }
+    }
+
     pub(super) fn new(raw: (Pos, Pos), named: Vec<(&str, Vec<Match>)>) -> Self
     {
         Match {
@@ -128,21 +136,30 @@ impl Down for Match {
     }
 }
 
+// TODO: Rename to ParseNode or something similarly distinct from Match.
 struct MatchNode {
     child: Option<Box<MatchNode>>,
-    st: Option<Match>,
+    st: Match,
 }
 
 impl DownMut for MatchNode {
     fn down_mut(&mut self, _idx: usize) -> Option<&mut Self> {
-        self.child = Some(Box::new(Self::new()));
+        let mut raw = self.st.raw; // should be copy
+        raw.0 = raw.1;
+        self.child = Some(Box::new(MatchNode {
+            child: None,
+            st: Match::new(raw, vec![]),
+        }));
         Some(self.child.as_mut().unwrap().as_mut())
     }
 }
 
 impl MatchNode {
     fn new() -> Self {
-        Self { child: None, st: None }
+        Self {
+            child: None,
+            st: Match::new((Pos::empty(), Pos::empty()), vec![]),
+        }
     }
 }
 
@@ -265,10 +282,7 @@ impl<'x, 's> Parser<'x, 's> {
         // Prepare for match.
 
         let here = self.c.g.get();
-        self.c.m.get_mut().st = Some(
-            Match::new((pos, pos), vec![])
-        );
-        let here_st = self.c.m.get_mut().st.as_mut().unwrap();
+        let here_st = &mut self.c.m.get_mut().st;
 
         // Match.
 
@@ -286,12 +300,10 @@ impl<'x, 's> Parser<'x, 's> {
 
         let a = if success {
             self.c.g.get().action()
-        } else if self.c.m.get().st.as_ref()
-                .filter(|st| !st.is_empty()).is_some()
-        {
-            self.c.g.get().fail_action()
-        } else {
+        } else if self.c.m.get().st.is_empty() {
             self.c.g.get().fail_empty_action()
+        } else {
+            self.c.g.get().fail_action()
         };
 
         // Take action.
@@ -301,9 +313,7 @@ impl<'x, 's> Parser<'x, 's> {
                 self.c.zero();
             }
 
-            if let Some(ref st) = self.c.m.get().st {
-                self.pos = st.raw.1;
-            }
+            self.pos = self.c.m.get().st.raw.1;
 
             let mut down = false;
             while self.c.down() {
@@ -320,43 +330,24 @@ impl<'x, 's> Parser<'x, 's> {
     /// `None` means we went up. `Some(Ok(_))` means the parse was successful.
     /// `Some(Err(_))` means there was a parse error.
     fn go_up(&mut self, a: Action) -> Option<Result<Match, ParseError>> {
-        let old_st = self.c.m.get_mut().st.take();
+        let old_st = mem::replace(&mut self.c.m.get_mut().st, Match::empty());
 
         if !self.c.up() {
             // Parsing finished.
             if a.success {
-                let st = old_st.unwrap_or_else(
-                    || Match::new(
-                        (Pos::empty(), Pos::empty()),
-                        vec![],
-                    )
-                );
-                if st.raw.1.lin < self.input.len() {
-                    return Some(Err(ParseError::UnmatchedInput(st)));
+                if old_st.raw.1.lin < self.input.len() {
+                    return Some(Err(ParseError::UnmatchedInput(old_st)));
                 }
-                return Some(Ok(st));
+                return Some(Ok(old_st));
             } else {
                 return Some(Err(ParseError::MatchFail(self.pos)));
             }
         }
 
-        if let &GrammarNode::Group(ref name, _) = self.c.g.get() {
-            // Special case: create Match even if old_st is None.
-            self.c.m.get_mut().st = Some(Match::new(
-                (self.pos, self.pos), vec![(name, vec![])]
-            ));
-        }
-
-        if let Some(old_st) = old_st {
-            if a.keep {
-                self.combine_st(old_st);
-            }
-        }
-
-        if !a.keep {
-            if let Some(ref st) = self.c.m.get().st {
-                self.pos = st.raw.0;
-            }
+        if a.keep {
+            self.combine_st(old_st);
+        } else {
+            self.pos = self.c.m.get().st.raw.0;
         }
 
         None
@@ -370,26 +361,19 @@ impl<'x, 's> Parser<'x, 's> {
         match self.c.g.get() {
             &Seq(_)
             | &Star(_)
-            | &Plus(_) => {
-                if let Some(ref mut new_st) = new_st {
-                    new_st.extend(&mut old_st);
-                } else {
-                    *new_st = Some(old_st);
-                }
-            },
+            | &Plus(_) => new_st.extend(&mut old_st),
             &Group(ref name, _) => {
                 // New parent (already created).
-                let new_st = new_st.as_mut().unwrap();
                 new_st.start_at(&old_st);
                 new_st.insert_child(name, old_st);
             },
             &Erase(_) => {
                 old_st.named = vec![];
-                *new_st = Some(old_st);
+                *new_st = old_st;
             },
             _ => {
                 // Bubble up.
-                *new_st = Some(old_st);
+                *new_st = old_st;
             },
         }
     }
