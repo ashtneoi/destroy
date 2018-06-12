@@ -215,7 +215,6 @@ impl GrammarNode {
     }
 
     fn action(&self) -> Action {
-        use GrammarAtom::*;
         use GrammarNode::*;
         match self {
             &Seq(_) => act(true, false, true, true),
@@ -233,7 +232,6 @@ impl GrammarNode {
     }
 
     fn fail_action(&self) -> Action {
-        use GrammarAtom::*;
         use GrammarNode::*;
         match self {
             &Plus(_) => act(false, false, true, true),

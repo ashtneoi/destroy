@@ -1,6 +1,7 @@
 use Action;
 use constructors::*;
 use get_utils;
+//use GrammarAtom;
 use GrammarNode;
 use link_tree::{LinkError, LinkTreeCursor};
 use Pos;
@@ -8,6 +9,8 @@ use std::borrow::Borrow;
 use std::char;
 use std::fmt;
 use std::ops::Index;
+use std::ptr::NonNull;
+use std::slice;
 use tree_cursor::cursor::TreeCursorMut;
 use tree_cursor::prelude::*;
 
@@ -169,6 +172,10 @@ impl<'x> MatchCursor<'x> {
     }
 }
 
+pub fn empty_slice<'a, T>() -> &'a [T] {
+    unsafe { slice::from_raw_parts(NonNull::dangling().as_ptr(), 0) }
+}
+
 pub struct Parser<'x, 's> {
     c: MatchCursor<'x>,
     pos: Pos,
@@ -187,20 +194,31 @@ impl<'x, 's> Parser<'x, 's> {
         )?;
 
         loop {
-            let mut success = p.try_match();
+            let success = p.try_match();
 
-            loop {
-                let a = match p.do_action(success) {
-                    Some(a) => a,
-                    None => break,
-                };
-
-                if let Some(r) = p.go_up(a) {
-                    return r;
-                }
-
-                success = a.success;
+            if let Some(r) = p.step(success) {
+                return r;
             }
+        }
+    }
+
+    /// `None` means keep going. `Some(Ok(_))` means success. `Some(Err(_))`
+    /// means there was an error of some kind.
+    pub fn step(
+        &mut self,
+        mut success: bool,
+    ) -> Option<Result<Match, ParseError>> {
+        loop {
+            let a = match self.do_action(success) {
+                Some(a) => a,
+                None => return None,
+            };
+
+            if let Some(r) = self.go_up(a) {
+                return Some(r);
+            }
+
+            success = a.success;
         }
     }
 
