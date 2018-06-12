@@ -195,7 +195,6 @@ pub fn empty_slice<'a, T>() -> &'a [T] {
 
 pub struct Parser<'x, 's> {
     c: MatchCursor<'x>,
-    pos: Pos,
     input: &'s str,
 }
 
@@ -211,7 +210,7 @@ impl<'x, 's> Parser<'x, 's> {
         )?;
 
         loop {
-            let success = p.try_match(p.pos);
+            let success = p.try_match();
 
             if let Some(r) = p.step(success) {
                 return r;
@@ -274,11 +273,11 @@ impl<'x, 's> Parser<'x, 's> {
 
         while c.down() { }
 
-        Ok(Parser { c, pos: Pos { lin: 0, row: 1, col: 1 }, input })
+        Ok(Parser { c, input })
     }
 
     /// Returns whether the input matched.
-    fn try_match(&mut self, pos: Pos) -> bool {
+    fn try_match(&mut self) -> bool {
         // Prepare for match.
 
         let here = self.c.g.get();
@@ -286,6 +285,7 @@ impl<'x, 's> Parser<'x, 's> {
 
         // Match.
 
+        let pos = here_st.raw.0;
         let maybe_delta = here.try_match(&self.input[pos.lin..]);
         match maybe_delta {
             Some(delta) => { here_st.raw.1 += delta; true }
@@ -312,8 +312,6 @@ impl<'x, 's> Parser<'x, 's> {
             if a.zero {
                 self.c.zero();
             }
-
-            self.pos = self.c.m.get().st.raw.1;
 
             let mut down = false;
             while self.c.down() {
@@ -346,8 +344,6 @@ impl<'x, 's> Parser<'x, 's> {
 
         if a.keep {
             self.combine_st(old_st);
-        } else {
-            self.pos = self.c.m.get().st.raw.0;
         }
 
         None
