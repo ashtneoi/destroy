@@ -340,7 +340,7 @@ impl<'x, 's> Parser<'x, 's> {
                 }
                 return Some(Ok(old_st));
             } else {
-                return Some(Err(ParseError::MatchFail(self.pos)));
+                return Some(Err(ParseError::MatchFail(old_st)));
             }
         }
 
@@ -383,7 +383,7 @@ impl<'x, 's> Parser<'x, 's> {
 #[derive(Debug)]
 pub enum ParseError {
     BadGrammar(LinkError),
-    MatchFail(Pos),
+    MatchFail(Match),
     UnmatchedInput(Match),
 }
 
