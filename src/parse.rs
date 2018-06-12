@@ -1,7 +1,7 @@
 use Action;
 use constructors::*;
 use get_utils;
-//use GrammarAtom;
+use GrammarAtom;
 use GrammarNode;
 use link_tree::{LinkError, LinkTreeCursor};
 use Pos;
@@ -12,7 +12,11 @@ use std::mem;
 use std::ops::Index;
 use std::ptr::NonNull;
 use std::slice;
-use tree_cursor::cursor::TreeCursorMut;
+use tree_cursor::cursor::{
+    SetPosError,
+    TreeCursorMut,
+    TreeCursorPos,
+};
 use tree_cursor::prelude::*;
 
 #[derive(PartialEq, Eq)]
@@ -137,7 +141,7 @@ impl Down for Match {
 }
 
 // TODO: Rename to ParseNode or something similarly distinct from Match.
-struct MatchNode {
+pub(crate) struct MatchNode {
     child: Option<Box<MatchNode>>,
     st: Match,
 }
@@ -155,12 +159,17 @@ impl DownMut for MatchNode {
 }
 
 impl MatchNode {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             child: None,
             st: Match::new((Pos::empty(), Pos::empty()), vec![]),
         }
     }
+}
+
+struct MatchPos<'x> {
+    g: LinkTreeCursor<'x, GrammarNode>,
+    m: TreeCursorPos,
 }
 
 struct MatchCursor<'x> {
@@ -187,10 +196,30 @@ impl<'x> MatchCursor<'x> {
     fn down(&mut self) -> bool {
         self.g.down() && self.m.down()
     }
+
+    fn pos(&self) -> MatchPos<'x> {
+        MatchPos {
+            g: self.g.clone(),
+            m: self.m.pos(),
+        }
+    }
+
+    fn set_pos(&mut self, pos: &MatchPos<'x>) -> Result<(), SetPosError> {
+        self.g = pos.g.clone();
+        self.m.set_pos(&pos.m)
+    }
 }
 
 pub fn empty_slice<'a, T>() -> &'a [T] {
     unsafe { slice::from_raw_parts(NonNull::dangling().as_ptr(), 0) }
+}
+
+// TODO
+#[derive(Debug)]
+pub enum ParseError {
+    BadGrammar(LinkError),
+    MatchFail(Match),
+    UnmatchedInput(Match),
 }
 
 pub struct Parser<'x, 's> {
@@ -209,6 +238,8 @@ impl<'x, 's> Parser<'x, 's> {
             |e| ParseError::BadGrammar(e)
         )?;
 
+        while p.c.down() { }
+
         loop {
             let success = p.try_match();
 
@@ -218,31 +249,60 @@ impl<'x, 's> Parser<'x, 's> {
         }
     }
 
-    /*
-    pub fn initial(&self) -> Vec<GrammarAtom> {
-        let mut p = self.clone();
-        if let Some(g2) = p.c.g.up_new() {
-            p.c.g = g2;
-        }
+    pub fn initial(&mut self) -> Vec<GrammarAtom> {
+        use self::ParseError::*;
+
         let mut atoms = vec![];
 
-        loop {
-            if let &GrammarNode::Atom(ref a) = self.c.g.get() {
-                atoms.push(a.clone());
-            } else { panic!(); }
+        while self.c.down() { }
+        let pos = self.c.pos();
 
-            if let Some(_) = p.step(false) {
-                break;
+        'outer: for count in 0.. {
+            self.c.set_pos(&pos).unwrap();
+
+            for i in 0..=count {
+                if i < count {
+                    match self.step(false) {
+                        None => (),
+                        Some(Ok(_)) => break 'outer, // ?
+                        Some(Err(MatchFail(m)))
+                        | Some(Err(UnmatchedInput(m))) => {
+                            if m.is_empty() {
+                                break 'outer
+                            } else {
+                                panic!()
+                            }
+                        },
+                        Some(Err(_)) => panic!(), // TODO
+                    }
+                } else {
+                    let atom;
+                    if let &GrammarNode::Atom(ref a) = self.c.g.get() {
+                        atom = a.clone();
+                    } else { panic!(); }
+                    match self.step(true) {
+                        None
+                        | Some(Ok(_)) => atoms.push(atom),
+                        Some(Err(MatchFail(m)))
+                        | Some(Err(UnmatchedInput(m))) => {
+                            if m.is_empty() {
+                                ()
+                            } else {
+                                atoms.push(atom)
+                            }
+                        },
+                        Some(Err(_)) => panic!(),
+                    }
+                }
             }
         }
 
         return atoms;
     }
-    */
 
     /// `None` means keep going. `Some(Ok(_))` means success. `Some(Err(_))`
     /// means there was a parse error.
-    pub fn step(
+    pub(crate) fn step(
         &mut self,
         mut success: bool,
     ) -> Option<Result<Match, ParseError>> {
@@ -260,18 +320,16 @@ impl<'x, 's> Parser<'x, 's> {
         }
     }
 
-    fn new(
+    pub(crate) fn new(
             named: &'x [(impl Borrow<str>, GrammarNode)],
             start: &str,
             input: &'s str,
             mroot: &'x mut MatchNode,
     ) -> Result<Self, LinkError> {
-        let mut c = MatchCursor::new(
+        let c = MatchCursor::new(
             LinkTreeCursor::new(named, start)?,
             TreeCursorMut::new(mroot),
         );
-
-        while c.down() { }
 
         Ok(Parser { c, input })
     }
@@ -373,14 +431,6 @@ impl<'x, 's> Parser<'x, 's> {
             },
         }
     }
-}
-
-// TODO
-#[derive(Debug)]
-pub enum ParseError {
-    BadGrammar(LinkError),
-    MatchFail(Match),
-    UnmatchedInput(Match),
 }
 
 pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
