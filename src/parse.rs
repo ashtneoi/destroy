@@ -194,7 +194,7 @@ impl<'x, 's> Parser<'x, 's> {
         )?;
 
         loop {
-            let success = p.try_match();
+            let success = p.try_match(p.pos);
 
             if let Some(r) = p.step(success) {
                 return r;
@@ -225,7 +225,7 @@ impl<'x, 's> Parser<'x, 's> {
     */
 
     /// `None` means keep going. `Some(Ok(_))` means success. `Some(Err(_))`
-    /// means there was an error of some kind.
+    /// means there was a parse error.
     pub fn step(
         &mut self,
         mut success: bool,
@@ -260,24 +260,27 @@ impl<'x, 's> Parser<'x, 's> {
         Ok(Parser { c, pos: Pos { lin: 0, row: 1, col: 1 }, input })
     }
 
-    fn try_match(&mut self) -> bool {
+    /// Returns whether the input matched.
+    fn try_match(&mut self, pos: Pos) -> bool {
         // Prepare for match.
 
         let here = self.c.g.get();
         self.c.m.get_mut().st = Some(
-            Match::new((self.pos, self.pos), vec![])
+            Match::new((pos, pos), vec![])
         );
         let here_st = self.c.m.get_mut().st.as_mut().unwrap();
 
         // Match.
 
-        let maybe_delta = here.try_match(&self.input[self.pos.lin..]);
+        let maybe_delta = here.try_match(&self.input[pos.lin..]);
         match maybe_delta {
             Some(delta) => { here_st.raw.1 += delta; true }
             None => false,
         }
     }
 
+    /// `None` means we reached an atom and should try to match it. `Some(_)`
+    /// means we should go up and call this method again.
     fn do_action(&mut self, success: bool) -> Option<Action> {
         // Determine action.
 
@@ -314,6 +317,8 @@ impl<'x, 's> Parser<'x, 's> {
         Some(a)
     }
 
+    /// `None` means we went up. `Some(Ok(_))` means the parse was successful.
+    /// `Some(Err(_))` means there was a parse error.
     fn go_up(&mut self, a: Action) -> Option<Result<Match, ParseError>> {
         let old_st = self.c.m.get_mut().st.take();
 
