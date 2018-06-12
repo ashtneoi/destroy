@@ -233,8 +233,10 @@ impl<'x, 's> Parser<'x, 's> {
 
                 if let Some(r) = p.go_up(a) {
                     match r {
-                        Err(EarlyParseError::UnmatchedInput(_)) => break 'outer,
-                        r => return r,
+                        Err(EarlyParseError::MatchFail(..)) => break 'outer,
+                        Err(EarlyParseError::UnmatchedInput(..)) =>
+                            unimplemented!(),
+                        Ok(r) => return Ok(r),
                     }
                 }
 
@@ -328,7 +330,7 @@ impl<'x, 's> Parser<'x, 's> {
         Some(a)
     }
 
-    fn go_up(&mut self, a: Action) -> Option<Result<Match, ParseError>> {
+    fn go_up(&mut self, a: Action) -> Option<Result<Match, EarlyParseError>> {
         let old_st = self.c.m.get_mut().st.take();
 
         if !self.c.up() {

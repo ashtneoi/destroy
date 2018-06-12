@@ -158,6 +158,32 @@ impl fmt::Debug for GrammarNode {
 }
 
 impl GrammarNode {
+    /*
+    fn initial(&self) -> Vec<GrammarAtom> {
+        use GrammarAtom::*;
+        use GrammarNode::*;
+        let mut c = TreeCursor::new(self);
+        let mut atoms = vec![];
+
+        let process = |node| {
+            match node {
+                &Seq
+            }
+        };
+
+        loop {
+            while c.down() {
+                process
+            }
+
+            if !c.up() {
+                break;
+            }
+        }
+
+    }
+    */
+
     fn try_match(&self, input: &str) -> Option<PosDelta> {
         use GrammarAtom::*;
         use GrammarNode::*;
