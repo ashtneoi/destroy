@@ -202,6 +202,28 @@ impl<'x, 's> Parser<'x, 's> {
         }
     }
 
+    /*
+    pub fn initial(&self) -> Vec<GrammarAtom> {
+        let mut p = self.clone();
+        if let Some(g2) = p.c.g.up_new() {
+            p.c.g = g2;
+        }
+        let mut atoms = vec![];
+
+        loop {
+            if let &GrammarNode::Atom(ref a) = self.c.g.get() {
+                atoms.push(a.clone());
+            } else { panic!(); }
+
+            if let Some(_) = p.step(false) {
+                break;
+            }
+        }
+
+        return atoms;
+    }
+    */
+
     /// `None` means keep going. `Some(Ok(_))` means success. `Some(Err(_))`
     /// means there was an error of some kind.
     pub fn step(
