@@ -224,6 +224,7 @@ pub enum ParseError {
 pub struct Parser<'x, 's> {
     c: MatchCursor<'x>,
     input: &'s str,
+    fail_cause: Option<MatchPos<'x>>,
 }
 
 impl<'x, 's> Parser<'x, 's> {
@@ -246,8 +247,19 @@ impl<'x, 's> Parser<'x, 's> {
                 Some(Ok(m)) => return Ok(m),
                 Some(Err(m)) => {
                     // TODO
-                    let pos = m.raw.1.clone();
-                    return Err(ParseError::MatchFail(m, pos, vec![]))
+                    let pos;
+                    let initial;
+                    if let Some(cause) = p.fail_cause.take() {
+                        p.c.set_pos(&cause).unwrap();
+                        pos = p.c.m.get().st.raw.1.clone();
+                        p.c.zero();
+                        println!("{:?}", p.c.g.get());
+                        initial = p.initial();
+                    } else {
+                        pos = m.raw.1.clone();
+                        initial = vec![];
+                    }
+                    return Err(ParseError::MatchFail(m, pos, initial));
                 },
                 None => (),
             }
@@ -311,7 +323,10 @@ impl<'x, 's> Parser<'x, 's> {
         loop {
             let a = match self.do_action(success) {
                 Some(a) => a,
-                None => return None,
+                None => {
+                    self.fail_cause = None;
+                    return None;
+                }
             };
 
             if let Some(r) = self.go_up(a) {
@@ -319,6 +334,20 @@ impl<'x, 's> Parser<'x, 's> {
             }
 
             success = a.success;
+
+            // TODO: What's the perf cost here?
+            if !success {
+                let store = if self.fail_cause.is_none() {
+                    true
+                } else if let GrammarNode::Choice(_) = *self.c.g.get() {
+                    true
+                } else {
+                    false
+                };
+                if store {
+                    self.fail_cause = Some(self.c.pos());
+                }
+            }
         }
     }
 
@@ -333,7 +362,7 @@ impl<'x, 's> Parser<'x, 's> {
             TreeCursorMut::new(mroot),
         );
 
-        Ok(Parser { c, input })
+        Ok(Parser { c, input, fail_cause: None })
     }
 
     /// Returns whether the input matched.
