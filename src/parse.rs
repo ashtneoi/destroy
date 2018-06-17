@@ -219,7 +219,6 @@ pub fn empty_slice<'a, T>() -> &'a [T] {
 pub enum ParseError {
     BadGrammar(LinkError),
     MatchFail(Match),
-    UnmatchedInput(Match),
 }
 
 pub struct Parser<'x, 's> {
@@ -268,8 +267,7 @@ impl<'x, 's> Parser<'x, 's> {
                             atoms.push(GrammarAtom::Text("".to_string()));
                             break 'outer;
                         },
-                        Some(Err(MatchFail(m)))
-                        | Some(Err(UnmatchedInput(m))) => {
+                        Some(Err(MatchFail(m))) => {
                             if m.is_empty() {
                                 break 'outer
                             } else {
@@ -286,8 +284,7 @@ impl<'x, 's> Parser<'x, 's> {
                     match self.step(true) {
                         None
                         | Some(Ok(_)) => atoms.push(atom),
-                        Some(Err(MatchFail(m)))
-                        | Some(Err(UnmatchedInput(m))) => {
+                        Some(Err(MatchFail(m))) => {
                             if m.is_empty() {
                                 ()
                             } else {
@@ -395,7 +392,7 @@ impl<'x, 's> Parser<'x, 's> {
             // Parsing finished.
             if a.success {
                 if old_st.raw.1.lin < self.input.len() {
-                    return Some(Err(ParseError::UnmatchedInput(old_st)));
+                    return Some(Err(ParseError::MatchFail(old_st)));
                 }
                 return Some(Ok(old_st));
             } else {
