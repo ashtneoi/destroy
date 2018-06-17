@@ -218,7 +218,7 @@ pub fn empty_slice<'a, T>() -> &'a [T] {
 #[derive(Debug)]
 pub enum ParseError {
     BadGrammar(LinkError),
-    MatchFail(Match),
+    MatchFail(Match, Pos, Vec<GrammarAtom>),
 }
 
 pub struct Parser<'x, 's> {
@@ -242,15 +242,17 @@ impl<'x, 's> Parser<'x, 's> {
         loop {
             let success = p.try_match();
 
-            if let Some(r) = p.step(success) {
-                return r;
+            match p.step(success) {
+                Some(Ok(m)) => return Ok(m),
+                Some(Err(m)) =>
+                    // TODO
+                    return Err(ParseError::MatchFail(m, Pos::empty(), vec![])),
+                None => (),
             }
         }
     }
 
     pub fn initial(&mut self) -> Vec<GrammarAtom> {
-        use self::ParseError::*;
-
         let mut atoms = vec![];
 
         while self.c.down() { }
@@ -267,14 +269,13 @@ impl<'x, 's> Parser<'x, 's> {
                             atoms.push(GrammarAtom::Text("".to_string()));
                             break 'outer;
                         },
-                        Some(Err(MatchFail(m))) => {
+                        Some(Err(m)) => {
                             if m.is_empty() {
                                 break 'outer
                             } else {
                                 panic!()
                             }
                         },
-                        Some(Err(_)) => panic!(), // TODO
                     }
                 } else {
                     let atom;
@@ -284,14 +285,13 @@ impl<'x, 's> Parser<'x, 's> {
                     match self.step(true) {
                         None
                         | Some(Ok(_)) => atoms.push(atom),
-                        Some(Err(MatchFail(m))) => {
+                        Some(Err(m)) => {
                             if m.is_empty() {
                                 ()
                             } else {
                                 atoms.push(atom)
                             }
                         },
-                        Some(Err(_)) => panic!(),
                     }
                 }
             }
@@ -305,7 +305,7 @@ impl<'x, 's> Parser<'x, 's> {
     pub(crate) fn step(
         &mut self,
         mut success: bool,
-    ) -> Option<Result<Match, ParseError>> {
+    ) -> Option<Result<Match, Match>> {
         loop {
             let a = match self.do_action(success) {
                 Some(a) => a,
@@ -385,18 +385,18 @@ impl<'x, 's> Parser<'x, 's> {
 
     /// `None` means we went up. `Some(Ok(_))` means the parse was successful.
     /// `Some(Err(_))` means there was a parse error.
-    fn go_up(&mut self, a: Action) -> Option<Result<Match, ParseError>> {
+    fn go_up(&mut self, a: Action) -> Option<Result<Match, Match>> {
         let old_st = mem::replace(&mut self.c.m.get_mut().st, Match::empty());
 
         if !self.c.up() {
             // Parsing finished.
             if a.success {
                 if old_st.raw.1.lin < self.input.len() {
-                    return Some(Err(ParseError::MatchFail(old_st)));
+                    return Some(Err(old_st));
                 }
                 return Some(Ok(old_st));
             } else {
-                return Some(Err(ParseError::MatchFail(old_st)));
+                return Some(Err(old_st));
             }
         }
 
