@@ -244,9 +244,11 @@ impl<'x, 's> Parser<'x, 's> {
 
             match p.step(success) {
                 Some(Ok(m)) => return Ok(m),
-                Some(Err(m)) =>
+                Some(Err(m)) => {
                     // TODO
-                    return Err(ParseError::MatchFail(m, Pos::empty(), vec![])),
+                    let pos = m.raw.1.clone();
+                    return Err(ParseError::MatchFail(m, pos, vec![]))
+                },
                 None => (),
             }
         }
