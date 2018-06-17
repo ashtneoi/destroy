@@ -264,7 +264,10 @@ impl<'x, 's> Parser<'x, 's> {
                 if i < count {
                     match self.step(false) {
                         None => (),
-                        Some(Ok(_)) => break 'outer, // ?
+                        Some(Ok(_)) => {
+                            atoms.push(GrammarAtom::Text("".to_string()));
+                            break 'outer;
+                        },
                         Some(Err(MatchFail(m)))
                         | Some(Err(UnmatchedInput(m))) => {
                             if m.is_empty() {

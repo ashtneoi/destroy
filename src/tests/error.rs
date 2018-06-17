@@ -73,9 +73,7 @@ mod initial {
     #[test]
     fn simple() {
         let gg = vec![
-            s(t("foo")),
             p(t("foo")),
-            q(t("foo")),
             z(t("foo")),
             g(g(t("foo"))),
             u("bar", t("foo")),
@@ -87,6 +85,22 @@ mod initial {
                 vec![tt("foo")],
             );
         }
+    }
+
+    #[test]
+    fn star() {
+        assert_eq!(
+            initial(s(t("foo"))),
+            vec![tt("foo"), tt("")],
+        );
+    }
+
+    #[test]
+    fn opt() {
+        assert_eq!(
+            initial(q(t("foo"))),
+            vec![tt("foo"), tt("")],
+        );
     }
 
     #[test]
@@ -104,7 +118,7 @@ mod initial {
     fn neg() {
         assert_eq!(
             initial(g(t("foo"))),
-            vec![],
+            vec![tt("")],
         );
     }
 
