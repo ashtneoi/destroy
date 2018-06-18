@@ -170,11 +170,13 @@ impl MatchNode {
 struct MatchPos<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
     m: TreeCursorPos,
+    initial: Vec<bool>,
 }
 
 struct MatchCursor<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
     m: TreeCursorMut<'x, MatchNode>,
+    initial: Vec<bool>,
 }
 
 impl<'x> MatchCursor<'x> {
@@ -186,31 +188,49 @@ impl<'x> MatchCursor<'x> {
         Ok(MatchCursor {
             g: LinkTreeCursor::new(named, start)?,
             m: TreeCursorMut::new(mroot),
+            initial: vec![true],
         })
     }
 
     fn zero(&mut self) {
         self.g.zero();
         self.m.zero();
+        *self.initial.last_mut().unwrap() = true;
     }
 
     fn up(&mut self) -> bool {
-        self.g.up() && self.m.up()
+        if self.g.up() {
+            assert!(self.m.up());
+            assert!(self.initial.pop().is_some());
+            true
+        } else {
+            false
+        }
     }
 
     fn down(&mut self) -> bool {
-        self.g.down() && self.m.down()
+        if self.g.down() {
+            assert!(self.m.down());
+            *self.initial.last_mut().unwrap() = false;
+            self.initial.push(true);
+            true
+        } else {
+            false
+        }
     }
 
     fn pos(&self) -> MatchPos<'x> {
         MatchPos {
             g: self.g.clone(),
             m: self.m.pos(),
+            initial: self.initial.clone(),
         }
     }
 
+    /// On error, the state is probably pretty messed up.
     fn set_pos(&mut self, pos: &MatchPos<'x>) -> Result<(), SetPosError> {
         self.g = pos.g.clone();
+        self.initial = pos.initial.clone();
         self.m.set_pos(&pos.m)
     }
 }
