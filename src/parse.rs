@@ -192,6 +192,10 @@ impl<'x> MatchCursor<'x> {
         })
     }
 
+    fn is_initial(&self) -> bool {
+        *self.initial.last().unwrap()
+    }
+
     fn zero(&mut self) {
         self.g.zero();
         self.m.zero();
@@ -365,7 +369,9 @@ impl<'x, 's> Parser<'x, 's> {
             if initial {
                 use GrammarNode::*;
                 initial = match *self.c.g.get() {
-                    Seq(_) =>
+                    Seq(_) => self.c.is_initial(),
+                    Choice(_) => true,
+
                 }
             }
             */
