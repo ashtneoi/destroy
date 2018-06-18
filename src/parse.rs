@@ -178,10 +178,15 @@ struct MatchCursor<'x> {
 }
 
 impl<'x> MatchCursor<'x> {
-    fn new(g: LinkTreeCursor<'x, GrammarNode>, m: TreeCursorMut<'x, MatchNode>)
-            -> Self
-    {
-        MatchCursor { g, m }
+    fn new(
+        named: &'x [(impl Borrow<str>, GrammarNode)],
+        start: &str,
+        mroot: &'x mut MatchNode,
+    ) -> Result<Self, LinkError> {
+        Ok(MatchCursor {
+            g: LinkTreeCursor::new(named, start)?,
+            m: TreeCursorMut::new(mroot),
+        })
     }
 
     fn zero(&mut self) {
@@ -367,12 +372,11 @@ impl<'x, 's> Parser<'x, 's> {
             input: &'s str,
             mroot: &'x mut MatchNode,
     ) -> Result<Self, LinkError> {
-        let c = MatchCursor::new(
-            LinkTreeCursor::new(named, start)?,
-            TreeCursorMut::new(mroot),
-        );
-
-        Ok(Parser { c, input, fail_cause: None })
+        Ok(Parser {
+            c: MatchCursor::new(named, start, mroot)?,
+            input,
+            fail_cause: None,
+        })
     }
 
     /// Returns whether the input matched.
