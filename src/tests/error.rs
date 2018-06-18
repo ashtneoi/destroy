@@ -75,7 +75,7 @@ mod initial {
         let gg = vec![
             p(t("foo")),
             z(t("foo")),
-            g(g(t("foo"))),
+            n(n(t("foo"))),
             u("bar", t("foo")),
             x(t("foo")),
         ];
@@ -117,20 +117,20 @@ mod initial {
     #[test]
     fn neg() {
         assert_eq!(
-            initial(g(t("foo"))),
+            initial(n(t("foo"))),
             vec![tt("")],
         );
         assert_eq!(
-            initial(g(e(vec![
+            initial(n(e(vec![
                 t("foo"),
                 t("bar"),
             ]))),
             vec![tt("")],
         );
         assert_eq!(
-            initial(g(e(vec![
+            initial(n(e(vec![
                 t("foo"),
-                g(t("bar")),
+                n(t("bar")),
             ]))),
             vec![tt("")],
         );

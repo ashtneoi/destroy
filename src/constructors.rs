@@ -25,7 +25,7 @@ pub fn z(child: GrammarNode) -> GrammarNode {
     GrammarNode::Pos(Box::new(child))
 }
 
-pub fn g(child: GrammarNode) -> GrammarNode {
+pub fn n(child: GrammarNode) -> GrammarNode {
     GrammarNode::Neg(Box::new(child))
 }
 

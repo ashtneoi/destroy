@@ -136,7 +136,7 @@ fn lookahead() {
         ("start", e(vec![
             z(t("a")),
             r('a', 'c'),
-            g(t("a")),
+            n(t("a")),
             r('a', 'c'),
         ])),
     ];

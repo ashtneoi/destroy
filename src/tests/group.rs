@@ -224,7 +224,7 @@ fn z_group() {
 fn g_group() {
     let g = &[
         ("x", e(vec![
-            g(u("E", t("e"))),
+            n(u("E", t("e"))),
             u("A", t("a")),
         ])),
     ];

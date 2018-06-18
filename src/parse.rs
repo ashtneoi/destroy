@@ -511,7 +511,7 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
         ("comment", e(vec![
             t("#"),
             s(e(vec![
-                g(t("\n")),
+                n(t("\n")),
                 a(),
             ])),
         ])),
@@ -555,8 +555,8 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                     ]),
                 ]),
                 e(vec![
-                    g(t("\"")),
-                    g(t("\n")),
+                    n(t("\"")),
+                    n(t("\n")),
                     a(),
                 ]),
             ]))),
@@ -577,8 +577,8 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                         ]),
                     ]),
                     e(vec![
-                        g(t("'")),
-                        g(t("\n")),
+                        n(t("'")),
+                        n(t("\n")),
                         a(),
                     ]),
                 ])),
@@ -617,7 +617,7 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
             s(e(vec![
                 k("pws"),
                 u("opd", k("expr_affix")),
-                g(e(vec![
+                n(e(vec![
                     k("wso"),
                     t("="),
                 ])),
@@ -728,7 +728,7 @@ fn parse_expr(
                 // change a to op(a)
                 *gc.get_mut() = match pre.raw(input) {
                     "^" => z(a()),
-                    "-" => g(a()),
+                    "-" => n(a()),
                     _ => panic!(),
                 };
                 // down
