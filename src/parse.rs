@@ -320,6 +320,7 @@ impl<'x, 's> Parser<'x, 's> {
         &mut self,
         mut success: bool,
     ) -> Option<Result<Match, Match>> {
+        //let mut initial = true;
         loop {
             let a = match self.do_action(success) {
                 Some(a) => a,
@@ -334,6 +335,15 @@ impl<'x, 's> Parser<'x, 's> {
             }
 
             success = a.success;
+
+            /*
+            if initial {
+                use GrammarNode::*;
+                initial = match *self.c.g.get() {
+                    Seq(_) =>
+                }
+            }
+            */
 
             // TODO: What's the perf cost here?
             if !success {
