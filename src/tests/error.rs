@@ -120,6 +120,20 @@ mod initial {
             initial(g(t("foo"))),
             vec![tt("")],
         );
+        assert_eq!(
+            initial(g(e(vec![
+                t("foo"),
+                t("bar"),
+            ]))),
+            vec![tt("")],
+        );
+        assert_eq!(
+            initial(g(e(vec![
+                t("foo"),
+                g(t("bar")),
+            ]))),
+            vec![tt("")],
+        );
     }
 
     #[test]
