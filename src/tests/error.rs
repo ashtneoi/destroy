@@ -134,6 +134,27 @@ mod initial {
             ]))),
             vec![tt("")],
         );
+        assert_eq!(
+            initial(n(e(vec![
+                e(vec![
+                    e(vec![
+                        t("foo"),
+                    ]),
+                ]),
+            ]))),
+            vec![tt("")],
+        );
+        assert_eq!(
+            initial(e(vec![
+                n(t("foo")),
+                t("bar"),
+            ])),
+            vec![tt("bar")],
+        );
+        assert_eq!(
+            initial(n(n(t("foo")))),
+            vec![tt("foo")],
+        );
     }
 
     #[test]
