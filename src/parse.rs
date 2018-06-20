@@ -192,7 +192,7 @@ impl<'x> MatchCursor<'x> {
         })
     }
 
-    fn is_initial(&self) -> bool {
+    fn _is_initial(&self) -> bool {
         *self.initial.last().unwrap()
     }
 
