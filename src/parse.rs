@@ -140,17 +140,16 @@ impl Down for Match {
     }
 }
 
-// TODO: Rename to ParseNode or something similarly distinct from Match.
-pub(crate) struct MatchNode {
-    child: Option<Box<MatchNode>>,
+pub(crate) struct ParseNode {
+    child: Option<Box<ParseNode>>,
     st: Match,
 }
 
-impl DownMut for MatchNode {
+impl DownMut for ParseNode {
     fn down_mut(&mut self, _idx: usize) -> Option<&mut Self> {
         let mut raw = self.st.raw; // should be copy
         raw.0 = raw.1;
-        self.child = Some(Box::new(MatchNode {
+        self.child = Some(Box::new(ParseNode {
             child: None,
             st: Match::new(raw, vec![]),
         }));
@@ -158,7 +157,7 @@ impl DownMut for MatchNode {
     }
 }
 
-impl MatchNode {
+impl ParseNode {
     pub(crate) fn new() -> Self {
         Self {
             child: None,
@@ -175,7 +174,7 @@ struct MatchPos<'x> {
 
 struct MatchCursor<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
-    m: TreeCursorMut<'x, MatchNode>,
+    m: TreeCursorMut<'x, ParseNode>,
     initial: Vec<bool>,
 }
 
@@ -183,7 +182,7 @@ impl<'x> MatchCursor<'x> {
     fn new(
         named: &'x [(impl Borrow<str>, GrammarNode)],
         start: &str,
-        mroot: &'x mut MatchNode,
+        mroot: &'x mut ParseNode,
     ) -> Result<Self, LinkError> {
         Ok(MatchCursor {
             g: LinkTreeCursor::new(named, start)?,
@@ -231,6 +230,7 @@ impl<'x> MatchCursor<'x> {
         }
     }
 
+    // TODO: Should this panic instead of returning an error?
     /// On error, the state is probably pretty messed up.
     fn set_pos(&mut self, pos: &MatchPos<'x>) -> Result<(), SetPosError> {
         self.g = pos.g.clone();
@@ -262,7 +262,7 @@ impl<'x, 's> Parser<'x, 's> {
         start: &str,
         input: &str,
     ) -> Result<Match, ParseError> {
-        let mut m = MatchNode::new();
+        let mut m = ParseNode::new();
         let mut p = Parser::new(named, start, input, &mut m).map_err(
             |e| ParseError::BadGrammar(e)
         )?;
@@ -403,7 +403,7 @@ impl<'x, 's> Parser<'x, 's> {
             named: &'x [(impl Borrow<str>, GrammarNode)],
             start: &str,
             input: &'s str,
-            mroot: &'x mut MatchNode,
+            mroot: &'x mut ParseNode,
     ) -> Result<Self, LinkError> {
         Ok(Parser {
             c: MatchCursor::new(named, start, mroot)?,

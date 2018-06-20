@@ -3,12 +3,12 @@ mod initial {
     use GrammarAtom::*;
     use constructors::*;
     use GrammarNode;
-    use parse::MatchNode;
+    use parse::ParseNode;
     use parse::Parser;
 
     fn initial(grammar: GrammarNode) -> Vec<GrammarAtom> {
         let named = [("start", grammar)];
-        let mut m = MatchNode::new();
+        let mut m = ParseNode::new();
         let mut p = Parser::new(&named, "start", "", &mut m).unwrap();
 
         p.initial()
