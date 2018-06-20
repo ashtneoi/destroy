@@ -142,16 +142,16 @@ impl Down for Match {
 
 pub(crate) struct ParseNode {
     child: Option<Box<ParseNode>>,
-    st: Match,
+    m: Match,
 }
 
 impl DownMut for ParseNode {
     fn down_mut(&mut self, _idx: usize) -> Option<&mut Self> {
-        let mut raw = self.st.raw; // should be copy
+        let mut raw = self.m.raw; // should be copy
         raw.0 = raw.1;
         self.child = Some(Box::new(ParseNode {
             child: None,
-            st: Match::new(raw, vec![]),
+            m: Match::new(raw, vec![]),
         }));
         Some(self.child.as_mut().unwrap().as_mut())
     }
@@ -161,7 +161,7 @@ impl ParseNode {
     pub(crate) fn new() -> Self {
         Self {
             child: None,
-            st: Match::new((Pos::empty(), Pos::empty()), vec![]),
+            m: Match::new((Pos::empty(), Pos::empty()), vec![]),
         }
     }
 }
@@ -182,11 +182,11 @@ impl<'x> MatchCursor<'x> {
     fn new(
         named: &'x [(impl Borrow<str>, GrammarNode)],
         start: &str,
-        mroot: &'x mut ParseNode,
+        pnroot: &'x mut ParseNode,
     ) -> Result<Self, LinkError> {
         Ok(MatchCursor {
             g: LinkTreeCursor::new(named, start)?,
-            m: TreeCursorMut::new(mroot),
+            m: TreeCursorMut::new(pnroot),
             initial: vec![true],
         })
     }
@@ -262,8 +262,8 @@ impl<'x, 's> Parser<'x, 's> {
         start: &str,
         input: &str,
     ) -> Result<Match, ParseError> {
-        let mut m = ParseNode::new();
-        let mut p = Parser::new(named, start, input, &mut m).map_err(
+        let mut pn = ParseNode::new();
+        let mut p = Parser::new(named, start, input, &mut pn).map_err(
             |e| ParseError::BadGrammar(e)
         )?;
 
@@ -280,7 +280,7 @@ impl<'x, 's> Parser<'x, 's> {
                     let initial;
                     if let Some(cause) = p.fail_cause.take() {
                         p.c.set_pos(&cause).unwrap();
-                        pos = p.c.m.get().st.raw.1.clone();
+                        pos = p.c.m.get().m.raw.1.clone();
                         p.c.zero();
                         println!("{:?}", p.c.g.get());
                         initial = p.initial();
@@ -403,10 +403,10 @@ impl<'x, 's> Parser<'x, 's> {
             named: &'x [(impl Borrow<str>, GrammarNode)],
             start: &str,
             input: &'s str,
-            mroot: &'x mut ParseNode,
+            pnroot: &'x mut ParseNode,
     ) -> Result<Self, LinkError> {
         Ok(Parser {
-            c: MatchCursor::new(named, start, mroot)?,
+            c: MatchCursor::new(named, start, pnroot)?,
             input,
             fail_cause: None,
         })
@@ -417,7 +417,7 @@ impl<'x, 's> Parser<'x, 's> {
         // Prepare for match.
 
         let here = self.c.g.get();
-        let here_st = &mut self.c.m.get_mut().st;
+        let here_st = &mut self.c.m.get_mut().m;
 
         // Match.
 
@@ -440,7 +440,7 @@ impl<'x, 's> Parser<'x, 's> {
 
         let a = if success {
             self.c.g.get().action()
-        } else if self.c.m.get().st.is_empty() {
+        } else if self.c.m.get().m.is_empty() {
             self.c.g.get().fail_empty_action()
         } else {
             self.c.g.get().fail_action()
@@ -468,7 +468,7 @@ impl<'x, 's> Parser<'x, 's> {
     /// `None` means we went up. `Some(Ok(_))` means the parse was successful.
     /// `Some(Err(_))` means there was a parse error.
     fn go_up(&mut self, a: Action) -> Option<Result<Match, Match>> {
-        let old_st = mem::replace(&mut self.c.m.get_mut().st, Match::empty());
+        let old_st = mem::replace(&mut self.c.m.get_mut().m, Match::empty());
 
         if !self.c.up() {
             // Parsing finished.
@@ -492,7 +492,7 @@ impl<'x, 's> Parser<'x, 's> {
     fn combine_st(&mut self, mut old_st: Match) {
         use GrammarNode::*;
 
-        let new_st = &mut self.c.m.get_mut().st;
+        let new_st = &mut self.c.m.get_mut().m;
 
         match self.c.g.get() {
             &Seq(_)
@@ -821,7 +821,7 @@ where
 {
     use GrammarNode::*;
 
-    let st = match Parser::parse(&gg, "grammar", input) {
+    let m = match Parser::parse(&gg, "grammar", input) {
         Ok(x) => x,
         Err(ParseError::BadGrammar(e)) => panic!("{:?}", e),
         Err(e) => return Err(e),
@@ -829,10 +829,10 @@ where
 
     let mut g = Vec::<(String, GrammarNode)>::new();
 
-    let rule_count = st.count("name");
-    assert_eq!(rule_count, st.count("val"));
+    let rule_count = m.count("name");
+    assert_eq!(rule_count, m.count("val"));
 
-    for (cname, cval) in st.iter("name").zip(st.iter("val")) {
+    for (cname, cval) in m.iter("name").zip(m.iter("val")) {
         let name = cname.raw(input);
         g.push((name.to_string(), Choice(vec![])));
         let mut gc = TreeCursorMut::new(&mut g.last_mut().unwrap().1);
