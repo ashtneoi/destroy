@@ -272,7 +272,7 @@ impl<'x, 's> Parser<'x, 's> {
         loop {
             let success = p.try_match();
 
-            match p.step(success) {
+            match p.step(success, false) {
                 Some(Ok(m)) => return Ok(m),
                 Some(Err(m)) => {
                     // TODO
@@ -306,7 +306,7 @@ impl<'x, 's> Parser<'x, 's> {
 
             for i in 0..=count {
                 if i < count {
-                    match self.step(false) {
+                    match self.step(false, false) {
                         None => (),
                         Some(Ok(_)) => {
                             atoms.push(GrammarAtom::Text("".to_string()));
@@ -325,10 +325,16 @@ impl<'x, 's> Parser<'x, 's> {
                     if let &GrammarNode::Atom(ref a) = self.c.g.get() {
                         atom = a.clone();
                     } else { panic!(); }
-                    match self.step(true) {
-                        None
-                        | Some(Ok(_)) => atoms.push(atom),
-                        Some(Err(m)) => {
+                    let last;
+                    loop {
+                        if let Some(x) = self.step(true, true) {
+                            last = x;
+                            break;
+                        }
+                    }
+                    match last {
+                        Ok(_) => atoms.push(atom),
+                        Err(m) => {
                             if m.is_empty() {
                                 ()
                             } else {
@@ -348,10 +354,11 @@ impl<'x, 's> Parser<'x, 's> {
     pub(crate) fn step(
         &mut self,
         mut success: bool,
+        suppress_down: bool,
     ) -> Option<Result<Match, Match>> {
         //let mut initial = true;
         loop {
-            let a = match self.do_action(success) {
+            let a = match self.do_action(success, suppress_down) {
                 Some(a) => a,
                 None => {
                     self.fail_cause = None;
@@ -424,7 +431,11 @@ impl<'x, 's> Parser<'x, 's> {
 
     /// `None` means we reached an atom and should try to match it. `Some(_)`
     /// means we should go up and call this method again.
-    fn do_action(&mut self, success: bool) -> Option<Action> {
+    fn do_action(
+        &mut self,
+        success: bool,
+        suppress_down: bool,
+    ) -> Option<Action> {
         // Determine action.
 
         let a = if success {
@@ -437,7 +448,7 @@ impl<'x, 's> Parser<'x, 's> {
 
         // Take action.
 
-        if a.down {
+        if a.down && !suppress_down {
             if a.zero {
                 self.c.zero();
             }
