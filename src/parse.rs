@@ -266,6 +266,7 @@ impl<'x, 's> Parser<'x, 's> {
                     if let Some(cause) = p.fail_cause.take() {
                         p.c.set_pos(&cause).unwrap();
                         pos = p.c.m.get().m.raw.1.clone();
+                        println!("{:?}", p.c.g.get());
                         let mut start = p.c.pos();
                         while p.c.m.get().m.is_empty() {
                             // Ugh I hate this.
@@ -275,9 +276,9 @@ impl<'x, 's> Parser<'x, 's> {
                             }
                         }
                         p.c.set_pos(&start).unwrap();
+                        println!("{:?}", p.c.g.get());
                         p.c.zero();
                         while p.c.down() { }
-                        println!("{:?}", p.c.g.get());
                         initial = p.initial();
                     } else {
                         pos = m.raw.1.clone();
@@ -352,6 +353,13 @@ impl<'x, 's> Parser<'x, 's> {
     ) -> Option<Result<Match, Match>> {
         //let mut initial = true;
         loop {
+            // TODO: What's the perf cost here?
+            if !success {
+                if self.fail_cause.is_none() {
+                    self.fail_cause = Some(self.c.pos());
+                }
+            }
+
             let a = match self.do_action(success, suppress_down) {
                 Some(a) => a,
                 None => {
@@ -365,13 +373,6 @@ impl<'x, 's> Parser<'x, 's> {
             }
 
             success = a.success;
-
-            // TODO: What's the perf cost here?
-            if !success {
-                if self.fail_cause.is_none() {
-                    self.fail_cause = Some(self.c.pos());
-                }
-            }
         }
     }
 
