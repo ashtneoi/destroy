@@ -266,7 +266,17 @@ impl<'x, 's> Parser<'x, 's> {
                     if let Some(cause) = p.fail_cause.take() {
                         p.c.set_pos(&cause).unwrap();
                         pos = p.c.m.get().m.raw.1.clone();
+                        let mut start = p.c.pos();
+                        while p.c.m.get().m.is_empty() {
+                            // Ugh I hate this.
+                            start = p.c.pos();
+                            if !p.c.up() {
+                                break;
+                            }
+                        }
+                        p.c.set_pos(&start).unwrap();
                         p.c.zero();
+                        while p.c.down() { }
                         println!("{:?}", p.c.g.get());
                         initial = p.initial();
                     } else {
@@ -356,27 +366,9 @@ impl<'x, 's> Parser<'x, 's> {
 
             success = a.success;
 
-            /*
-            if initial {
-                use GrammarNode::*;
-                initial = match *self.c.g.get() {
-                    Seq(_) => self.c.is_initial(),
-                    Choice(_) => true,
-
-                }
-            }
-            */
-
             // TODO: What's the perf cost here?
             if !success {
-                let store = if self.fail_cause.is_none() {
-                    true
-                } else if let GrammarNode::Choice(_) = *self.c.g.get() {
-                    true
-                } else {
-                    false
-                };
-                if store {
+                if self.fail_cause.is_none() {
                     self.fail_cause = Some(self.c.pos());
                 }
             }
