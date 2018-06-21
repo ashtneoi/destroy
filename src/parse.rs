@@ -351,17 +351,7 @@ impl<'x, 's> Parser<'x, 's> {
         mut success: bool,
         suppress_down: bool,
     ) -> Option<Result<Match, Match>> {
-        //let mut initial = true;
         loop {
-            // TODO: What's the perf cost here?
-            if !success {
-                if self.fail_cause.is_none() {
-                    self.fail_cause = Some(self.c.pos());
-                }
-            }
-
-            // Determine action.
-
             let a = if success {
                 self.c.g.get().action()
             } else if self.c.m.get().m.is_empty() {
@@ -369,6 +359,13 @@ impl<'x, 's> Parser<'x, 's> {
             } else {
                 self.c.g.get().fail_action()
             };
+
+            // TODO: What's the perf cost here?
+            if !a.success {
+                if self.fail_cause.is_none() {
+                    self.fail_cause = Some(self.c.pos());
+                }
+            }
 
             if self.do_action(a, suppress_down) {
                 self.fail_cause = None;
