@@ -360,13 +360,20 @@ impl<'x, 's> Parser<'x, 's> {
                 }
             }
 
-            let a = match self.do_action(success, suppress_down) {
-                Some(a) => a,
-                None => {
-                    self.fail_cause = None;
-                    return None;
-                }
+            // Determine action.
+
+            let a = if success {
+                self.c.g.get().action()
+            } else if self.c.m.get().m.is_empty() {
+                self.c.g.get().fail_empty_action()
+            } else {
+                self.c.g.get().fail_action()
             };
+
+            if self.do_action(a, suppress_down) {
+                self.fail_cause = None;
+                return None;
+            }
 
             if let Some(r) = self.go_up(a) {
                 return Some(r);
@@ -410,23 +417,7 @@ impl<'x, 's> Parser<'x, 's> {
 
     /// `None` means we reached an atom and should try to match it. `Some(_)`
     /// means we should go up and call this method again.
-    fn do_action(
-        &mut self,
-        success: bool,
-        suppress_down: bool,
-    ) -> Option<Action> {
-        // Determine action.
-
-        let a = if success {
-            self.c.g.get().action()
-        } else if self.c.m.get().m.is_empty() {
-            self.c.g.get().fail_empty_action()
-        } else {
-            self.c.g.get().fail_action()
-        };
-
-        // Take action.
-
+    fn do_action(&mut self, a: Action, suppress_down: bool) -> bool {
         if a.down && !suppress_down {
             if a.zero {
                 self.c.zero();
@@ -437,11 +428,11 @@ impl<'x, 's> Parser<'x, 's> {
                 down = true;
             }
             if down {
-                return None;
+                return true;
             }
         }
 
-        Some(a)
+        false
     }
 
     /// `None` means we went up. `Some(Ok(_))` means the parse was successful.
