@@ -169,13 +169,11 @@ impl ParseNode {
 struct MatchPos<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
     m: TreeCursorPos,
-    initial: Vec<bool>,
 }
 
 struct MatchCursor<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
     m: TreeCursorMut<'x, ParseNode>,
-    initial: Vec<bool>,
 }
 
 impl<'x> MatchCursor<'x> {
@@ -187,24 +185,17 @@ impl<'x> MatchCursor<'x> {
         Ok(MatchCursor {
             g: LinkTreeCursor::new(named, start)?,
             m: TreeCursorMut::new(pnroot),
-            initial: vec![true],
         })
-    }
-
-    fn _is_initial(&self) -> bool {
-        *self.initial.last().unwrap()
     }
 
     fn zero(&mut self) {
         self.g.zero();
         self.m.zero();
-        *self.initial.last_mut().unwrap() = true;
     }
 
     fn up(&mut self) -> bool {
         if self.g.up() {
             assert!(self.m.up());
-            assert!(self.initial.pop().is_some());
             true
         } else {
             false
@@ -214,8 +205,6 @@ impl<'x> MatchCursor<'x> {
     fn down(&mut self) -> bool {
         if self.g.down() {
             assert!(self.m.down());
-            *self.initial.last_mut().unwrap() = false;
-            self.initial.push(true);
             true
         } else {
             false
@@ -226,7 +215,6 @@ impl<'x> MatchCursor<'x> {
         MatchPos {
             g: self.g.clone(),
             m: self.m.pos(),
-            initial: self.initial.clone(),
         }
     }
 
@@ -234,7 +222,6 @@ impl<'x> MatchCursor<'x> {
     /// On error, the state is probably pretty messed up.
     fn set_pos(&mut self, pos: &MatchPos<'x>) -> Result<(), SetPosError> {
         self.g = pos.g.clone();
-        self.initial = pos.initial.clone();
         self.m.set_pos(&pos.m)
     }
 }
@@ -267,8 +254,6 @@ impl<'x, 's> Parser<'x, 's> {
             |e| ParseError::BadGrammar(e)
         )?;
 
-        while p.c.down() { }
-
         loop {
             let success = p.try_match();
 
@@ -298,7 +283,6 @@ impl<'x, 's> Parser<'x, 's> {
     pub fn initial(&mut self) -> Vec<GrammarAtom> {
         let mut atoms = vec![];
 
-        while self.c.down() { }
         let pos = self.c.pos();
 
         'outer: for count in 0.. {
@@ -405,11 +389,13 @@ impl<'x, 's> Parser<'x, 's> {
             input: &'s str,
             pnroot: &'x mut ParseNode,
     ) -> Result<Self, LinkError> {
-        Ok(Parser {
+        let mut p = Parser {
             c: MatchCursor::new(named, start, pnroot)?,
             input,
             fail_cause: None,
-        })
+        };
+        while p.c.down() { }
+        Ok(p)
     }
 
     /// Returns whether the input matched.
