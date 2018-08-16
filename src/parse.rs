@@ -168,7 +168,8 @@ impl ParseNode {
 
 struct MatchPos<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
-    m: TreeCursorPos,
+    m: Vec<Match>,
+    mp: TreeCursorPos,
 }
 
 struct MatchCursor<'x> {
@@ -212,6 +213,10 @@ impl<'x> MatchCursor<'x> {
     }
 
     fn pos(&self) -> MatchPos<'x> {
+        let x = MatchPos {
+            g: self.g.clone(),
+            mp: self.m.pos(),
+        };
         MatchPos {
             g: self.g.clone(),
             m: self.m.pos(),
@@ -266,17 +271,17 @@ impl<'x, 's> Parser<'x, 's> {
                     if let Some(cause) = p.fail_cause.take() {
                         p.c.set_pos(&cause).unwrap();
                         pos = p.c.m.get().m.raw.1.clone();
-                        println!("{:?}", p.c.g.get());
                         let mut start = p.c.pos();
                         while p.c.m.get().m.is_empty() {
                             // Ugh I hate this.
+                            println!("{:?}", p.c.m.get().m);
+                            println!("{:?}", p.c.g.get());
                             start = p.c.pos();
                             if !p.c.up() {
                                 break;
                             }
                         }
                         p.c.set_pos(&start).unwrap();
-                        println!("{:?}", p.c.g.get());
                         p.c.zero();
                         while p.c.down() { }
                         initial = p.initial();
