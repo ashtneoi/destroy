@@ -17,7 +17,7 @@ pub enum LinkError {
 
 #[derive(Clone, Debug)]
 pub(super) struct LinkTreeCursor<'n, N: 'n + Down + Link> {
-    tree_cursor: TreeCursor<'n, N>,
+    tree_cursor: TreeCursor<'n, 'n, N>,
     link_map: LinkMap<&'n N>,
 }
 
@@ -71,7 +71,7 @@ impl<'n, N: 'n + Down + Link> LinkTreeCursor<'n, N> {
 
     pub fn down(&mut self) -> bool {
         let m = &self.link_map; // borrowck workaround
-        self.tree_cursor.down_map(|node, idx| {
+        self.tree_cursor.down_with(|node, idx| {
             node.target().map(|target| {
                 m[target]
             }).filter(|_| idx == 0)

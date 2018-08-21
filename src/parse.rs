@@ -10,10 +10,7 @@ use std::char;
 use std::fmt;
 use std::mem;
 use std::ops::Index;
-use std::ptr::NonNull;
-use std::slice;
 use tree_cursor::cursor::{
-    SetPosError,
     TreeCursorMut,
     TreeCursorPos,
 };
@@ -126,6 +123,7 @@ impl Match {
     }
 }
 
+// TODO: Remove this since it's not remotely constant-time.
 impl<'a> Index<&'a str> for Match {
     type Output = Vec<Self>;
 
@@ -147,13 +145,21 @@ pub(crate) struct ParseNode {
 
 impl DownMut for ParseNode {
     fn down_mut(&mut self, _idx: usize) -> Option<&mut Self> {
-        let mut raw = self.m.raw; // should be copy
-        raw.0 = raw.1;
-        self.child = Some(Box::new(ParseNode {
-            child: None,
-            m: Match::new(raw, vec![]),
-        }));
-        Some(self.child.as_mut().unwrap().as_mut())
+        let c: Option<&mut ParseNode> =
+            self.child
+            .as_mut()
+            .map(|&mut b| &mut *b);
+        if c.is_some() {
+            c
+        } else {
+            let mut raw = self.m.raw; // should be copy
+            raw.0 = raw.1;
+            self.child = Some(Box::new(ParseNode {
+                child: None,
+                m: Match::new(raw, vec![]),
+            }));
+            Some(self.child.as_mut().unwrap().as_mut())
+        }
     }
 }
 
@@ -174,7 +180,7 @@ struct MatchPos<'x> {
 
 struct MatchCursor<'x> {
     g: LinkTreeCursor<'x, GrammarNode>,
-    m: TreeCursorMut<'x, ParseNode>,
+    m: TreeCursorMut<'x, 'x, ParseNode>,
 }
 
 impl<'x> MatchCursor<'x> {
@@ -223,16 +229,15 @@ impl<'x> MatchCursor<'x> {
         }
     }
 
-    // TODO: Should this panic instead of returning an error?
-    /// On error, the state is probably pretty messed up.
-    fn set_pos(&mut self, pos: &MatchPos<'x>) -> Result<(), SetPosError> {
+    /// panics on failure
+    fn set_pos(&mut self, pos: &MatchPos<'x>) {
         self.g = pos.g.clone();
         self.m.set_pos(&pos.m)
     }
 }
 
 pub fn empty_slice<'a, T>() -> &'a [T] {
-    unsafe { slice::from_raw_parts(NonNull::dangling().as_ptr(), 0) }
+    &[]
 }
 
 // TODO
@@ -269,7 +274,7 @@ impl<'x, 's> Parser<'x, 's> {
                     let pos;
                     let initial;
                     if let Some(cause) = p.fail_cause.take() {
-                        p.c.set_pos(&cause).unwrap();
+                        p.c.set_pos(&cause);
                         pos = p.c.m.get().m.raw.1.clone();
                         let mut start = p.c.pos();
                         while p.c.m.get().m.is_empty() {
@@ -281,7 +286,7 @@ impl<'x, 's> Parser<'x, 's> {
                                 break;
                             }
                         }
-                        p.c.set_pos(&start).unwrap();
+                        p.c.set_pos(&start);
                         p.c.zero();
                         while p.c.down() { }
                         initial = p.initial();
@@ -302,7 +307,7 @@ impl<'x, 's> Parser<'x, 's> {
         let pos = self.c.pos();
 
         'outer: for count in 0.. {
-            self.c.set_pos(&pos).unwrap();
+            self.c.set_pos(&pos);
 
             for i in 0..=count {
                 if i < count {
@@ -697,7 +702,7 @@ fn parse_expr(
             v.push(e(vec![]));
         } else { panic!(); }
         // down
-        let mut gc = gc.down_new().unwrap();
+        let mut gc = gc.split_below().unwrap();
 
         for af in ee.iter("opd") {
             // push a
@@ -705,7 +710,7 @@ fn parse_expr(
                 v.push(a()); // placeholder
             } else { panic!(); }
             // down
-            let mut gc = gc.down_new().unwrap();
+            let mut gc = gc.split_below().unwrap();
 
             for pre in af.iter("pre") {
                 // change a to op(a)
@@ -716,7 +721,7 @@ fn parse_expr(
                 };
                 // down
                 let mut old_gc = gc;
-                gc = old_gc.down_new().unwrap();
+                gc = old_gc.split_below().unwrap();
             }
 
             for suf in af.iter_rev("suf") {
@@ -733,7 +738,7 @@ fn parse_expr(
                 };
                 // down
                 let mut old_gc = gc;
-                gc = old_gc.down_new().unwrap();
+                gc = old_gc.split_below().unwrap();
             }
 
             let atom = &af["opd"][0];

@@ -5,4 +5,4 @@ authors = ["ashtneoi <ashtneoi@gmail.com>"]
 license = "MIT"
 
 [dependencies]
-tree-cursor = "0.2.0"
+tree-cursor = { path = "tree-cursor" }
