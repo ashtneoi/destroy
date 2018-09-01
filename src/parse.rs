@@ -164,6 +164,13 @@ impl DownMut for ParseNode {
     }
 }
 
+impl TakeChild for ParseNode {
+    fn take_child(&mut self, idx: usize) -> Self {
+        assert!(idx == 0);
+        *self.child.take().unwrap()
+    }
+}
+
 impl ParseNode {
     pub(crate) fn new() -> Self {
         Self {
@@ -197,7 +204,7 @@ impl<'x> MatchCursor<'x> {
 
     fn up(&mut self) -> bool {
         if self.g.up() {
-            assert!(self.m.up());
+            self.m.take_node().unwrap();
             true
         } else {
             false
@@ -334,7 +341,6 @@ impl<'x, 's> Parser<'x, 's> {
 
         let factory = self.c.factory();
 
-        // TODO: should probably start at 1?
         'outer: for count in 0.. {
             let mut holder = factory.create();
             let mut p = Parser {
