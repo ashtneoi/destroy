@@ -462,7 +462,7 @@ impl<'x, 's> Parser<'x, 's> {
         }
     }
 
-    /// `None` means we reached an atom and should try to match it. `Some(_)`
+    /// `true` means we reached an atom and should try to match it. `false`
     /// means we should go up and call this method again.
     fn do_action(&mut self, a: Action, suppress_down: bool) -> bool {
         if a.down && !suppress_down {
