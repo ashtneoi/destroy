@@ -16,7 +16,8 @@ use tree_cursor::cursor::{
 };
 use tree_cursor::prelude::*;
 
-#[derive(PartialEq, Eq)]
+// TODO: verify that Clone is acceptable
+#[derive(Clone, PartialEq, Eq)]
 pub struct Match {
     pub(super) raw: (Pos, Pos),
     named: Vec<(String, Vec<Match>)>,
@@ -138,6 +139,7 @@ impl Down for Match {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct ParseNode {
     child: Option<Box<ParseNode>>,
     m: Match,
@@ -145,12 +147,11 @@ pub(crate) struct ParseNode {
 
 impl DownMut for ParseNode {
     fn down_mut(&mut self, _idx: usize) -> Option<&mut Self> {
-        let c: Option<&mut ParseNode> =
-            self.child
-            .as_mut()
-            .map(|&mut b| &mut *b);
-        if c.is_some() {
-            c
+        // TODO: The borrow checker made this ugly. Fix it.
+
+        // TODO: Keeping the existing child causes an infinite loop somewhere.
+        if self.child.is_some() { // <-- BAD BAD BAD BAD BAD
+            self.child.as_mut().map(|b| b.as_mut())
         } else {
             let mut raw = self.m.raw; // should be copy
             raw.0 = raw.1;
@@ -170,12 +171,6 @@ impl ParseNode {
             m: Match::new((Pos::empty(), Pos::empty()), vec![]),
         }
     }
-}
-
-struct MatchPos<'x> {
-    g: LinkTreeCursor<'x, GrammarNode>,
-    m: Vec<Match>,
-    mp: TreeCursorPos,
 }
 
 struct MatchCursor<'x> {
@@ -218,21 +213,44 @@ impl<'x> MatchCursor<'x> {
         }
     }
 
-    fn pos(&self) -> MatchPos<'x> {
-        let x = MatchPos {
+    // TODO: This is inefficient. Also I don't care right now.
+    fn factory(&self) -> MatchCursorFactory<'x> {
+        MatchCursorFactory {
             g: self.g.clone(),
+            mx: self.m.clone_root(),
             mp: self.m.pos(),
-        };
-        MatchPos {
-            g: self.g.clone(),
-            m: self.m.pos(),
         }
     }
+}
 
-    /// panics on failure
-    fn set_pos(&mut self, pos: &MatchPos<'x>) {
-        self.g = pos.g.clone();
-        self.m.set_pos(&pos.m)
+struct MatchCursorFactory<'x> {
+    g: LinkTreeCursor<'x, GrammarNode>,
+    mx: ParseNode,
+    mp: TreeCursorPos,
+}
+
+impl<'x> MatchCursorFactory<'x> {
+    fn create<'s>(&'s self) -> MatchCursorHolder<'x, 's> {
+        MatchCursorHolder {
+            f: &self,
+            mx: self.mx.clone(),
+        }
+    }
+}
+
+struct MatchCursorHolder<'f: 'x, 'x> {
+    f: &'x MatchCursorFactory<'f>,
+    mx: ParseNode,
+}
+
+impl<'f: 'x, 'x> MatchCursorHolder<'f, 'x> {
+    fn cursor<'s>(&'s mut self) -> MatchCursor<'s> {
+        let mut c = MatchCursor {
+            g: self.f.g.clone(),
+            m: TreeCursorMut::new(&mut self.mx),
+        };
+        c.m.set_pos(&self.f.mp);
+        c
     }
 }
 
@@ -250,7 +268,7 @@ pub enum ParseError {
 pub struct Parser<'x, 's> {
     c: MatchCursor<'x>,
     input: &'s str,
-    fail_cause: Option<MatchPos<'x>>,
+    fail_cause: Option<MatchCursorFactory<'x>>,
 }
 
 impl<'x, 's> Parser<'x, 's> {
@@ -274,22 +292,32 @@ impl<'x, 's> Parser<'x, 's> {
                     let pos;
                     let initial;
                     if let Some(cause) = p.fail_cause.take() {
-                        p.c.set_pos(&cause);
-                        pos = p.c.m.get().m.raw.1.clone();
-                        let mut start = p.c.pos();
-                        while p.c.m.get().m.is_empty() {
+                        let mut holder = cause.create();
+                        let mut p2 = Parser {
+                            c: holder.cursor(),
+                            input: p.input,
+                            fail_cause: None,
+                        };
+                        pos = p2.c.m.get().m.raw.1.clone();
+                        let mut start_factory = p2.c.factory();
+                        while p2.c.m.get().m.is_empty() {
                             // Ugh I hate this.
-                            println!("{:?}", p.c.m.get().m);
-                            println!("{:?}", p.c.g.get());
-                            start = p.c.pos();
-                            if !p.c.up() {
+                            println!("{:?}", p2.c.m.get().m);
+                            println!("{:?}", p2.c.g.get());
+                            start_factory = p2.c.factory();
+                            if !p2.c.up() {
                                 break;
                             }
                         }
-                        p.c.set_pos(&start);
-                        p.c.zero();
-                        while p.c.down() { }
-                        initial = p.initial();
+                        let mut start_holder = start_factory.create();
+                        let mut p2 = Parser {
+                            c: start_holder.cursor(),
+                            input: p.input,
+                            fail_cause: None,
+                        };
+                        p2.c.zero();
+                        while p2.c.down() { }
+                        initial = p2.initial();
                     } else {
                         pos = m.raw.1.clone();
                         initial = vec![];
@@ -301,17 +329,23 @@ impl<'x, 's> Parser<'x, 's> {
         }
     }
 
-    pub fn initial(&mut self) -> Vec<GrammarAtom> {
+    pub fn initial(&self) -> Vec<GrammarAtom> {
         let mut atoms = vec![];
 
-        let pos = self.c.pos();
+        let factory = self.c.factory();
 
+        // TODO: should probably start at 1?
         'outer: for count in 0.. {
-            self.c.set_pos(&pos);
+            let mut holder = factory.create();
+            let mut p = Parser {
+                c: holder.cursor(),
+                input: self.input,
+                fail_cause: None,
+            };
 
             for i in 0..=count {
                 if i < count {
-                    match self.step(false, false) {
+                    match p.step(false, false) {
                         None => (),
                         Some(Ok(_)) => {
                             atoms.push(GrammarAtom::Text("".to_string()));
@@ -327,12 +361,12 @@ impl<'x, 's> Parser<'x, 's> {
                     }
                 } else {
                     let atom;
-                    if let &GrammarNode::Atom(ref a) = self.c.g.get() {
+                    if let &GrammarNode::Atom(ref a) = p.c.g.get() {
                         atom = a.clone();
                     } else { panic!(); }
                     let last;
                     loop {
-                        if let Some(x) = self.step(true, true) {
+                        if let Some(x) = p.step(true, true) {
                             last = x;
                             break;
                         }
@@ -351,7 +385,7 @@ impl<'x, 's> Parser<'x, 's> {
             }
         }
 
-        return atoms;
+        atoms
     }
 
     /// `None` means keep going. `Some(Ok(_))` means success. `Some(Err(_))`
@@ -373,7 +407,7 @@ impl<'x, 's> Parser<'x, 's> {
             // TODO: What's the perf cost here?
             if !a.success {
                 if self.fail_cause.is_none() {
-                    self.fail_cause = Some(self.c.pos());
+                    self.fail_cause = Some(self.c.factory());
                 }
             }
 
@@ -720,8 +754,7 @@ fn parse_expr(
                     _ => panic!(),
                 };
                 // down
-                let mut old_gc = gc;
-                gc = old_gc.split_below().unwrap();
+                assert!(gc.down()); // TODO: probably fine, right?
             }
 
             for suf in af.iter_rev("suf") {
@@ -737,8 +770,7 @@ fn parse_expr(
                     },
                 };
                 // down
-                let mut old_gc = gc;
-                gc = old_gc.split_below().unwrap();
+                assert!(gc.down()); // TODO: probably fine, right?
             }
 
             let atom = &af["opd"][0];
