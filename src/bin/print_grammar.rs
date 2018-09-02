@@ -3,10 +3,24 @@ extern crate destroy;
 use destroy::parse::parse_grammar;
 use std::io;
 use std::io::Read;
+use std::process::exit;
 
-fn main() -> io::Result<()> {
+fn main() {
     let mut buf = String::new();
-    io::stdin().read_to_string(&mut buf)?;
-    println!("{:?}", parse_grammar(&buf).unwrap());
-    Ok(())
+    match io::stdin().read_to_string(&mut buf) {
+        Err(e) => {
+            eprintln!("error: can't read from file ({})", e);
+            exit(2);
+        },
+        _ => (),
+    }
+    match parse_grammar(&buf) {
+        Err(e) => {
+            eprintln!("error: {}", e);
+            exit(1);
+        },
+        Ok(x) => {
+            println!("{:?}", x);
+        },
+    }
 }

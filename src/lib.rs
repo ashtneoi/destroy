@@ -1,8 +1,7 @@
 #![feature(nll, test)]
 
-#[cfg(test)]
-extern crate test;
-
+extern crate splop;
+#[cfg(test)] extern crate test;
 extern crate tree_cursor;
 
 use constructors::*;
@@ -32,6 +31,12 @@ impl Pos {
 impl fmt::Debug for Pos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}/{},{}", self.lin, self.row, self.col)
+    }
+}
+
+impl fmt::Display for Pos {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{}", self.row, self.col)
     }
 }
 
@@ -99,6 +104,23 @@ impl fmt::Debug for GrammarAtom {
                 write!(f, "{:#X}..{:#X}", &(to as u32), &(from as u32)),
             &Text(ref t) => write!(f, "{:?}", t),
             &Anything => write!(f, "%"),
+        }
+    }
+}
+
+impl fmt::Display for GrammarAtom {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use GrammarAtom::*;
+        match self {
+            &Range(to, from) =>
+                write!(
+                    f,
+                    "a code point from {:#X} to {:#X}",
+                    &(to as u32),
+                    &(from as u32),
+                ),
+            &Text(ref t) => write!(f, "{:?}", t),
+            &Anything => write!(f, "any code point"),
         }
     }
 }

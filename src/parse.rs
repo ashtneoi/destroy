@@ -5,6 +5,7 @@ use GrammarAtom;
 use GrammarNode;
 use link_tree::{LinkError, LinkTreeCursor};
 use Pos;
+use splop::IterStatusExt;
 use std::borrow::Borrow;
 use std::char;
 use std::fmt;
@@ -277,6 +278,33 @@ pub fn empty_slice<'a, T>() -> &'a [T] {
 pub enum ParseError {
     BadGrammar(LinkError),
     MatchFail(Match, Pos, Vec<GrammarAtom>),
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ParseError::BadGrammar(_) => write!(f, "your grammar sucks")?,
+            ParseError::MatchFail(_, pos, expected) => {
+                write!(
+                    f,
+                    "match failed at {} -- ",
+                    pos,
+                )?;
+                if expected.is_empty() {
+                    write!(f, "expected end of input")?;
+                } else {
+                    write!(f, "expected one of these:\n")?;
+                    for (a, status) in expected.iter().with_status() {
+                        write!(f, "  {}", a)?;
+                        if !status.is_last() {
+                            write!(f, "\n")?;
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 pub struct Parser<'x, 's> {
