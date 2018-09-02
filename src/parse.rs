@@ -202,9 +202,12 @@ impl<'x> MatchCursor<'x> {
         self.m.zero();
     }
 
-    fn up(&mut self) -> bool {
+    fn up(&mut self, preserve_match: bool) -> bool {
         if self.g.up() {
-            self.m.take_node().unwrap();
+            if !preserve_match {
+                // TODO: this is very unclean
+                self.m.take_node().unwrap();
+            }
             true
         } else {
             false
@@ -312,7 +315,7 @@ impl<'x, 's> Parser<'x, 's> {
                             println!("{:?}", p2.c.m.get().m);
                             println!("{:?}", p2.c.g.get());
                             start_factory = p2.c.factory();
-                            if !p2.c.up() {
+                            if !p2.c.up(true) {
                                 break;
                             }
                         }
@@ -487,7 +490,7 @@ impl<'x, 's> Parser<'x, 's> {
     fn go_up(&mut self, a: Action) -> Option<Result<Match, Match>> {
         let old_st = mem::replace(&mut self.c.m.get_mut().m, Match::empty());
 
-        if !self.c.up() {
+        if !self.c.up(false) {
             // Parsing finished.
             if a.success {
                 if old_st.raw.1.lin < self.input.len() {
