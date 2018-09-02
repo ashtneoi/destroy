@@ -361,7 +361,7 @@ impl<'x, 's> Parser<'x, 's> {
                             if m.is_empty() {
                                 break 'outer
                             } else {
-                                panic!()
+                                panic!("{:?}", m);
                             }
                         },
                     }
