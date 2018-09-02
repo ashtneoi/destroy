@@ -74,6 +74,10 @@ impl Match {
         self.raw.1 = other.raw.1;
     }
 
+    fn clear(&mut self) {
+        self.raw.1 = self.raw.0;
+    }
+
     pub fn count(&self, name: &str) -> usize {
         self.get(name).map(|v| v.len()).unwrap_or(0)
     }
@@ -480,6 +484,12 @@ impl<'x, 's> Parser<'x, 's> {
             if down {
                 return true;
             }
+        }
+
+        // This is specifically for initial(). There's probably a better way to
+        // do it.
+        if !a.keep {
+            self.c.m.get_mut().m.clear();
         }
 
         false
