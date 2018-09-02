@@ -9,7 +9,7 @@ mod initial {
     fn initial(grammar: GrammarNode) -> Vec<GrammarAtom> {
         let named = [("start", grammar)];
         let mut pn = ParseNode::new();
-        let mut p = Parser::new(&named, "start", "", &mut pn).unwrap();
+        let p = Parser::new(&named, "start", "", &mut pn).unwrap();
 
         p.initial()
     }

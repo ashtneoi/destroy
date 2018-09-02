@@ -305,7 +305,7 @@ impl<'x, 's> Parser<'x, 's> {
                             input: p.input,
                             fail_cause: None,
                         };
-                        pos = p2.c.m.get().m.raw.1.clone();
+                        pos = p2.c.m.get().m.raw.1;
                         let mut start_factory = p2.c.factory();
                         while p2.c.m.get().m.is_empty() {
                             // Ugh I hate this.
@@ -326,7 +326,7 @@ impl<'x, 's> Parser<'x, 's> {
                         while p2.c.down() { }
                         initial = p2.initial();
                     } else {
-                        pos = m.raw.1.clone();
+                        pos = m.raw.1;
                         initial = vec![];
                     }
                     return Err(ParseError::MatchFail(m, pos, initial));
