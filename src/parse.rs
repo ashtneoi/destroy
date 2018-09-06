@@ -332,7 +332,7 @@ impl<'x, 's> Parser<'x, 's> {
                 Some(Err(m)) => {
                     // TODO
                     let pos;
-                    let initial;
+                    let mut expected = vec![];
                     if let Some(cause) = p.fail_cause.take() {
                         let mut holder = cause.create();
                         let mut p2 = Parser {
@@ -341,30 +341,36 @@ impl<'x, 's> Parser<'x, 's> {
                             fail_cause: None,
                         };
                         pos = p2.c.m.get().m.raw.1;
-                        let mut start_factory = p2.c.factory();
+                        println!("cause trace:");
                         while p2.c.m.get().m.is_empty() {
                             // Ugh I hate this.
-                            println!("{:?}", p2.c.m.get().m);
-                            println!("{:?}", p2.c.g.get());
-                            start_factory = p2.c.factory();
+                            //println!("{:?}", p2.c.m.get().m);
+                            println!("  {:?}", p2.c.g.get());
+                            let start_factory = p2.c.factory();
+
+                            let mut start_holder = start_factory.create();
+                            let mut p3 = Parser {
+                                c: start_holder.cursor(),
+                                input: p.input,
+                                fail_cause: None,
+                            };
+                            p3.c.zero();
+                            while p3.c.down() { }
+                            let expected_here = p3.initial();
+                            for atom in &expected_here {
+                                println!("    {}", atom);
+                            }
+                            expected.extend(expected_here);
+
                             if !p2.c.up(true) {
                                 break;
                             }
                         }
-                        let mut start_holder = start_factory.create();
-                        let mut p2 = Parser {
-                            c: start_holder.cursor(),
-                            input: p.input,
-                            fail_cause: None,
-                        };
-                        p2.c.zero();
-                        while p2.c.down() { }
-                        initial = p2.initial();
                     } else {
                         pos = m.raw.1;
-                        initial = vec![];
+                        expected = vec![];
                     }
-                    return Err(ParseError::MatchFail(m, pos, initial));
+                    return Err(ParseError::MatchFail(m, pos, expected));
                 },
                 None => (),
             }
@@ -515,8 +521,8 @@ impl<'x, 's> Parser<'x, 's> {
             }
         }
 
-        // This is specifically for initial(). There's probably a better way to
-        // do it.
+        // This is specifically for initial(). (See MatchCursor::up().) There's
+        // probably a better way to do it.
         if !a.keep {
             self.c.m.get_mut().m.clear();
         }

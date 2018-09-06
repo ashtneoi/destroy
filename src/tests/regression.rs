@@ -107,6 +107,7 @@ fn bad_expected_eof() {
     let e = Parser::parse(&g, "x", "a").unwrap_err();
     match e {
         ParseError::MatchFail(_, pos, expected) => {
+            println!("expected = {:?}", expected);
             assert_eq!(pos.lin, 1);
             assert!(!expected.contains(&Text("".to_string())));
         },
