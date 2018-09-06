@@ -57,7 +57,7 @@ mod initial {
                 t("foo"),
                 t("bar")
             ])),
-            vec![tt("foo"), tt("bar")],
+            vec![tt("bar"), tt("foo")],
         );
         assert_eq!(
             initial(c(vec![
@@ -66,7 +66,7 @@ mod initial {
                 ]),
                 t("bar"),
             ])),
-            vec![tt("foo"), tt("bar")],
+            vec![tt("bar"), tt("foo")],
         );
     }
 
@@ -91,7 +91,7 @@ mod initial {
     fn star() {
         assert_eq!(
             initial(s(t("foo"))),
-            vec![tt("foo"), tt("")],
+            vec![tt(""), tt("foo")],
         );
     }
 
@@ -99,7 +99,7 @@ mod initial {
     fn opt() {
         assert_eq!(
             initial(q(t("foo"))),
-            vec![tt("foo"), tt("")],
+            vec![tt(""), tt("foo")],
         );
     }
 
