@@ -6,6 +6,7 @@ extern crate tree_cursor;
 
 use constructors::*;
 use link_tree::Link;
+use std::cmp::Ordering;
 use std::fmt;
 use std::ops::{Add, AddAssign};
 use tree_cursor::prelude::*;
@@ -89,11 +90,11 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
 }
 
 // TODO: Derive more traits.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, Ord, PartialEq)]
 pub enum GrammarAtom {
-    Range(char, char),
-    Text(String),
     Anything,
+    Text(String),
+    Range(char, char),
 }
 
 impl fmt::Debug for GrammarAtom {
@@ -119,8 +120,29 @@ impl fmt::Display for GrammarAtom {
                     &(to as u32),
                     &(from as u32),
                 ),
-            &Text(ref t) => write!(f, "{:?}", t),
+            &Text(ref t) =>
+                if t.is_empty() {
+                    write!(f, "end of input")
+                } else {
+                    write!(f, "{:?}", t)
+                },
             &Anything => write!(f, "any code point"),
+        }
+    }
+}
+
+impl PartialOrd for GrammarAtom {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use GrammarAtom::*;
+        use Ordering::*;
+        match (self, other) {
+            (Anything, Anything) => Some(Equal),
+            (Anything, _) => Some(Less),
+            (_, Anything) => Some(Greater),
+            (Text(t), Text(u)) => t.partial_cmp(u),
+            (Range(a, b), Range(c, d)) => (a, b).partial_cmp(&(c, d)),
+            (Range(..), _) => Some(Greater),
+            (_, Range(..)) => Some(Less),
         }
     }
 }

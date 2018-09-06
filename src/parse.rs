@@ -291,7 +291,7 @@ impl fmt::Display for ParseError {
                     pos,
                 )?;
                 if expected.is_empty() {
-                    write!(f, "expected end of input")?;
+                    write!(f, "unexpected code point");
                 } else {
                     write!(f, "expected one of these:\n")?;
                     for (a, status) in expected.iter().with_status() {
@@ -415,9 +415,7 @@ impl<'x, 's> Parser<'x, 's> {
                     match last {
                         Ok(_) => atoms.push(atom),
                         Err(m) => {
-                            if m.is_empty() {
-                                ()
-                            } else {
+                            if !m.is_empty() {
                                 atoms.push(atom)
                             }
                         },
@@ -426,6 +424,8 @@ impl<'x, 's> Parser<'x, 's> {
             }
         }
 
+        atoms.sort_unstable();
+        atoms.dedup();
         atoms
     }
 
@@ -436,6 +436,7 @@ impl<'x, 's> Parser<'x, 's> {
         mut success: bool,
         suppress_down: bool,
     ) -> Option<Result<Match, Match>> {
+        // TODO: Return type isn't very clear.
         loop {
             let a = if success {
                 self.c.g.get().action()
