@@ -5,7 +5,6 @@ use GrammarAtom;
 use GrammarNode;
 use link_tree::{LinkError, LinkTreeCursor};
 use Pos;
-use splop::IterStatusExt;
 use std::borrow::Borrow;
 use std::char;
 use std::fmt;
@@ -277,30 +276,30 @@ pub fn empty_slice<'a, T>() -> &'a [T] {
 #[derive(Debug)]
 pub enum ParseError {
     BadGrammar(LinkError),
-    MatchFail(Match, Pos, Vec<GrammarAtom>),
+    MatchFail(Match, Vec<(Pos, Vec<GrammarAtom>)>),
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ParseError::BadGrammar(_) => write!(f, "your grammar sucks")?,
-            ParseError::MatchFail(_, pos, expected) => {
-                write!(
-                    f,
-                    "match failed at {} -- ",
-                    pos,
-                )?;
+            ParseError::MatchFail(_, expected) => {
                 if expected.is_empty() {
-                    write!(f, "unexpected code point");
+                    write!(f, "match failed (???)");
                 } else {
-                    write!(f, "expected one of these:\n")?;
-                    for (a, status) in expected.iter().with_status() {
-                        write!(f, "  {}", a)?;
-                        if !status.is_last() {
-                            write!(f, "\n")?;
+                    write!(f, "match failed")?;
+                    for (pos, atoms) in expected {
+                        if atoms.is_empty() {
+                            write!(f, "\n  {}: expected something (???)", pos);
+                        } else {
+                            write!(f, "\n  {}: expected one of these:", pos);
+                            for a in atoms {
+                                write!(f, "\n    {}", a)?;
+                            }
                         }
                     }
                 }
+                write!(f, "\n");
             }
         }
         Ok(())
@@ -331,7 +330,6 @@ impl<'x, 's> Parser<'x, 's> {
                 Some(Ok(m)) => return Ok(m),
                 Some(Err(m)) => {
                     // TODO
-                    let pos;
                     let mut expected = vec![];
                     if let Some(cause) = p.fail_cause.take() {
                         let mut holder = cause.create();
@@ -340,10 +338,8 @@ impl<'x, 's> Parser<'x, 's> {
                             input: p.input,
                             fail_cause: None,
                         };
-                        pos = p2.c.m.get().m.raw.1;
                         println!("cause trace:");
                         while p2.c.m.get().m.is_empty() {
-                            // Ugh I hate this.
                             //println!("{:?}", p2.c.m.get().m);
                             println!("  {:?}", p2.c.g.get());
                             let start_factory = p2.c.factory();
@@ -357,20 +353,20 @@ impl<'x, 's> Parser<'x, 's> {
                             p3.c.zero();
                             while p3.c.down() { }
                             let expected_here = p3.initial();
+                            let expected_pos = p2.c.m.get().m.raw.0;
                             for atom in &expected_here {
                                 println!("    {}", atom);
                             }
-                            expected.extend(expected_here);
+                            expected.push((expected_pos, expected_here));
 
                             if !p2.c.up(true) {
                                 break;
                             }
                         }
                     } else {
-                        pos = m.raw.1;
                         expected = vec![];
                     }
-                    return Err(ParseError::MatchFail(m, pos, expected));
+                    return Err(ParseError::MatchFail(m, expected));
                 },
                 None => (),
             }
