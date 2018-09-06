@@ -1,5 +1,10 @@
 use constructors::*;
-use parse::{parse_grammar, Parser};
+use GrammarAtom;
+use parse::{
+    parse_grammar,
+    ParseError,
+    Parser,
+};
 use Pos;
 use tests::mat;
 
@@ -92,4 +97,61 @@ fn wrong_prefix_order() {
     assert_eq!(g1, vec![
         ("A".to_string(), c(vec![e(vec![z(n(t("a")))])])),
     ]);
+}
+
+static SIMPLE_GRAMMAR_GRAMMAR_STR: &str = r##"
+    nzdigit = '1'..'9'
+    digit = "0" / nzdigit
+    latin_letter = 'a'..'z' / 'A'..'Z'
+
+    comment = "#" (-"\n" %)*
+
+    wso_part = " " / "\t"
+    ws_part = wso_part / comment? "\n"
+    wso = wso_part*
+    ws = ws_part*
+    pwso = wso_part+
+    pws = ws_part+
+
+    hex_digit = digit / 'a'..'f' / 'A'..'F'
+    hex_uint = "0x" hex_digit+
+
+    str =
+        "\""
+        ("\\" ("n" / "t" / "\\" / "\"") / -"\"" -"\n" %)[cp]*
+        "\""
+    cp =
+        hex_uint[hex]
+        / "'" ("\\" ("n" / "t" / "\\" / "'") / -"'" -"\n" %)[raw] "'"
+    cp_range = cp[from] ".." cp[to]
+    ident_initial = latin_letter / "_" / 0x80..0x10FFFF # TODO
+    ident = ident_initial (ident_initial / digit)* # TODO
+
+    expr = expr_seq[opd] (ws "/" ws expr_seq[opd])*
+    expr_seq = expr_affix[opd] (pws expr_affix[opd] -(wso "="))*
+    expr_affix =
+        ("^" / "-")[pre]*
+        expr_atom[opd]
+        ("*" / "+" / "?" / "[" ident[name] "]")[suf]*
+    expr_atom =
+        "%" / str / cp_range[r] / ident[id] / "(" ws expr[expr] ws ")"
+
+    rule = ident[name] wso "=" ws expr[val]
+    grammar = ws (rule wso comment? "\n" ws)* (rule wso comment?)?
+"##;
+
+#[test]
+fn bad_expected_eof() {
+    use GrammarAtom::*;
+
+    let g = parse_grammar(SIMPLE_GRAMMAR_GRAMMAR_STR).unwrap();
+
+    let e = Parser::parse(&g, "grammar", "a =").unwrap_err();
+    match e {
+        ParseError::MatchFail(_, pos, expected) => {
+            assert_eq!(pos.lin, 3);
+            assert!(!expected.contains(&Text("".to_string())));
+        },
+        e => panic!(format!("{}", e)),
+    }
 }
