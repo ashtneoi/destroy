@@ -7,6 +7,7 @@ mod grammar_node;
 mod group;
 mod link_tree;
 mod meta;
+mod perf;
 mod regression;
 
 fn mat(
