@@ -253,6 +253,7 @@ impl fmt::Display for ParseError {
 pub struct Parser<'x, 's> {
     c: MatchCursor<'x>,
     input: &'s str,
+    fail_pos: Option<Pos>,
 }
 
 impl<'x, 's> Parser<'x, 's> {
@@ -271,9 +272,8 @@ impl<'x, 's> Parser<'x, 's> {
 
             match p.step(success, false) {
                 Some(Ok(m)) => return Ok(m),
-                Some(Err(m)) => {
-                    return Err(ParseError::MatchFail(m, None));
-                },
+                Some(Err(m)) =>
+                    return Err(ParseError::MatchFail(m, p.fail_pos)),
                 None => (),
             }
         }
@@ -296,7 +296,15 @@ impl<'x, 's> Parser<'x, 's> {
                 self.c.g.get().fail_action()
             };
 
+            // TODO: This is more efficient than before, right?
+            if !a.success {
+                if self.fail_pos.is_none() {
+                    self.fail_pos = Some(self.c.m.get().m.raw.1);
+                }
+            }
+
             if self.do_action(a, suppress_down) {
+                self.fail_pos = None;
                 return None;
             }
 
@@ -317,6 +325,7 @@ impl<'x, 's> Parser<'x, 's> {
         let mut p = Parser {
             c: MatchCursor::new(named, start, pnroot)?,
             input,
+            fail_pos: None,
         };
         while p.c.down() { }
         Ok(p)
