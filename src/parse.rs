@@ -416,6 +416,7 @@ impl<'x, 's> Parser<'x, 's> {
                         Ok(_) => atoms.push(atom),
                         Err(m) => {
                             if !m.is_empty() {
+                                println!("{:?}", m);
                                 atoms.push(atom)
                             }
                         },
