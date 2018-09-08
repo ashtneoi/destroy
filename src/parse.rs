@@ -339,11 +339,10 @@ impl<'x, 's> Parser<'x, 's> {
                             fail_cause: None,
                         };
                         println!("cause trace:");
-                        while p2.c.m.get().m.is_empty() {
+                        loop {
                             //println!("{:?}", p2.c.m.get().m);
-                            println!("  {:?}", p2.c.g.get());
-                            let start_factory = p2.c.factory();
 
+                            let start_factory = p2.c.factory();
                             let mut start_holder = start_factory.create();
                             let mut p3 = Parser {
                                 c: start_holder.cursor(),
@@ -354,12 +353,13 @@ impl<'x, 's> Parser<'x, 's> {
                             while p3.c.down() { }
                             let expected_here = p3.initial();
                             let expected_pos = p2.c.m.get().m.raw.0;
+                            println!("  {:?}", p2.c.g.get());
                             for atom in &expected_here {
                                 println!("    {}", atom);
                             }
                             expected.push((expected_pos, expected_here));
 
-                            if !p2.c.up(true) {
+                            if !p2.c.up(false) {
                                 break;
                             }
                         }
@@ -407,14 +407,12 @@ impl<'x, 's> Parser<'x, 's> {
                     if let &GrammarNode::Atom(ref a) = p.c.g.get() {
                         atom = a.clone();
                     } else { panic!(); }
-                    let last;
-                    loop {
+                    let result = loop {
                         if let Some(x) = p.step(true, true) {
-                            last = x;
-                            break;
+                            break x;
                         }
-                    }
-                    match last {
+                    };
+                    match result {
                         Ok(_) => atoms.push(atom),
                         Err(m) => {
                             if !m.is_empty() {
