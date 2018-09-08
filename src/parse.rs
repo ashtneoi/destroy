@@ -1,7 +1,6 @@
 use Action;
 use constructors::*;
 use get_utils;
-use GrammarAtom;
 use GrammarNode;
 use link_tree::{LinkError, LinkTreeCursor};
 use Pos;
@@ -276,33 +275,21 @@ pub fn empty_slice<'a, T>() -> &'a [T] {
 #[derive(Debug)]
 pub enum ParseError {
     BadGrammar(LinkError),
-    MatchFail(Match, Vec<(Pos, Vec<GrammarAtom>)>),
+    MatchFail(Match, Option<Pos>),
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ParseError::BadGrammar(_) => write!(f, "your grammar sucks")?,
-            ParseError::MatchFail(_, expected) => {
-                if expected.is_empty() {
-                    write!(f, "match failed (???)");
+            ParseError::BadGrammar(_) =>
+                write!(f, "your grammar sucks"),
+            ParseError::MatchFail(_, pos) =>
+                if let Some(pos) = pos {
+                    write!(f, "match failed at {}", pos)
                 } else {
-                    write!(f, "match failed")?;
-                    for (pos, atoms) in expected {
-                        if atoms.is_empty() {
-                            write!(f, "\n  {}: expected something (???)", pos);
-                        } else {
-                            write!(f, "\n  {}: expected one of these:", pos);
-                            for a in atoms {
-                                write!(f, "\n    {}", a)?;
-                            }
-                        }
-                    }
+                    write!(f, "match failed somewhere")
                 }
-                write!(f, "\n");
-            }
         }
-        Ok(())
     }
 }
 
@@ -329,105 +316,23 @@ impl<'x, 's> Parser<'x, 's> {
             match p.step(success, false) {
                 Some(Ok(m)) => return Ok(m),
                 Some(Err(m)) => {
-                    // TODO
-                    let mut expected = vec![];
+                    let pos;
                     if let Some(cause) = p.fail_cause.take() {
                         let mut holder = cause.create();
-                        let mut p2 = Parser {
+                        let p2 = Parser {
                             c: holder.cursor(),
                             input: p.input,
                             fail_cause: None,
                         };
-                        println!("cause trace:");
-                        loop {
-                            //println!("{:?}", p2.c.m.get().m);
-
-                            let start_factory = p2.c.factory();
-                            let mut start_holder = start_factory.create();
-                            let mut p3 = Parser {
-                                c: start_holder.cursor(),
-                                input: p.input,
-                                fail_cause: None,
-                            };
-                            p3.c.zero();
-                            while p3.c.down() { }
-                            let expected_here = p3.initial();
-                            let expected_pos = p2.c.m.get().m.raw.0;
-                            println!("  {:?}", p2.c.g.get());
-                            for atom in &expected_here {
-                                println!("    {}", atom);
-                            }
-                            expected.push((expected_pos, expected_here));
-
-                            if !p2.c.up(false) {
-                                break;
-                            }
-                        }
+                        pos = Some(p2.c.m.get().m.raw.0);
                     } else {
-                        expected = vec![];
+                        pos = None;
                     }
-                    return Err(ParseError::MatchFail(m, expected));
+                    return Err(ParseError::MatchFail(m, pos));
                 },
                 None => (),
             }
         }
-    }
-
-    pub fn initial(&self) -> Vec<GrammarAtom> {
-        let mut atoms = vec![];
-
-        let factory = self.c.factory();
-
-        'outer: for count in 0.. {
-            let mut holder = factory.create();
-            let mut p = Parser {
-                c: holder.cursor(),
-                input: self.input,
-                fail_cause: None,
-            };
-
-            for i in 0..=count {
-                if i < count {
-                    match p.step(false, false) {
-                        None => (),
-                        Some(Ok(_)) => {
-                            atoms.push(GrammarAtom::Text("".to_string()));
-                            break 'outer;
-                        },
-                        Some(Err(m)) => {
-                            if m.is_empty() {
-                                break 'outer
-                            } else {
-                                panic!("{:?}", m);
-                            }
-                        },
-                    }
-                } else {
-                    let atom;
-                    if let &GrammarNode::Atom(ref a) = p.c.g.get() {
-                        atom = a.clone();
-                    } else { panic!(); }
-                    let result = loop {
-                        if let Some(x) = p.step(true, true) {
-                            break x;
-                        }
-                    };
-                    match result {
-                        Ok(_) => atoms.push(atom),
-                        Err(m) => {
-                            if !m.is_empty() {
-                                println!("{:?}", m);
-                                atoms.push(atom)
-                            }
-                        },
-                    }
-                }
-            }
-        }
-
-        atoms.sort_unstable();
-        atoms.dedup();
-        atoms
     }
 
     /// `None` means keep going. `Some(Ok(_))` means success. `Some(Err(_))`

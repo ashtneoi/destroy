@@ -1,7 +1,6 @@
 use constructors::*;
 use parse::{
     parse_grammar,
-    ParseError,
     Parser,
 };
 use Pos;
@@ -96,21 +95,4 @@ fn wrong_prefix_order() {
     assert_eq!(g1, vec![
         ("A".to_string(), c(vec![e(vec![z(n(t("a")))])])),
     ]);
-}
-
-#[test]
-fn bad_expected_eof() {
-    use GrammarAtom::*;
-
-    let g = parse_grammar(r#"x = ("a" "b")?"#).unwrap();
-
-    let e = Parser::parse(&g, "x", "a").unwrap_err();
-    match e {
-        ParseError::MatchFail(_, expected) => {
-            println!("expected = {:?}", expected);
-            assert_eq!(expected[0].0.lin, 1);
-            //assert!(!expected.contains(&Text("".to_string())));
-        },
-        e => panic!(format!("{}", e)),
-    }
 }
