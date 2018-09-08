@@ -9,10 +9,7 @@ use std::char;
 use std::fmt;
 use std::mem;
 use std::ops::Index;
-use tree_cursor::cursor::{
-    TreeCursorMut,
-    TreeCursorPos,
-};
+use tree_cursor::cursor::TreeCursorMut;
 use tree_cursor::prelude::*;
 
 // TODO: verify that Clone is acceptable
@@ -225,46 +222,6 @@ impl<'x> MatchCursor<'x> {
             false
         }
     }
-
-    // TODO: This is inefficient. Also I don't care right now.
-    fn factory(&self) -> MatchCursorFactory<'x> {
-        MatchCursorFactory {
-            g: self.g.clone(),
-            mx: self.m.clone_root(),
-            mp: self.m.pos(),
-        }
-    }
-}
-
-struct MatchCursorFactory<'x> {
-    g: LinkTreeCursor<'x, GrammarNode>,
-    mx: ParseNode,
-    mp: TreeCursorPos,
-}
-
-impl<'x> MatchCursorFactory<'x> {
-    fn create<'s>(&'s self) -> MatchCursorHolder<'x, 's> {
-        MatchCursorHolder {
-            f: &self,
-            mx: self.mx.clone(),
-        }
-    }
-}
-
-struct MatchCursorHolder<'f: 'x, 'x> {
-    f: &'x MatchCursorFactory<'f>,
-    mx: ParseNode,
-}
-
-impl<'f: 'x, 'x> MatchCursorHolder<'f, 'x> {
-    fn cursor<'s>(&'s mut self) -> MatchCursor<'s> {
-        let mut c = MatchCursor {
-            g: self.f.g.clone(),
-            m: TreeCursorMut::new(&mut self.mx),
-        };
-        c.m.set_pos(&self.f.mp);
-        c
-    }
 }
 
 pub fn empty_slice<'a, T>() -> &'a [T] {
@@ -296,7 +253,6 @@ impl fmt::Display for ParseError {
 pub struct Parser<'x, 's> {
     c: MatchCursor<'x>,
     input: &'s str,
-    fail_cause: Option<MatchCursorFactory<'x>>,
 }
 
 impl<'x, 's> Parser<'x, 's> {
@@ -316,19 +272,7 @@ impl<'x, 's> Parser<'x, 's> {
             match p.step(success, false) {
                 Some(Ok(m)) => return Ok(m),
                 Some(Err(m)) => {
-                    let pos;
-                    if let Some(cause) = p.fail_cause.take() {
-                        let mut holder = cause.create();
-                        let p2 = Parser {
-                            c: holder.cursor(),
-                            input: p.input,
-                            fail_cause: None,
-                        };
-                        pos = Some(p2.c.m.get().m.raw.0);
-                    } else {
-                        pos = None;
-                    }
-                    return Err(ParseError::MatchFail(m, pos));
+                    return Err(ParseError::MatchFail(m, None));
                 },
                 None => (),
             }
@@ -352,15 +296,7 @@ impl<'x, 's> Parser<'x, 's> {
                 self.c.g.get().fail_action()
             };
 
-            // TODO: What's the perf cost here?
-            if !a.success {
-                if self.fail_cause.is_none() {
-                    self.fail_cause = Some(self.c.factory());
-                }
-            }
-
             if self.do_action(a, suppress_down) {
-                self.fail_cause = None;
                 return None;
             }
 
@@ -381,7 +317,6 @@ impl<'x, 's> Parser<'x, 's> {
         let mut p = Parser {
             c: MatchCursor::new(named, start, pnroot)?,
             input,
-            fail_cause: None,
         };
         while p.c.down() { }
         Ok(p)
