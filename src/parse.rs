@@ -149,8 +149,7 @@ impl DownMut for ParseNode {
     fn down_mut(&mut self, _idx: usize) -> Option<&mut Self> {
         // TODO: The borrow checker made this ugly. Fix it.
 
-        // TODO: Keeping the existing child causes an infinite loop somewhere.
-        if self.child.is_some() { // <-- BAD BAD BAD BAD BAD
+        if self.child.is_some() {
             self.child.as_mut().map(|b| b.as_mut())
         } else {
             let mut raw = self.m.raw; // should be copy
