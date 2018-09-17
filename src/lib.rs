@@ -10,7 +10,7 @@ use link_tree::Link;
 use std::cmp::Ordering;
 use std::fmt;
 use std::ops::{Add, AddAssign};
-use string_table::StringTable;
+use string_table::{StringTable, StringTableEntry};
 use tree_cursor::prelude::*;
 
 pub mod constructors;
@@ -213,7 +213,10 @@ impl<'i> fmt::Debug for GrammarNode<'i> {
 }
 
 impl<'i> GrammarNode<'i> {
-    fn try_match(&self, input: &str) -> Option<PosDelta> {
+    fn try_match(
+        &self,
+        input: &str,
+    ) -> Option<(PosDelta, Option<&'i StringTableEntry>)> {
         use GrammarAtom::*;
         use GrammarNode::*;
         match self {
@@ -221,9 +224,9 @@ impl<'i> GrammarNode<'i> {
                 if let Some(c) = input.chars().next() {
                     if from <= c && c <= to {
                         if c == '\n' {
-                            Some(PosDelta { lin: 1, row: 1, col: 0 })
+                            Some((PosDelta { lin: 1, row: 1, col: 0 }, None))
                         } else {
-                            Some(PosDelta { lin: 1, row: 0, col: 1 })
+                            Some((PosDelta { lin: 1, row: 0, col: 1 }, None))
                         }
                     } else {
                         None
@@ -232,7 +235,8 @@ impl<'i> GrammarNode<'i> {
                     None
                 }
             },
-            &Atom(Text(&(ref t, _))) => {
+            &Atom(Text(x)) => {
+                let &(ref t, _) = x;
                 if input.starts_with(t) {
                     let mut cp_count: isize = 0;
                     let nls: Vec<isize> = t.chars()
@@ -247,11 +251,14 @@ impl<'i> GrammarNode<'i> {
                     let col =
                         cp_count
                         - (*nls.last().unwrap_or(&-1) + 1);
-                    Some(PosDelta {
-                        lin: cp_count as usize,
-                        row: row as usize,
-                        col: col as usize,
-                    })
+                    Some((
+                        PosDelta {
+                            lin: cp_count as usize,
+                            row: row as usize,
+                            col: col as usize,
+                        },
+                        Some(x),
+                    ))
                 } else {
                     None
                 }
@@ -259,9 +266,9 @@ impl<'i> GrammarNode<'i> {
             &Atom(Anything) => {
                 match input.chars().next() {
                     Some('\n') =>
-                        Some(PosDelta { lin: 1, row: 1, col: 0 }),
+                        Some((PosDelta { lin: 1, row: 1, col: 0 }, None)),
                     Some(_) =>
-                        Some(PosDelta { lin: 1, row: 0, col: 1 }),
+                        Some((PosDelta { lin: 1, row: 0, col: 1 }, None)),
                     None => None,
                 }
             },

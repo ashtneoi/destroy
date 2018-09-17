@@ -340,7 +340,11 @@ impl<'x, 's, 'i: 'x> Parser<'x, 's, 'i> {
         let pos = here_st.raw.0;
         let maybe_delta = here.try_match(&self.input[pos.lin..]);
         match maybe_delta {
-            Some(delta) => { here_st.raw.1 += delta; true }
+            Some((delta, interned)) => {
+                here_st.raw.1 += delta;
+                here_st.interned = interned;
+                true
+            }
             None => false,
         }
     }

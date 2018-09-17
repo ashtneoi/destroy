@@ -10,11 +10,11 @@ mod meta;
 mod perf;
 mod regression;
 
-fn mat(
-        (lin0, row0, col0, lin1, row1, col1):
-            (usize, usize, usize, usize, usize, usize),
-        named: Vec<(&str, Vec<Match>)>,
-) -> Match {
+fn mat<'i>(
+    (lin0, row0, col0, lin1, row1, col1):
+        (usize, usize, usize, usize, usize, usize),
+    named: Vec<(&str, Vec<Match<'i>>)>,
+) -> Match<'i> {
     Match::new(
         (
             Pos {
