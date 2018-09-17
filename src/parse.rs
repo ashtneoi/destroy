@@ -8,18 +8,19 @@ use std::borrow::Borrow;
 use std::char;
 use std::fmt;
 use std::mem;
-use std::ops::Index;
+use string_table::StringTable;
 use tree_cursor::cursor::TreeCursorMut;
 use tree_cursor::prelude::*;
 
 // TODO: verify that Clone is acceptable
 #[derive(Clone, PartialEq, Eq)]
-pub struct Match {
+pub struct Match<'i> {
     pub(super) raw: (Pos, Pos),
-    named: Vec<(String, Vec<Match>)>,
+    interned: Option<&'i (String, usize)>,
+    named: Vec<(String, Vec<Match<'i>>)>,
 }
 
-impl fmt::Debug for Match {
+impl<'i> fmt::Debug for Match<'i> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({:?}..{:?})", self.raw.0, self.raw.1)?;
         if !self.named.is_empty() {
@@ -40,18 +41,22 @@ impl fmt::Debug for Match {
     }
 }
 
-impl Match {
+impl<'i> Match<'i> {
     fn empty() -> Self {
         Match {
             raw: (Pos::empty(), Pos::empty()),
+            interned: None,
             named: vec![],
         }
     }
 
-    pub(super) fn new(raw: (Pos, Pos), named: Vec<(&str, Vec<Match>)>) -> Self
-    {
+    pub(super) fn new(
+        raw: (Pos, Pos),
+        named: Vec<(&str, Vec<Match<'i>>)>,
+    ) -> Self {
         Match {
             raw,
+            interned: None,
             named: named.into_iter().map(
                 |(s, children)| (s.to_string(), children)
             ).collect(),
@@ -79,15 +84,14 @@ impl Match {
     }
 
     pub fn get_or_empty(&self, name: &str) -> &[Self] {
-        static EMPTY_MATCH_SLICE: &[Match] = &[];
-        self.get(name).map(|v| v.as_slice()).unwrap_or(EMPTY_MATCH_SLICE)
+        self.get(name).map(|v| v.as_slice()).unwrap_or(empty_slice())
     }
 
-    pub fn iter(&self, name: &str) -> impl Iterator<Item = &Match> {
+    pub fn iter(&self, name: &str) -> impl Iterator<Item = &Match<'i>> {
         self.get_or_empty(name).iter()
     }
 
-    pub fn iter_rev(&self, name: &str) -> impl Iterator<Item = &Match> {
+    pub fn iter_rev(&self, name: &str) -> impl Iterator<Item = &Match<'i>> {
         self.get_or_empty(name).iter().rev()
     }
 
@@ -124,28 +128,19 @@ impl Match {
     }
 }
 
-// TODO: Remove this since it's not remotely constant-time.
-impl<'a> Index<&'a str> for Match {
-    type Output = Vec<Self>;
-
-    fn index(&self, index: &'a str) -> &Self::Output {
-        self.get(index).unwrap()
-    }
-}
-
-impl Down for Match {
+impl<'i> Down for Match<'i> {
     fn down(&self, _idx: usize) -> Option<&Self> {
         None
     }
 }
 
 #[derive(Clone)]
-pub(crate) struct ParseNode {
-    child: Option<Box<ParseNode>>,
-    m: Match,
+pub(crate) struct ParseNode<'i> {
+    child: Option<Box<ParseNode<'i>>>,
+    m: Match<'i>,
 }
 
-impl DownMut for ParseNode {
+impl<'i> DownMut for ParseNode<'i> {
     fn down_mut(&mut self, _idx: usize) -> Option<&mut Self> {
         // TODO: The borrow checker made this ugly. Fix it.
 
@@ -163,14 +158,14 @@ impl DownMut for ParseNode {
     }
 }
 
-impl TakeChild for ParseNode {
+impl<'i> TakeChild for ParseNode<'i> {
     fn take_child(&mut self, idx: usize) -> Self {
         assert!(idx == 0);
         *self.child.take().unwrap()
     }
 }
 
-impl ParseNode {
+impl<'i> ParseNode<'i> {
     pub(crate) fn new() -> Self {
         Self {
             child: None,
@@ -179,16 +174,16 @@ impl ParseNode {
     }
 }
 
-struct MatchCursor<'x> {
-    g: LinkTreeCursor<'x, GrammarNode>,
-    m: TreeCursorMut<'x, 'x, ParseNode>,
+struct MatchCursor<'x, 'i: 'x> {
+    g: LinkTreeCursor<'x, GrammarNode<'i>>,
+    m: TreeCursorMut<'x, 'x, ParseNode<'i>>,
 }
 
-impl<'x> MatchCursor<'x> {
+impl<'x, 'i: 'x> MatchCursor<'x, 'i> {
     fn new(
-        named: &'x [(impl Borrow<str>, GrammarNode)],
+        named: &'x [(impl Borrow<str>, GrammarNode<'i>)],
         start: &str,
-        pnroot: &'x mut ParseNode,
+        pnroot: &'x mut ParseNode<'i>,
     ) -> Result<Self, LinkError> {
         Ok(MatchCursor {
             g: LinkTreeCursor::new(named, start)?,
@@ -231,7 +226,7 @@ pub fn empty_slice<'a, T>() -> &'a [T] {
 #[derive(Debug)]
 pub enum ParseError {
     BadGrammar(LinkError),
-    MatchFail(Match, Option<Pos>),
+    MatchFail(Option<Pos>),
 }
 
 impl fmt::Display for ParseError {
@@ -239,7 +234,7 @@ impl fmt::Display for ParseError {
         match self {
             ParseError::BadGrammar(_) =>
                 write!(f, "your grammar sucks"),
-            ParseError::MatchFail(_, pos) =>
+            ParseError::MatchFail(pos) =>
                 if let Some(pos) = pos {
                     write!(f, "match failed at {}", pos)
                 } else {
@@ -249,18 +244,21 @@ impl fmt::Display for ParseError {
     }
 }
 
-pub struct Parser<'x, 's> {
-    c: MatchCursor<'x>,
+/// 'x: GrammarNode and ParseNode
+/// 's: input
+/// 'i: grammar StringTable
+pub struct Parser<'x, 's, 'i: 'x> {
+    c: MatchCursor<'x, 'i>,
     input: &'s str,
     fail_pos: Option<Pos>,
 }
 
-impl<'x, 's> Parser<'x, 's> {
-    pub fn parse(
-        named: &[(impl Borrow<str>, GrammarNode)],
+impl<'x, 's, 'i: 'x> Parser<'x, 's, 'i> {
+    pub fn parse<'a>(
+        named: &'x [(impl Borrow<str>, GrammarNode<'i>)],
         start: &str,
-        input: &str,
-    ) -> Result<Match, ParseError> {
+        input: &'s str,
+    ) -> Result<Match<'i>, ParseError> {
         let mut pn = ParseNode::new();
         let mut p = Parser::new(named, start, input, &mut pn).map_err(
             |e| ParseError::BadGrammar(e)
@@ -271,8 +269,8 @@ impl<'x, 's> Parser<'x, 's> {
 
             match p.step(success, false) {
                 Some(Ok(m)) => return Ok(m),
-                Some(Err(m)) =>
-                    return Err(ParseError::MatchFail(m, p.fail_pos)),
+                Some(Err(_)) =>
+                    return Err(ParseError::MatchFail(p.fail_pos)),
                 None => (),
             }
         }
@@ -316,10 +314,10 @@ impl<'x, 's> Parser<'x, 's> {
     }
 
     pub(crate) fn new(
-            named: &'x [(impl Borrow<str>, GrammarNode)],
+            named: &'x [(impl Borrow<str>, GrammarNode<'i>)],
             start: &str,
             input: &'s str,
-            pnroot: &'x mut ParseNode,
+            pnroot: &'x mut ParseNode<'i>,
     ) -> Result<Self, LinkError> {
         let mut p = Parser {
             c: MatchCursor::new(named, start, pnroot)?,
@@ -375,7 +373,7 @@ impl<'x, 's> Parser<'x, 's> {
 
     /// `None` means we went up. `Some(Ok(_))` means the parse was successful.
     /// `Some(Err(_))` means there was a parse error.
-    fn go_up(&mut self, a: Action) -> Option<Result<Match, Match>> {
+    fn go_up(&mut self, a: Action) -> Option<Result<Match<'i>, Match<'i>>> {
         let old_st = mem::replace(&mut self.c.m.get_mut().m, Match::empty());
 
         if !self.c.up(false) {
@@ -397,10 +395,12 @@ impl<'x, 's> Parser<'x, 's> {
         None
     }
 
-    fn combine_st(&mut self, mut old_st: Match) {
+    fn combine_st(&mut self, mut old_st: Match<'i>) {
         use GrammarNode::*;
 
         let new_st = &mut self.c.m.get_mut().m;
+
+        new_st.interned = new_st.interned.xor(old_st.interned);
 
         match self.c.g.get() {
             &Seq(_)
@@ -423,27 +423,29 @@ impl<'x, 's> Parser<'x, 's> {
     }
 }
 
-pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
-    let mut gg = get_utils();
+pub(super) fn get_grammar_grammar<'i>(
+    tab: &mut StringTable<'i>,
+) -> Vec<(&'static str, GrammarNode<'i>)> {
+    let mut gg = get_utils(tab);
 
     gg.append(&mut vec![
         ("comment", e(vec![
-            t("#"),
+            t(tab, "#"),
             s(e(vec![
-                n(t("\n")),
+                n(t(tab, "\n")),
                 a(),
             ])),
         ])),
 
         ("wso_part", c(vec![
-            t(" "),
-            t("\t"),
+            t(tab, " "),
+            t(tab, "\t"),
         ])),
         ("ws_part", c(vec![
             k("wso_part"),
             e(vec![
                 q(k("comment")),
-                t("\n"),
+                t(tab, "\n"),
             ]),
         ])),
         ("wso", s(k("wso_part"))),
@@ -457,61 +459,61 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
             r('A', 'F'),
         ])),
         ("hex_uint", e(vec![
-            t("0x"),
+            t(tab, "0x"),
             p(k("hex_digit")),
         ])),
 
         ("str", e(vec![
-            t("\""),
+            t(tab, "\""),
             s(u("cp", c(vec![
                 e(vec![
-                    t("\\"),
+                    t(tab, "\\"),
                     c(vec![
-                        t("n"),
-                        t("t"),
-                        t("\\"),
-                        t("\""),
+                        t(tab, "n"),
+                        t(tab, "t"),
+                        t(tab, "\\"),
+                        t(tab, "\""),
                     ]),
                 ]),
                 e(vec![
-                    n(t("\"")),
-                    n(t("\n")),
+                    n(t(tab, "\"")),
+                    n(t(tab, "\n")),
                     a(),
                 ]),
             ]))),
-            t("\""),
+            t(tab, "\""),
         ])),
         ("cp", c(vec![
             u("hex", k("hex_uint")),
             e(vec![
-                t("'"),
+                t(tab, "'"),
                 u("raw", c(vec![
                     e(vec![
-                        t("\\"),
+                        t(tab, "\\"),
                         c(vec![
-                            t("n"),
-                            t("t"),
-                            t("\\"),
-                            t("'"),
+                            t(tab, "n"),
+                            t(tab, "t"),
+                            t(tab, "\\"),
+                            t(tab, "'"),
                         ]),
                     ]),
                     e(vec![
-                        n(t("'")),
-                        n(t("\n")),
+                        n(t(tab, "'")),
+                        n(t(tab, "\n")),
                         a(),
                     ]),
                 ])),
-                t("'"),
+                t(tab, "'"),
             ]),
         ])),
         ("cp_range", e(vec![
             u("from", k("cp")),
-            t(".."),
+            t(tab, ".."),
             u("to", k("cp")),
         ])),
         ("ident_initial", c(vec![
             k("latin_letter"),
-            t("_"),
+            t(tab, "_"),
             r('\u{80}', '\u{10FFFF}'), // TODO
         ])),
         ("ident", e(vec![
@@ -526,7 +528,7 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
             u("opd", k("expr_seq")),
             s(e(vec![
                 k("ws"),
-                t("/"),
+                t(tab, "/"),
                 k("ws"),
                 u("opd", k("expr_seq")),
             ])),
@@ -538,45 +540,45 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                 u("opd", k("expr_affix")),
                 n(e(vec![
                     k("wso"),
-                    t("="),
+                    t(tab, "="),
                 ])),
             ])),
         ])),
         ("expr_affix", e(vec![
             s(u("pre", c(vec![
-                t("^"),
-                t("-"),
+                t(tab, "^"),
+                t(tab, "-"),
             ]))),
             u("opd", k("expr_atom")),
             s(u("suf", c(vec![
-                t("*"),
-                t("+"),
-                t("?"),
+                t(tab, "*"),
+                t(tab, "+"),
+                t(tab, "?"),
                 e(vec![
-                    t("["),
+                    t(tab,"["),
                     u("name", k("ident")),
-                    t("]"),
+                    t(tab, "]"),
                 ]),
             ]))),
         ])),
         ("expr_atom", c(vec![
-            t("%"),
+            t(tab, "%"),
             k("str"),
             u("r", k("cp_range")),
             u("id", k("ident")),
             e(vec![
-                t("("),
+                t(tab, "("),
                 k("ws"),
                 u("expr", k("expr")),
                 k("ws"),
-                t(")"),
+                t(tab, ")"),
             ]),
         ])),
 
         ("rule", e(vec![
             u("name", k("ident")),
             k("wso"),
-            t("="),
+            t(tab, "="),
             k("ws"),
             u("val", k("expr")),
         ])),
@@ -586,7 +588,7 @@ pub(super) fn get_grammar_grammar() -> Vec<(&'static str, GrammarNode)> {
                 k("rule"),
                 k("wso"),
                 q(k("comment")),
-                t("\n"),
+                t(tab, "\n"),
                 k("ws"),
             ])),
             q(e(vec![
@@ -608,6 +610,7 @@ fn parse_escape(s: &str) -> char {
             match ss[1] {
                 'n' => '\n',
                 't' => '\t',
+                // TODO: Just panic?
                 c => c, // note: grammar should be more restrictive than this
             }
         },
@@ -618,10 +621,11 @@ fn parse_escape(s: &str) -> char {
     }
 }
 
-fn parse_expr(
+fn parse_expr<'i>(
     input: &str,
-    expr: &Match,
-    gc: &mut TreeCursorMut<GrammarNode>,
+    expr: &Match<'i>,
+    tab: &mut StringTable<'i>,
+    gc: &mut TreeCursorMut<GrammarNode<'i>>,
 ) -> Result<(), ParseError> {
     use GrammarNode::*;
 
@@ -663,16 +667,16 @@ fn parse_expr(
                     name => {
                         assert!(name.starts_with("["));
                         assert!(name.ends_with("]"));
-                        u(suf["name"][0].raw(input), a())
+                        u(suf.get("name").unwrap()[0].raw(input), a())
                     },
                 };
                 // down
                 assert!(gc.down()); // TODO: probably fine, right?
             }
 
-            let atom = &af["opd"][0];
+            let atom = &af.get("opd").unwrap()[0];
 
-            fn first<'a>(v: &'a Vec<Match>) -> &'a Match {
+            fn first<'a, 'i>(v: &'a Vec<Match<'i>>) -> &'a Match<'i> {
                 &v[0]
             }
 
@@ -684,10 +688,10 @@ fn parse_expr(
                 for cp in atom.iter("cp") {
                     s.push(parse_escape(cp.raw(input)));
                 }
-                *gc.get_mut() = t(&s);
+                *gc.get_mut() = t(tab, &s);
             } else if let Some(rr) = atom.get("r").map(first) {
-                let ff = &rr["from"][0];
-                let tt = &rr["to"][0];
+                let ff = &rr.get("from").unwrap()[0];
+                let tt = &rr.get("to").unwrap()[0];
                 let ffc = if let Some(hex) = ff.get("hex").map(first) {
                     char::from_u32(
                         u32::from_str_radix(&hex.raw(input)[2..], 16)
@@ -711,7 +715,7 @@ fn parse_expr(
                 // change a to c([])
                 *gc.get_mut() = c(vec![]);
                 // recurse
-                parse_expr(input, &inner_expr, &mut gc)?;
+                parse_expr(input, &inner_expr, tab, &mut gc)?;
             }
         }
     }
@@ -719,12 +723,11 @@ fn parse_expr(
     Ok(())
 }
 
-pub(super) fn parse_grammar_with_grammar<S>(
-    gg: &[(S, GrammarNode)], input: &str
-) -> Result<Vec<(String, GrammarNode)>, ParseError>
-where
-    S: Borrow<str>,
-{
+pub(super) fn parse_grammar_with_grammar<'i, 'g: 'i>(
+    gg: &'g [(impl Borrow<str>, GrammarNode<'i>)],
+    tab: &mut StringTable<'i>,
+    input: &str,
+) -> Result<Vec<(String, GrammarNode<'i>)>, ParseError> {
     use GrammarNode::*;
 
     let m = match Parser::parse(&gg, "grammar", input) {
@@ -742,15 +745,17 @@ where
         let name = cname.raw(input);
         g.push((name.to_string(), Choice(vec![])));
         let mut gc = TreeCursorMut::new(&mut g.last_mut().unwrap().1);
-        parse_expr(input, &cval, &mut gc)?;
+        parse_expr(input, &cval, tab, &mut gc)?;
     }
 
     Ok(g)
 }
 
-pub fn parse_grammar(
-    input: &str
-) -> Result<Vec<(String, GrammarNode)>, ParseError> {
-    let gg = get_grammar_grammar();
-    parse_grammar_with_grammar(&gg, input)
+pub fn parse_grammar<'i>(
+    tab: &mut StringTable<'i>,
+    input: &str,
+) -> Result<Vec<(String, GrammarNode<'i>)>, ParseError> {
+    let mut gg_tab = StringTable::new();
+    let gg = get_grammar_grammar(&mut gg_tab);
+    parse_grammar_with_grammar(&gg, tab, input)
 }

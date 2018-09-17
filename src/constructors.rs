@@ -1,54 +1,55 @@
 use GrammarAtom;
 use GrammarNode;
+use string_table::StringTable;
 
-pub fn e(children: Vec<GrammarNode>) -> GrammarNode {
+pub fn e<'i>(children: Vec<GrammarNode<'i>>) -> GrammarNode<'i> {
     GrammarNode::Seq(children)
 }
 
-pub fn c(children: Vec<GrammarNode>) -> GrammarNode {
+pub fn c<'i>(children: Vec<GrammarNode<'i>>) -> GrammarNode<'i> {
     GrammarNode::Choice(children)
 }
 
-pub fn s(child: GrammarNode) -> GrammarNode {
+pub fn s<'i>(child: GrammarNode<'i>) -> GrammarNode<'i> {
     GrammarNode::Star(Box::new(child))
 }
 
-pub fn p(child: GrammarNode) -> GrammarNode {
+pub fn p<'i>(child: GrammarNode<'i>) -> GrammarNode<'i> {
     GrammarNode::Plus(Box::new(child))
 }
 
-pub fn q(child: GrammarNode) -> GrammarNode {
+pub fn q<'i>(child: GrammarNode<'i>) -> GrammarNode<'i> {
     GrammarNode::Opt(Box::new(child))
 }
 
-pub fn z(child: GrammarNode) -> GrammarNode {
+pub fn z<'i>(child: GrammarNode<'i>) -> GrammarNode<'i> {
     GrammarNode::Pos(Box::new(child))
 }
 
-pub fn n(child: GrammarNode) -> GrammarNode {
+pub fn n<'i>(child: GrammarNode<'i>) -> GrammarNode<'i> {
     GrammarNode::Neg(Box::new(child))
 }
 
-pub fn u(name: &str, child: GrammarNode) -> GrammarNode {
+pub fn u<'i>(name: &str, child: GrammarNode<'i>) -> GrammarNode<'i> {
     GrammarNode::Group(name.to_string(), Box::new(child))
 }
 
-pub fn x(child: GrammarNode) -> GrammarNode {
+pub fn x<'i>(child: GrammarNode<'i>) -> GrammarNode<'i> {
     GrammarNode::Erase(Box::new(child))
 }
 
-pub fn k(target: &str) -> GrammarNode {
+pub fn k<'i>(target: &str) -> GrammarNode<'i> {
     GrammarNode::Link(target.to_string())
 }
 
-pub fn r(from: char, to: char) -> GrammarNode {
+pub fn r<'i>(from: char, to: char) -> GrammarNode<'i> {
     GrammarNode::Atom(GrammarAtom::Range(from, to))
 }
 
-pub fn t(text: &str) -> GrammarNode {
-    GrammarNode::Atom(GrammarAtom::Text(text.to_string()))
+pub fn t<'i>(tab: &mut StringTable<'i>, text: &str) -> GrammarNode<'i> {
+    GrammarNode::Atom(GrammarAtom::Text(tab.insert(text.to_string())))
 }
 
-pub fn a() -> GrammarNode {
+pub fn a<'i>() -> GrammarNode<'i> {
     GrammarNode::Atom(GrammarAtom::Anything)
 }

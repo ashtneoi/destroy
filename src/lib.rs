@@ -1,5 +1,6 @@
-#![feature(nll, test)]
+#![feature(nll, option_xor, test)]
 
+extern crate grow_collections;
 extern crate splop;
 #[cfg(test)] extern crate test;
 extern crate tree_cursor;
@@ -9,11 +10,13 @@ use link_tree::Link;
 use std::cmp::Ordering;
 use std::fmt;
 use std::ops::{Add, AddAssign};
+use string_table::StringTable;
 use tree_cursor::prelude::*;
 
 pub mod constructors;
 mod link_tree;
 pub mod parse;
+pub mod string_table;
 mod tests;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -91,25 +94,25 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
 
 // TODO: Derive more traits.
 #[derive(Clone, Eq, Ord, PartialEq)]
-pub enum GrammarAtom {
+pub enum GrammarAtom<'i> {
     Anything,
-    Text(String),
+    Text(&'i (String, usize)),
     Range(char, char),
 }
 
-impl fmt::Debug for GrammarAtom {
+impl<'i> fmt::Debug for GrammarAtom<'i> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use GrammarAtom::*;
         match self {
             &Range(to, from) =>
                 write!(f, "{:#X}..{:#X}", &(to as u32), &(from as u32)),
-            &Text(ref t) => write!(f, "{:?}", t),
+            &Text(&(ref t, _)) => write!(f, "@{}", t),
             &Anything => write!(f, "%"),
         }
     }
 }
 
-impl fmt::Display for GrammarAtom {
+impl<'i> fmt::Display for GrammarAtom<'i> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use GrammarAtom::*;
         match self {
@@ -120,18 +123,19 @@ impl fmt::Display for GrammarAtom {
                     &(to as u32),
                     &(from as u32),
                 ),
-            &Text(ref t) =>
+            &Text(&(ref t, _)) => {
                 if t.is_empty() {
                     write!(f, "end of input")
                 } else {
                     write!(f, "{:?}", t)
-                },
+                }
+            },
             &Anything => write!(f, "any code point"),
         }
     }
 }
 
-impl PartialOrd for GrammarAtom {
+impl<'i> PartialOrd for GrammarAtom<'i> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         use GrammarAtom::*;
         use Ordering::*;
@@ -149,21 +153,21 @@ impl PartialOrd for GrammarAtom {
 
 // TODO: Derive more traits.
 #[derive(Clone, Eq, PartialEq)]
-pub enum GrammarNode {
-    Seq(Vec<GrammarNode>),
-    Choice(Vec<GrammarNode>),
-    Star(Box<GrammarNode>),
-    Plus(Box<GrammarNode>),
-    Opt(Box<GrammarNode>),
-    Pos(Box<GrammarNode>),
-    Neg(Box<GrammarNode>),
-    Group(String, Box<GrammarNode>),
-    Erase(Box<GrammarNode>),
+pub enum GrammarNode<'i> {
+    Seq(Vec<GrammarNode<'i>>),
+    Choice(Vec<GrammarNode<'i>>),
+    Star(Box<GrammarNode<'i>>),
+    Plus(Box<GrammarNode<'i>>),
+    Opt(Box<GrammarNode<'i>>),
+    Pos(Box<GrammarNode<'i>>),
+    Neg(Box<GrammarNode<'i>>),
+    Group(String, Box<GrammarNode<'i>>),
+    Erase(Box<GrammarNode<'i>>),
     Link(String),
-    Atom(GrammarAtom),
+    Atom(GrammarAtom<'i>),
 }
 
-impl fmt::Debug for GrammarNode {
+impl<'i> fmt::Debug for GrammarNode<'i> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use GrammarNode::*;
         match self {
@@ -208,7 +212,7 @@ impl fmt::Debug for GrammarNode {
     }
 }
 
-impl GrammarNode {
+impl<'i> GrammarNode<'i> {
     fn try_match(&self, input: &str) -> Option<PosDelta> {
         use GrammarAtom::*;
         use GrammarNode::*;
@@ -228,7 +232,7 @@ impl GrammarNode {
                     None
                 }
             },
-            &Atom(Text(ref t)) => {
+            &Atom(Text(&(ref t, _))) => {
                 if input.starts_with(t) {
                     let mut cp_count: isize = 0;
                     let nls: Vec<isize> = t.chars()
@@ -309,7 +313,7 @@ impl GrammarNode {
 
 }
 
-impl Down for GrammarNode {
+impl<'i> Down for GrammarNode<'i> {
     fn down(&self, idx: usize) -> Option<&Self> {
         use GrammarNode::*;
         match self {
@@ -334,7 +338,7 @@ impl Down for GrammarNode {
     }
 }
 
-impl DownMut for GrammarNode {
+impl<'i> DownMut for GrammarNode<'i> {
     fn down_mut(&mut self, idx: usize) -> Option<&mut Self> {
         use GrammarNode::*;
         match self {
@@ -359,7 +363,7 @@ impl DownMut for GrammarNode {
     }
 }
 
-impl Link for GrammarNode {
+impl<'i> Link for GrammarNode<'i> {
     fn target(&self) -> Option<&str> {
         match self {
             &GrammarNode::Link(ref t) => Some(t),
@@ -368,11 +372,13 @@ impl Link for GrammarNode {
     }
 }
 
-pub fn get_utils() -> Vec<(&'static str, GrammarNode)> {
+pub fn get_utils<'i>(
+    tab: &mut StringTable<'i>,
+) -> Vec<(&'static str, GrammarNode<'i>)> {
     vec![
         ("nzdigit", r('1', '9')),
         ("digit", c(vec![
-            t("0"),
+            t(tab, "0"),
             k("nzdigit"),
         ])),
         ("latin_letter", c(vec![
