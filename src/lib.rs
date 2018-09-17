@@ -106,7 +106,7 @@ impl<'i> fmt::Debug for GrammarAtom<'i> {
         match self {
             &Range(to, from) =>
                 write!(f, "{:#X}..{:#X}", &(to as u32), &(from as u32)),
-            &Text(&(ref t, _)) => write!(f, "@{}", t),
+            &Text(&StringTableEntry(ref t, _)) => write!(f, "@{}", t),
             &Anything => write!(f, "%"),
         }
     }
@@ -123,7 +123,7 @@ impl<'i> fmt::Display for GrammarAtom<'i> {
                     &(to as u32),
                     &(from as u32),
                 ),
-            &Text(&(ref t, _)) => {
+            &Text(&StringTableEntry(ref t, _)) => {
                 if t.is_empty() {
                     write!(f, "end of input")
                 } else {
@@ -131,6 +131,24 @@ impl<'i> fmt::Display for GrammarAtom<'i> {
                 }
             },
             &Anything => write!(f, "any code point"),
+        }
+    }
+}
+
+impl<'i> PartialEq for GrammarAtom<'i> {
+    fn eq(&self, other: &Self) -> bool {
+        use GrammarAtom::*;
+        match (self, other) {
+            (Anything, Anything) => true,
+            (Anything, _) => false,
+            (_, Anything) => false,
+            (
+                Text(&StringTableEntry(ref t, _)),
+                Text(&StringTableEntry(ref u, _)),
+            ) => t == u,
+            (Range(a, b), Range(c, d)) => (a, b) == (c, d),
+            (Range(..), _) => false,
+            (_, Range(..)) => false,
         }
     }
 }
@@ -143,25 +161,13 @@ impl<'i> PartialOrd for GrammarAtom<'i> {
             (Anything, Anything) => Some(Equal),
             (Anything, _) => Some(Less),
             (_, Anything) => Some(Greater),
-            (Text(&(ref t, _)), Text(&(ref u, _))) => t.partial_cmp(u),
+            (
+                Text(&StringTableEntry(ref t, _)),
+                Text(&StringTableEntry(ref u, _)),
+            ) => t.partial_cmp(u),
             (Range(a, b), Range(c, d)) => (a, b).partial_cmp(&(c, d)),
             (Range(..), _) => Some(Greater),
             (_, Range(..)) => Some(Less),
-        }
-    }
-}
-
-impl<'i> PartialEq for GrammarAtom<'i> {
-    fn eq(&self, other: &Self) -> bool {
-        use GrammarAtom::*;
-        match (self, other) {
-            (Anything, Anything) => true,
-            (Anything, _) => false,
-            (_, Anything) => false,
-            (Text(&(ref t, _)), Text(&(ref u, _))) => t == u,
-            (Range(a, b), Range(c, d)) => (a, b) == (c, d),
-            (Range(..), _) => false,
-            (_, Range(..)) => false,
         }
     }
 }
@@ -251,7 +257,7 @@ impl<'i> GrammarNode<'i> {
                 }
             },
             &Atom(Text(x)) => {
-                let &(ref t, _) = x;
+                let &StringTableEntry(ref t, _) = x;
                 if input.starts_with(t) {
                     let mut cp_count: isize = 0;
                     let nls: Vec<isize> = t.chars()

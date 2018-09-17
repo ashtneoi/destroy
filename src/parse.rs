@@ -13,11 +13,17 @@ use tree_cursor::cursor::TreeCursorMut;
 use tree_cursor::prelude::*;
 
 // TODO: verify that Clone is acceptable
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Eq)]
 pub struct Match<'i> {
     pub(super) raw: (Pos, Pos),
     interned: Option<&'i StringTableEntry>,
     named: Vec<(String, Vec<Match<'i>>)>,
+}
+
+impl<'i> PartialEq for Match<'i> {
+    fn eq(&self, other: &Self) -> bool {
+        &self.raw == &other.raw && &self.named == &other.named
+    }
 }
 
 impl<'i> fmt::Debug for Match<'i> {
@@ -35,6 +41,9 @@ impl<'i> fmt::Debug for Match<'i> {
                 write!(f, "{}: {:?}", name, children)?;
             }
             write!(f, "}}")?;
+        }
+        if let Some(&StringTableEntry(_, n)) = self.interned {
+            write!(f, "@{}", n)?;
         }
 
         Ok(())
