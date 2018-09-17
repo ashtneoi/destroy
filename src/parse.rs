@@ -723,8 +723,8 @@ fn parse_expr<'i>(
     Ok(())
 }
 
-pub(super) fn parse_grammar_with_grammar<'i, 'g>(
-    gg: &'g [(impl Borrow<str>, GrammarNode<'i>)],
+pub(super) fn parse_grammar_with_grammar<'i>(
+    gg: &[(impl Borrow<str>, GrammarNode<'i>)],
     tab: &mut StringTable<'i>,
     input: &str,
 ) -> Result<Vec<(String, GrammarNode<'i>)>, ParseError> {
