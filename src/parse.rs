@@ -254,7 +254,7 @@ pub struct Parser<'x, 's, 'i: 'x> {
 }
 
 impl<'x, 's, 'i: 'x> Parser<'x, 's, 'i> {
-    pub fn parse<'a>(
+    pub fn parse(
         named: &'x [(impl Borrow<str>, GrammarNode<'i>)],
         start: &str,
         input: &'s str,
@@ -282,7 +282,7 @@ impl<'x, 's, 'i: 'x> Parser<'x, 's, 'i> {
         &mut self,
         mut success: bool,
         suppress_down: bool,
-    ) -> Option<Result<Match, Match>> {
+    ) -> Option<Result<Match<'i>, Match<'i>>> {
         // TODO: Return type isn't very clear.
         loop {
             let a = if success {
