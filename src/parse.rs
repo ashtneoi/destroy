@@ -723,7 +723,7 @@ fn parse_expr<'i>(
     Ok(())
 }
 
-pub(super) fn parse_grammar_with_grammar<'i, 'g: 'i>(
+pub(super) fn parse_grammar_with_grammar<'i, 'g>(
     gg: &'g [(impl Borrow<str>, GrammarNode<'i>)],
     tab: &mut StringTable<'i>,
     input: &str,
