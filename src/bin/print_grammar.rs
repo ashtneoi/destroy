@@ -1,6 +1,7 @@
 extern crate destroy;
 
 use destroy::parse::parse_grammar;
+use destroy::string_table::StringTable;
 use std::io;
 use std::io::Read;
 use std::process::exit;
@@ -14,7 +15,8 @@ fn main() {
         },
         _ => (),
     }
-    match parse_grammar(&buf) {
+    let mut tab = StringTable::new();
+    match parse_grammar(&mut tab, &buf) {
         Err(e) => {
             eprintln!("error: {}", e);
             exit(1);
