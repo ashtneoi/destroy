@@ -8,7 +8,7 @@ use std::borrow::Borrow;
 use std::char;
 use std::fmt;
 use std::mem;
-use string_table::StringTable;
+use string_table::{StringTable, StringTableEntry};
 use tree_cursor::cursor::TreeCursorMut;
 use tree_cursor::prelude::*;
 
@@ -16,7 +16,7 @@ use tree_cursor::prelude::*;
 #[derive(Clone, PartialEq, Eq)]
 pub struct Match<'i> {
     pub(super) raw: (Pos, Pos),
-    interned: Option<&'i (String, usize)>,
+    interned: Option<&'i StringTableEntry>,
     named: Vec<(String, Vec<Match<'i>>)>,
 }
 

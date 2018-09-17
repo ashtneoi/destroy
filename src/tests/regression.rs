@@ -4,15 +4,17 @@ use parse::{
     Parser,
 };
 use Pos;
+use string_table::StringTable;
 use tests::mat;
 
 #[test]
 fn raw_match() {
+    let mut tab = StringTable::new();
     let g = &[
         ("start", e(vec![
-            s(t(" ")),
-            u("a", p(t("a"))),
-            u("tail", s(t(" "))),
+            s(t(&mut tab, " ")),
+            u("a", p(t(&mut tab, "a"))),
+            u("tail", s(t(&mut tab, " "))),
         ])),
     ];
 
@@ -38,8 +40,9 @@ fn raw_match() {
 fn multichar_text() {
     // Fixed by 47c39cbade923608565a5542e408e91af7cea4be.
 
+    let mut tab = StringTable::new();
     let g = &[
-        ("x", t("aaa")),
+        ("x", t(&mut tab, "aaa")),
     ];
 
     assert_eq!(
@@ -52,13 +55,14 @@ fn multichar_text() {
 fn pos_confusion() {
     // Fixed by 5fddc3165725a178817f967eb687d4f173e9b166.
 
+    let mut tab = StringTable::new();
     let g = &[
         ("x", e(vec![
             s(e(vec![
-                s(t("a")),
-                t("b"),
+                s(t(&mut tab, "a")),
+                t(&mut tab, "b"),
             ])),
-            t("a"),
+            t(&mut tab, "a"),
         ])),
     ];
 
@@ -69,9 +73,10 @@ fn pos_confusion() {
 fn wrong_pos_after_nl() {
     // Fixed by dfc4bd5d6b9d14bef7d4873b0a0a07c0d1fafe95.
 
+    let mut tab = StringTable::new();
     let g = &[
         ("x", e(vec![
-            t("a\nb"),
+            t(&mut tab, "a\nb"),
         ])),
     ];
 
@@ -84,15 +89,17 @@ fn wrong_pos_after_nl() {
 #[test]
 fn choice_precedence() {
     // Fixed by 24ed683888da95edb2eea971da2e342d7ac40284.
-    let g = parse_grammar(r##"A = "a" / "b"? "c""##).unwrap();
+    let mut tab = StringTable::new();
+    let g = parse_grammar(&mut tab, r##"A = "a" / "b"? "c""##).unwrap();
     Parser::parse(&g, "A", "a").unwrap();
 }
 
 #[test]
 fn wrong_prefix_order() {
     // Fixed by c5a113997e5b962ed247ef62f1e04099260f7d18.
-    let g1 = parse_grammar(r##"A = ^-"a""##).unwrap();
+    let mut tab = StringTable::new();
+    let g1 = parse_grammar(&mut tab, r##"A = ^-"a""##).unwrap();
     assert_eq!(g1, vec![
-        ("A".to_string(), c(vec![e(vec![z(n(t("a")))])])),
+        ("A".to_string(), c(vec![e(vec![z(n(t(&mut tab, "a")))])])),
     ]);
 }

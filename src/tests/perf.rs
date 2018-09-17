@@ -1,6 +1,7 @@
 use parse::{
     parse_grammar,
 };
+use string_table::StringTable;
 use test::Bencher;
 
 #[bench]
@@ -12,5 +13,6 @@ fn bench_large_grammar(b: &mut Bencher) {
         );
     }
 
-    b.iter(|| parse_grammar(&large_grammar).unwrap());
+    let mut tab = StringTable::new();
+    b.iter(|| parse_grammar(&mut tab, &large_grammar).unwrap());
 }

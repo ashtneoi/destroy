@@ -11,7 +11,7 @@ fn minimal() {
     ];
 
     assert_eq!(
-        Parser::parse(g, &mat, "start", "aaa").unwrap(),
+        Parser::parse(g, "start", "aaa").unwrap(),
         mat((0, 1, 1, 3, 1, 4), vec![])
     );
 }
@@ -162,7 +162,6 @@ fn lookahead() {
 
 #[test]
 fn anything() {
-    let tab = StringTable::new();
     let g = &[
         ("x", e(vec![
             a(),

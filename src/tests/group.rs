@@ -1,13 +1,15 @@
 use constructors::*;
 use parse::Parser;
+use string_table::StringTable;
 use tests::mat;
 
 #[test]
 fn e_group_two_names() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", e(vec![
-            u("A", q(t("a"))),
-            u("B", q(t("b"))),
+            u("A", q(t(&mut tab, "a"))),
+            u("B", q(t(&mut tab, "b"))),
         ])),
     ];
 
@@ -22,10 +24,12 @@ fn e_group_two_names() {
 
 #[test]
 fn e_group_one_name() {
+    let mut tab = StringTable::new();
+
     let g1 = &[
         ("x", e(vec![
-            q(t("a")),
-            u("B", t("b")),
+            q(t(&mut tab, "a")),
+            u("B", t(&mut tab, "b")),
         ])),
     ];
 
@@ -44,8 +48,8 @@ fn e_group_one_name() {
 
     let g2 = &[
         ("x", e(vec![
-            u("A", t("a")),
-            q(t("b")),
+            u("A", t(&mut tab, "a")),
+            q(t(&mut tab, "b")),
         ])),
     ];
 
@@ -65,10 +69,11 @@ fn e_group_one_name() {
 
 #[test]
 fn e_group_same_name() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", e(vec![
-            u("A", t("a")),
-            u("A", t("b")),
+            u("A", t(&mut tab, "a")),
+            u("A", t(&mut tab, "b")),
         ])),
     ];
 
@@ -85,10 +90,11 @@ fn e_group_same_name() {
 
 #[test]
 fn e_group_no_names() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", e(vec![
-            q(t("a")),
-            q(t("b")),
+            q(t(&mut tab, "a")),
+            q(t(&mut tab, "b")),
         ])),
     ];
 
@@ -112,10 +118,11 @@ fn e_group_no_names() {
 
 #[test]
 fn c_group() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", c(vec![
-            u("A", t("a")),
-            u("B", t("b")),
+            u("A", t(&mut tab, "a")),
+            u("B", t(&mut tab, "b")),
         ])),
     ];
 
@@ -135,9 +142,10 @@ fn c_group() {
 
 #[test]
 fn s_group() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", s(
-            u("A", u("E", t("a"))),
+            u("A", u("E", t(&mut tab, "a"))),
         )),
     ];
 
@@ -162,9 +170,10 @@ fn s_group() {
 
 #[test]
 fn p_group() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", p(
-            u("A", u("E", t("a"))),
+            u("A", u("E", t(&mut tab, "a"))),
         )),
     ];
 
@@ -185,9 +194,10 @@ fn p_group() {
 
 #[test]
 fn q_group() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", q(
-            u("A", t("a"))
+            u("A", t(&mut tab, "a"))
         )),
     ];
 
@@ -205,10 +215,11 @@ fn q_group() {
 
 #[test]
 fn z_group() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", e(vec![
-            z(u("E", t("a"))),
-            u("A", t("a")),
+            z(u("E", t(&mut tab, "a"))),
+            u("A", t(&mut tab, "a")),
         ])),
     ];
 
@@ -222,10 +233,11 @@ fn z_group() {
 
 #[test]
 fn g_group() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", e(vec![
-            n(u("E", t("e"))),
-            u("A", t("a")),
+            n(u("E", t(&mut tab, "e"))),
+            u("A", t(&mut tab, "a")),
         ])),
     ];
 
@@ -239,9 +251,10 @@ fn g_group() {
 
 #[test]
 fn x_group() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x",
-            x(u("A", t("a"))),
+            x(u("A", t(&mut tab, "a"))),
         ),
     ];
 
@@ -253,9 +266,10 @@ fn x_group() {
 
 #[test]
 fn k_group() {
+    let mut tab = StringTable::new();
     let g = &[
         ("x", k("w")),
-        ("w", u("A", t("a"))),
+        ("w", u("A", t(&mut tab, "a"))),
     ];
 
     assert_eq!(

@@ -93,10 +93,10 @@ fn act(down: bool, zero: bool, keep: bool, success: bool) -> Action {
 }
 
 // TODO: Derive more traits.
-#[derive(Clone, Eq, Ord, PartialEq)]
+#[derive(Clone, Eq, Ord)]
 pub enum GrammarAtom<'i> {
     Anything,
-    Text(&'i (String, usize)),
+    Text(&'i StringTableEntry),
     Range(char, char),
 }
 
@@ -143,10 +143,25 @@ impl<'i> PartialOrd for GrammarAtom<'i> {
             (Anything, Anything) => Some(Equal),
             (Anything, _) => Some(Less),
             (_, Anything) => Some(Greater),
-            (Text(t), Text(u)) => t.partial_cmp(u),
+            (Text(&(ref t, _)), Text(&(ref u, _))) => t.partial_cmp(u),
             (Range(a, b), Range(c, d)) => (a, b).partial_cmp(&(c, d)),
             (Range(..), _) => Some(Greater),
             (_, Range(..)) => Some(Less),
+        }
+    }
+}
+
+impl<'i> PartialEq for GrammarAtom<'i> {
+    fn eq(&self, other: &Self) -> bool {
+        use GrammarAtom::*;
+        match (self, other) {
+            (Anything, Anything) => true,
+            (Anything, _) => false,
+            (_, Anything) => false,
+            (Text(&(ref t, _)), Text(&(ref u, _))) => t == u,
+            (Range(a, b), Range(c, d)) => (a, b) == (c, d),
+            (Range(..), _) => false,
+            (_, Range(..)) => false,
         }
     }
 }

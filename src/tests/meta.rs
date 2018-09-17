@@ -5,11 +5,13 @@ use parse::{
     parse_grammar_with_grammar,
     Parser,
 };
+use string_table::StringTable;
 use test::Bencher;
 
 #[test]
 fn ident() {
-    let g = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g = get_grammar_grammar(&mut tab);
 
     Parser::parse(&g, "ident", "a").unwrap();
     Parser::parse(&g, "ident", "A").unwrap();
@@ -27,14 +29,16 @@ fn ident() {
 
 #[bench]
 fn bench_ident(b: &mut Bencher) {
-    let g = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g = get_grammar_grammar(&mut tab);
 
     b.iter(|| Parser::parse(&g, "ident", "_foo_bar90"));
 }
 
 #[test]
 fn expr() {
-    let g = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g = get_grammar_grammar(&mut tab);
 
     Parser::parse(&g, "expr", "\"a\"").unwrap();
     Parser::parse(&g, "expr", "0x80..0x10FFFF").unwrap();
@@ -42,7 +46,8 @@ fn expr() {
 
 #[test]
 fn wso() {
-    let g = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g = get_grammar_grammar(&mut tab);
 
     Parser::parse(&g, "wso", "").unwrap();
     Parser::parse(&g, "wso", " ").unwrap();
@@ -58,7 +63,8 @@ fn wso() {
 
 #[test]
 fn ws() {
-    let g = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g = get_grammar_grammar(&mut tab);
 
     Parser::parse(&g, "ws", "").unwrap();
     Parser::parse(&g, "ws", " ").unwrap();
@@ -77,7 +83,8 @@ fn ws() {
 
 #[test]
 fn expr_plus() {
-    let g = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g = get_grammar_grammar(&mut tab);
 
     Parser::parse(&g, "expr", "c+").unwrap();
     Parser::parse(&g, "rule", "a = b c+").unwrap();
@@ -85,21 +92,24 @@ fn expr_plus() {
 
 #[test]
 fn expr_atom() {
-    let g = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g = get_grammar_grammar(&mut tab);
 
     Parser::parse(&g, "expr_atom", "\"a\"").unwrap();
 }
 
 #[test]
 fn rule() {
-    let g = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g = get_grammar_grammar(&mut tab);
 
     Parser::parse(&g, "rule", "A = \"a\"").unwrap();
 }
 
 #[test]
 fn grammar() {
-    let g = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g = get_grammar_grammar(&mut tab);
 
     Parser::parse(&g, "grammar", "A = \"a\"").unwrap();
     Parser::parse(&g, "grammar", "A = \"a\"\n").unwrap();
@@ -152,7 +162,8 @@ static GRAMMAR_GRAMMAR_STR: &str = r##"
 
 #[test]
 fn bootstrap_stage1_parse_only() {
-    let g0 = get_grammar_grammar();
+    let mut tab = StringTable::new();
+    let g0 = get_grammar_grammar(&mut tab);
 
     Parser::parse(&g0, "grammar", GRAMMAR_GRAMMAR_STR).unwrap();
 }
@@ -163,25 +174,28 @@ fn parse_minimal_grammar() {
         A = "a"*
     "##;
 
-    let g = parse_grammar(i).unwrap();
+    let mut tab = StringTable::new();
+    let g = parse_grammar(&mut tab, i).unwrap();
     assert_eq!(
         g,
         vec![
-            ("A".to_string(), c(vec![e(vec![s(t("a"))])])),
+            ("A".to_string(), c(vec![e(vec![s(t(&mut tab, "a"))])])),
         ],
     );
 }
 
 #[test]
 fn bootstrap() {
-    let g1 = parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap();
+    let mut tab = StringTable::new();
 
-    let g2 = parse_grammar_with_grammar(&g1, GRAMMAR_GRAMMAR_STR)
+    let g1 = parse_grammar(&mut tab, GRAMMAR_GRAMMAR_STR).unwrap();
+
+    let g2 = parse_grammar_with_grammar(&g1, &mut tab, GRAMMAR_GRAMMAR_STR)
         .unwrap();
 
     assert_eq!(&g1, &g2);
 
-    let g3 = parse_grammar_with_grammar(&g2, GRAMMAR_GRAMMAR_STR)
+    let g3 = parse_grammar_with_grammar(&g2, &mut tab, GRAMMAR_GRAMMAR_STR)
         .unwrap();
 
     assert_eq!(&g2, &g3);
@@ -189,5 +203,6 @@ fn bootstrap() {
 
 #[bench]
 fn bench_bootstrap(b: &mut Bencher) {
-    b.iter(|| parse_grammar(GRAMMAR_GRAMMAR_STR).unwrap());
+    let mut tab = StringTable::new();
+    b.iter(|| parse_grammar(&mut tab, GRAMMAR_GRAMMAR_STR).unwrap());
 }
