@@ -106,7 +106,7 @@ impl<'i> fmt::Debug for GrammarAtom<'i> {
         match self {
             &Range(to, from) =>
                 write!(f, "{:#X}..{:#X}", &(to as u32), &(from as u32)),
-            &Text(&StringTableEntry(ref t, _)) => write!(f, "@{}", t),
+            &Text(&StringTableEntry(ref t, _)) => write!(f, "@\"{}\"", t),
             &Anything => write!(f, "%"),
         }
     }
