@@ -10,7 +10,7 @@ fn main() {
     let mut buf = String::new();
     match io::stdin().read_to_string(&mut buf) {
         Err(e) => {
-            eprintln!("error: can't read from file ({})", e);
+            eprintln!("error: can't read from stdin ({})", e);
             exit(2);
         },
         _ => (),
