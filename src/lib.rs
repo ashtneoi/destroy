@@ -32,6 +32,18 @@ impl Pos {
     }
 }
 
+impl PartialOrd for Pos {
+    fn partial_cmp(&self, other: &Pos) -> Option<Ordering> {
+        Some(self.lin.cmp(&other.lin))
+    }
+}
+
+impl Ord for Pos {
+    fn cmp(&self, other: &Pos) -> Ordering {
+        self.lin.cmp(&other.lin)
+    }
+}
+
 impl fmt::Debug for Pos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}/{},{}", self.lin, self.row, self.col)
